@@ -481,30 +481,33 @@ const DashboardLayout = () => {
       </aside>
 
       {/* Main wrapper */}
-      <div className={["flex flex-col min-h-screen transition-all duration-300", isSidebarOpen ? "lg:pl-72" : "lg:pl-0"].join(" ")}>
+      <div className={["flex flex-col min-h-screen transition-all duration-300 relative", isSidebarOpen ? "lg:pl-72" : "lg:pl-0"].join(" ")}>
         {/* Navbar */}
-        <header className="h-20 bg-white/80 dark:bg-slate-950/60 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
+        <header className={location.pathname === '/dashboard' 
+          ? "h-20 absolute top-0 left-0 right-0 z-30 pointer-events-none bg-transparent flex items-center justify-between px-6 lg:px-10" 
+          : "h-20 bg-white/80 dark:bg-slate-950/60 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30"}
+        >
           {/* Left */}
-          <div className="flex items-center gap-4">
+          <div className={`flex items-center gap-4 pointer-events-auto ${location.pathname === '/dashboard' ? 'bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 px-4 py-2 rounded-2xl' : ''}`}>
             <button
               aria-label="Open sidebar menu"
-              className="p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition"
               onClick={() => setIsSidebarOpen(true)}
             >
-              <Menu size={24} />
+              <Menu size={20} />
             </button>
 
             <div className="hidden sm:flex items-center space-x-2 text-sm">
-              <span className="text-slate-400 dark:text-slate-500">Dashboard</span>
-              <ChevronRight size={14} className="text-slate-300 dark:text-slate-600" />
-              <span className="text-slate-900 dark:text-white font-bold capitalize">
+              <span className="text-slate-500 font-medium">Dashboard</span>
+              <ChevronRight size={14} className="text-slate-300" />
+              <span className="text-slate-800 font-bold capitalize">
                 {pageTitle || "Dashboard"}
               </span>
             </div>
           </div>
 
           {/* Right */}
-          <div className="flex items-center space-x-4">
+          <div className={`flex items-center space-x-4 pointer-events-auto ${location.pathname === '/dashboard' ? 'bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 px-2 py-1.5 rounded-[1.25rem]' : ''}`}>
             
             {/* ✅ New Route Action Button (Links to Map floating panel) */}
             {location.pathname === '/dashboard' && (

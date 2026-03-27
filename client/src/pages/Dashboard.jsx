@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth/hooks/useAuth';
 import { ShipmentCreationFlow } from '../components/ShipmentCreationFlow';
 import { RouteMap } from '../components/RouteMap';
-import { X } from 'lucide-react';
+import { X, Car, Bike, Bus, Truck, Footprints } from 'lucide-react';
+
+const vehicleOptions = [
+  { label: 'Car', value: 'car', icon: <Car size={18} /> },
+  { label: 'Bike', value: 'bike', icon: <Bike size={18} /> },
+  { label: 'Walk', value: 'foot', icon: <Footprints size={18} /> },
+  { label: 'Bus', value: 'bus', icon: <Bus size={18} /> },
+  { label: 'Truck', value: 'truck', icon: <Truck size={18} /> },
+];
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -12,6 +20,8 @@ const Dashboard = () => {
   const [showSearchPanel, setShowSearchPanel] = useState(false);
   const [weather, setWeather] = useState({ temp: 24, condition: 'Clear', risk: 'Low', icon: 'https://openweathermap.org/img/wn/01d.png' });
   const [vehicleMode, setVehicleMode] = useState('car');
+
+  const [routeData, setRouteData] = useState(null);
 
   // Clear/close route handler
   const handleClearRoute = () => {
@@ -24,6 +34,11 @@ const Dashboard = () => {
      setSelectedDest(null);
   };
 
+  useEffect(() => {
+    const fn = () => setShowSearchPanel(true);
+    window.addEventListener('toggleNewRoute', fn);
+    return () => window.removeEventListener('toggleNewRoute', fn);
+  }, []);
 
   // Only show float when user calls it (e.g. via button)
   const handleOpenFloat = () => setShowSearchPanel(true);
@@ -31,19 +46,9 @@ const Dashboard = () => {
   return (
     <div className="dashboard-root h-screen w-screen flex flex-col bg-slate-50 overflow-hidden">
 
-      {/* Button to open float panel */}
-      {!showSearchPanel && (
-        <button
-          className="absolute top-6 left-6 z-[1100] bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-3 rounded-xl shadow-xl border border-blue-700 transition"
-          onClick={handleOpenFloat}
-        >
-          Plan AI Route
-        </button>
-      )}
-
       {/* Floating Search Panel (only when user opens) */}
       {showSearchPanel && (
-        <div className="absolute top-6 left-6 z-[1100] shadow-2xl" style={{ maxWidth: 400 }}>
+        <div className="absolute top-24 left-6 lg:left-10 z-[1100] shadow-2xl" style={{ maxWidth: 400 }}>
           <div className="bg-white shadow-2xl rounded-2xl w-96 max-w-[calc(100vw-2rem)] overflow-hidden flex flex-col border border-slate-200">
             <div className="bg-blue-600 px-4 py-3 flex items-center justify-between text-white">
               <div className="flex items-center gap-2 font-bold">
@@ -73,6 +78,8 @@ const Dashboard = () => {
       <div className="flex flex-1 min-h-0 min-w-0 relative" style={{ height: 'calc(100vh - 0px)' }}>
         {/* Map Area (Primary) */}
         <div className="flex-1 min-w-0 min-h-0 relative" style={{ width: '75vw', height: '100%' }}>
+          
+          {/* Main Map Component */}
           <RouteMap
             selectedSource={selectedSource}
             selectedDestination={selectedDest}
@@ -83,14 +90,31 @@ const Dashboard = () => {
             mapTiles="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             mapAttribution="&copy; <a href='https://carto.com/attributions'>CARTO</a>"
             showWeatherInPanel={true}
+            onRouteData={setRouteData}
+            externalActiveRouteIndex={routeData?.activeRouteIndex}
           />
+
+          {/* Floating Transportation Modes (Bottom Center) */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1050] bg-white/90 backdrop-blur-md px-2 py-2 rounded-full shadow-2xl border border-slate-200 flex items-center gap-1">
+            {vehicleOptions.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setVehicleMode(opt.value)}
+                title={`Route via ${opt.label}`}
+                className={`p-3 rounded-full flex items-center justify-center transition-all ${vehicleMode === opt.value ? 'bg-blue-600 text-white shadow-md shadow-blue-500/40 scale-105' : 'text-slate-600 hover:bg-slate-100 hover:text-blue-600'}`}
+              >
+                {opt.icon}
+              </button>
+            ))}
+          </div>
         </div>
         {/* Side Panel (Route Details, Weather, Risk) */}
-        <div className="w-[25vw] min-w-[320px] max-w-[420px] h-full bg-white/90 border-l border-slate-200 shadow-xl flex flex-col p-6 gap-4 overflow-y-auto z-[1050]">
+        <div className="w-[25vw] min-w-[320px] max-w-[420px] bg-slate-50 border-l border-slate-200 shadow-xl flex flex-col p-6 gap-4 overflow-y-auto z-[1050]" style={{ height: 'calc(100vh - 5rem)', marginTop: '5rem' }}>
           <RouteMap.SidePanel
             selectedSource={selectedSource}
             selectedDestination={selectedDest}
             vehicleMode={vehicleMode}
+            {...routeData}
           />
         </div>
       </div>

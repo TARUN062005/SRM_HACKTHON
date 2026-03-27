@@ -82,18 +82,7 @@ export const ShipmentCreationFlow = ({ onLocationSelect, onClearRoute, vehicleMo
       
       {/* Search Start Point */}
       <div className="relative">
-        {/* Close/clear button for route search */}
-        {onClearRoute && (
-          <button
-            className="absolute top-0 right-0 z-20 p-1 text-slate-400 hover:text-red-500"
-            style={{ marginTop: '-2.2rem', marginRight: '-0.5rem' }}
-            onClick={onClearRoute}
-            tabIndex={-1}
-            type="button"
-          >
-            <X size={18} />
-          </button>
-        )}
+
         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">
           Origin Point
         </label>
@@ -200,19 +189,7 @@ export const ShipmentCreationFlow = ({ onLocationSelect, onClearRoute, vehicleMo
         />
       </div>
 
-      {/* Vehicle selection */}
-      <div className="flex gap-2 mt-2 mb-1">
-        {vehicleOptions.map(opt => (
-          <button
-            key={opt.value}
-            type="button"
-            className={`flex items-center gap-1 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${vehicleMode === opt.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-slate-200 text-slate-700 hover:bg-blue-50'}`}
-            onClick={() => setVehicleMode(opt.value)}
-          >
-            {opt.icon} {opt.label}
-          </button>
-        ))}
-      </div>
+
 
       {/* Action Button */}
       <button
