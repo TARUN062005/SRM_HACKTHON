@@ -63,7 +63,7 @@ const AuthCallback = () => {
         </div>
       </div>
       <p className="mt-6 text-slate-900 font-bold text-lg animate-pulse">Finalizing your secure session...</p>
-      <p className="text-slate-500 text-sm">Validating credentials with AuthSecure...</p>
+      <p className="text-slate-500 text-sm">Validating credentials with RouteGuardian...</p>
     </div>
   );
 };

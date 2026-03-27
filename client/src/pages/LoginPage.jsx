@@ -165,7 +165,7 @@ const LoginPage = () => {
               <div className="w-full border-t border-gray-100" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-400 font-medium">New to AuthSecure?</span>
+              <span className="px-4 bg-white text-gray-400 font-medium">New to RouteGuardian?</span>
             </div>
           </div>
 

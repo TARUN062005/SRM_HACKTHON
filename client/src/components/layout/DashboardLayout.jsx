@@ -419,7 +419,7 @@ const DashboardLayout = () => {
               <Shield className="text-white" size={24} />
             </div>
             <span className="ml-3 text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-              AuthSecure
+              RouteGuardian
             </span>
           </button>
 

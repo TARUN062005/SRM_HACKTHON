@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, Popup, Circle, useMap, useMapEvents, LayersControl, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, Popup, Circle, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
@@ -59,7 +59,7 @@ const MapInteractionHandler = ({ allRoutes, onMapClick }) => {
 // Main Routing and Weather Analysis Engine Component
 // Accept setWeather prop for weather overlay
 import { X } from 'lucide-react';
-export const RouteMap = ({ selectedSource, selectedDestination, onManualReset, setWeather, vehicleMode = 'car', onClearRoute }) => {
+export const RouteMap = ({ selectedSource, selectedDestination, onManualReset, setWeather, vehicleMode = 'car', onClearRoute, mapTiles, mapAttribution, showWeatherInPanel }) => {
   const [allRoutes, setAllRoutes] = useState([]); // Multiple routes
   const [activeRouteIndex, setActiveRouteIndex] = useState(0);
   const [riskZones, setRiskZones] = useState([]);
@@ -283,9 +283,11 @@ export const RouteMap = ({ selectedSource, selectedDestination, onManualReset, s
       )}
       
       {/* Interactive Geomatics Map */}
-      <MapContainer 
-        center={[39.8283, -98.5795]} 
-        zoom={4} 
+
+
+      <MapContainer
+        center={[39.8283, -98.5795]}
+        zoom={4}
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
         zoomSnap={0.25}
@@ -299,62 +301,27 @@ export const RouteMap = ({ selectedSource, selectedDestination, onManualReset, s
         inertiaMaxSpeed={1500}
       >
         <ZoomControl position="bottomright" />
-        <LayersControl position="bottomleft">
-          <LayersControl.BaseLayer checked name="Google Streets">
-            <TileLayer
-              url="http://{s}.google.com/vt?lyrs=m&x={x}&y={y}&z={z}"
-              subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
-              attribution="&copy; Google Maps"
-              maxZoom={20}
-            />
-          </LayersControl.BaseLayer>
-          
-          <LayersControl.BaseLayer name="Google Satellite (Hybrid)">
-            <TileLayer
-              url="http://{s}.google.com/vt?lyrs=s,h&x={x}&y={y}&z={z}"
-              subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
-              attribution="&copy; Google Maps"
-              maxZoom={20}
-            />
-          </LayersControl.BaseLayer>
-
-          <LayersControl.BaseLayer name="Google Terrain">
-            <TileLayer
-              url="http://{s}.google.com/vt?lyrs=p&x={x}&y={y}&z={z}"
-              subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
-              attribution="&copy; Google Maps"
-              maxZoom={20}
-            />
-          </LayersControl.BaseLayer>
-          
-          <LayersControl.Overlay name="Live Traffic Layer">
-            <TileLayer
-              url="https://{s}.google.com/vt?lyrs=m@221097413,traffic,transit&x={x}&y={y}&z={z}"
-              subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
-              attribution="&copy; Google Maps Traffic"
-              maxZoom={20}
-              opacity={0.7}
-            />
-          </LayersControl.Overlay>
-        </LayersControl>
+        <TileLayer
+          url={mapTiles || "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"}
+          attribution={mapAttribution || "&copy; <a href='https://carto.com/attributions'>CARTO</a>"}
+        />
 
         <MapInteractionHandler 
           allRoutes={allRoutes} 
           onMapClick={handleMapClick} 
         />
-        
         {/* Render Start / End Markers */}
         {activeStart && (
            <Marker position={[activeStart.lat, activeStart.lng || activeStart.lon]}>
               <Popup><strong>Origin Location</strong></Popup>
            </Marker>
         )}
-        
         {activeEnd && (
            <Marker position={[activeEnd.lat, activeEnd.lng || activeEnd.lon]}>
               <Popup><strong>Destination Target</strong></Popup>
            </Marker>
         )}
+
 
         {/* Render Extracted Risk Area Geofences */}
         {riskZones.map((zone, idx) => (
@@ -399,3 +366,31 @@ export const RouteMap = ({ selectedSource, selectedDestination, onManualReset, s
     </div>
   );
 };
+
+// SidePanel for right-side details (timings, weather, risk)
+const SidePanel = ({ selectedSource, selectedDestination, vehicleMode }) => {
+  // You can connect this to context or props for real data
+  // For now, show placeholders and structure
+  return (
+    <div>
+      <div className="font-bold text-lg text-slate-800 mb-2">Route & Weather Details</div>
+      {/* Show travel time, distance, and vehicle info here */}
+      <div className="mb-4">
+        <div className="text-slate-700 font-semibold">Vehicle: <span className="capitalize">{vehicleMode}</span></div>
+        {/* TODO: Show travel time and distance for selected route */}
+        <div className="text-slate-500 text-sm mt-1">Travel time and distance will appear here after selecting route.</div>
+      </div>
+      {/* Show weather for midpoints and risk info here */}
+      <div className="mb-4">
+        <div className="font-semibold text-slate-700 mb-1">Weather Along Route</div>
+        {/* TODO: Show weather for midpoints (icons, temp, risk) */}
+        <div className="text-slate-500 text-sm">Weather for key points along the route will appear here.</div>
+      </div>
+      {/* Add more details as needed */}
+    </div>
+  );
+};
+
+export { SidePanel };
+
+RouteMap.SidePanel = SidePanel;
