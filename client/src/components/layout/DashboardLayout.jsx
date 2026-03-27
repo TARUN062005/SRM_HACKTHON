@@ -481,7 +481,7 @@ const DashboardLayout = () => {
       </aside>
 
       {/* Main wrapper */}
-      <div className={["transition-all duration-300", isSidebarOpen ? "lg:pl-72" : "lg:pl-0"].join(" ")}>
+      <div className={["flex flex-col min-h-screen transition-all duration-300", isSidebarOpen ? "lg:pl-72" : "lg:pl-0"].join(" ")}>
         {/* Navbar */}
         <header className="h-20 bg-white/80 dark:bg-slate-950/60 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
           {/* Left */}
@@ -740,8 +740,8 @@ const DashboardLayout = () => {
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-6 lg:p-10 overflow-y-auto">
-          <div className="max-w-7xl mx-auto">
+        <main className={`flex-1 flex flex-col ${location.pathname === '/dashboard' ? 'overflow-hidden z-0' : 'p-6 lg:p-10 overflow-y-auto'}`}>
+          <div className={location.pathname === '/dashboard' ? 'flex-1 w-full flex flex-col relative' : 'max-w-7xl mx-auto'}>
             <Outlet />
           </div>
         </main>

@@ -13,16 +13,16 @@ L.Icon.Default.mergeOptions({
 });
 
 // A component to handle map bounds and user clicks securely
-const MapInteractionHandler = ({ routeCoordinates, onMapClick }) => {
+const MapInteractionHandler = ({ allRoutes, onMapClick }) => {
   const map = useMap();
   
   // Auto zoom to fit route when plotted smoothly
   useEffect(() => {
-    if (routeCoordinates && routeCoordinates.length > 0) {
-      const bounds = L.latLngBounds(routeCoordinates);
+    if (allRoutes && allRoutes.length > 0) {
+      const bounds = L.latLngBounds(allRoutes[0].coords);
       map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 10, duration: 2.0, easeLinearity: 0.25 });
     }
-  }, [routeCoordinates, map]);
+  }, [allRoutes, map]);
 
   // Handle manual point clicking on the map
   useMapEvents({
@@ -57,8 +57,11 @@ const MapInteractionHandler = ({ routeCoordinates, onMapClick }) => {
 };
 
 // Main Routing and Weather Analysis Engine Component
-export const RouteMap = ({ selectedSource, selectedDestination, onManualReset }) => {
-  const [routeCoordinates, setRouteCoordinates] = useState([]);
+// Accept setWeather prop for weather overlay
+import { X } from 'lucide-react';
+export const RouteMap = ({ selectedSource, selectedDestination, onManualReset, setWeather, vehicleMode = 'car', onClearRoute }) => {
+  const [allRoutes, setAllRoutes] = useState([]); // Multiple routes
+  const [activeRouteIndex, setActiveRouteIndex] = useState(0);
   const [riskZones, setRiskZones] = useState([]);
   const [loading, setLoading] = useState(false);
   
@@ -73,14 +76,16 @@ export const RouteMap = ({ selectedSource, selectedDestination, onManualReset })
 
   // If new props come in, override manual points
   useEffect(() => {
-     if (selectedSource && selectedDestination) {
-         setManualPoints([]); // Reset manual points to prefer Search Bar input
-         processRoute(
-             { lat: selectedSource.lat, lng: selectedSource.lon }, 
-             { lat: selectedDestination.lat, lng: selectedDestination.lon }
-         );
-     }
-  }, [selectedSource, selectedDestination]);
+    if (selectedSource && selectedDestination) {
+      setManualPoints([]); // Reset manual points to prefer Search Bar input
+      processRoute(
+        { lat: selectedSource.lat, lng: selectedSource.lon },
+        { lat: selectedDestination.lat, lng: selectedDestination.lon },
+        vehicleMode
+      );
+    }
+    // eslint-disable-next-line
+  }, [selectedSource, selectedDestination, vehicleMode]);
 
   // Handle Free-click on map to trigger points manually without search bar
   const handleMapClick = (latlng) => {
@@ -97,87 +102,108 @@ export const RouteMap = ({ selectedSource, selectedDestination, onManualReset })
      } else {
          // Reset on 3rd click
          setManualPoints([latlng]);
-         setRouteCoordinates([]);
+         setAllRoutes([]);
          setRiskZones([]);
          if (onManualReset) onManualReset();
      }
   };
 
   // The Brain logic: Get route array -> Sub-sample for weather checkpoints -> Identify Disruption Zones
-  const processRoute = async (start, end) => {
+  const processRoute = async (start, end, mode = 'car') => {
     setLoading(true);
     setRiskZones([]);
-    setRouteCoordinates([]);
+    setAllRoutes([]);
+    setActiveRouteIndex(0);
 
     try {
-      // 1. Fetch Driving Route Geometry securely from OSRM
-      const startLng = start.lng || start.lon; // handling mixed lat/lng schemas safely
+      const startLng = start.lng || start.lon;
       const startLat = start.lat;
       const endLng = end.lng || end.lon;
       const endLat = end.lat;
 
-      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?geometries=geojson`;
+      // Ask OSRM for up to 3 alternative routes
+      // Use OSRM for car/bike/foot, fallback to driving for others
+      let profile = mode;
+      if (!['car', 'bike', 'foot'].includes(mode)) profile = 'car';
+      const osrmUrl = `https://router.project-osrm.org/route/v1/${profile === 'car' ? 'driving' : profile}/${startLng},${startLat};${endLng},${endLat}?geometries=geojson&alternatives=3`;
       const routeRes = await axios.get(osrmUrl);
       
-      let latLngs = [];
+      let parsedRoutes = [];
       if (routeRes.data.routes && routeRes.data.routes.length > 0) {
-        const coords = routeRes.data.routes[0].geometry.coordinates;
-        // OSRM provides [lng, lat], leaflet needs [lat, lng]
-        latLngs = coords.map(c => [c[1], c[0]]);
+        parsedRoutes = routeRes.data.routes.slice(0, 3).map((r, i) => {
+           let type = 'Best (Lowest Risk)';
+           let color = '#3b82f6'; // Blue
+           if (i === 1) { type = 'Fastest'; color = '#22c55e'; } // Green
+           if (i === 2) { type = 'Alternative'; color = '#f97316'; } // Orange
+
+           return {
+             id: i,
+             type,
+             color,
+             coords: r.geometry.coordinates.map(c => [c[1], c[0]]),
+             distance: r.distance / 1000, // km
+             duration: r.duration / 60, // mins
+           };
+        });
       } else {
-        // Fallback straight line
-        latLngs = [[startLat, startLng], [endLat, endLng]];
+        parsedRoutes = [{ id: 0, type: 'Direct', color: '#3b82f6', coords: [[startLat, startLng], [endLat, endLng]] }];
       }
       
-      setRouteCoordinates(latLngs);
+      setAllRoutes(parsedRoutes);
 
-      // 2. Generate sampling checkpoints evenly across the real route arrays
-      // We will sample exactly 5 positions intelligently along the route to survey weather risks
+      // Best route is always index 0 for weather sampling
+      const bestRouteCoords = parsedRoutes[0].coords;
       const samplePoints = [];
-      if (latLngs.length >= 5) {
+      if (bestRouteCoords.length >= 5) {
          const intervals = [
              0,
-             Math.floor(latLngs.length * 0.25),
-             Math.floor(latLngs.length * 0.5),
-             Math.floor(latLngs.length * 0.75),
-             latLngs.length - 1
+             Math.floor(bestRouteCoords.length * 0.25),
+             Math.floor(bestRouteCoords.length * 0.5),
+             Math.floor(bestRouteCoords.length * 0.75),
+             bestRouteCoords.length - 1
          ];
-         intervals.forEach(i => samplePoints.push(latLngs[i]));
+         intervals.forEach(i => samplePoints.push(bestRouteCoords[i]));
       } else {
-         // If path too small, just use start and end
-         samplePoints.push(latLngs[0]);
-         if (latLngs.length > 1) samplePoints.push(latLngs[latLngs.length - 1]);
+         samplePoints.push(bestRouteCoords[0]);
+         if (bestRouteCoords.length > 1) samplePoints.push(bestRouteCoords[bestRouteCoords.length - 1]);
       }
 
       // 3. Evaluate Environmental Impacts (MERN style API callback safely mapping weather API mock)
       const identifiedRisks = [];
       
+      let mainWeather = { temp: 24, condition: 'Clear', risk: 'Low', icon: 'https://openweathermap.org/img/wn/01d.png' };
       for (let p of samplePoints) {
-          try {
-              // Hitting our secure backend API endpoint for processing the AI weather metrics
-              const weatherResponse = await axios.get(`${BASE_URL}/api/ai/weather?lat=${p[0]}&lon=${p[1]}`);
-              const wxData = weatherResponse.data;
-              const mainCondition = wxData.weather?.[0]?.main || "Clear";
-
-              // Define disruptive weather logic
-              if (["Rain", "Drizzle", "Thunderstorm", "Snow"].includes(mainCondition)) {
-                  identifiedRisks.push({
-                      center: [p[0], p[1]],
-                      condition: mainCondition,
-                      radius: 60000 // 60 kilometers radius impact zone natively
-                  });
-              }
-          } catch (weatherErr) {
-              console.warn("Weather checkpoint failed for coordinates", p, weatherErr);
+        try {
+          // Hitting our secure backend API endpoint for processing the AI weather metrics
+          const weatherResponse = await axios.get(`${BASE_URL}/api/ai/weather?lat=${p[0]}&lon=${p[1]}`);
+          const wxData = weatherResponse.data;
+          const mainCondition = wxData.weather?.[0]?.main || "Clear";
+          const temp = wxData.main?.temp || 24;
+          let risk = 'Low';
+          let icon = wxData.weather?.[0]?.icon ? `https://openweathermap.org/img/wn/${wxData.weather[0].icon}.png` : 'https://openweathermap.org/img/wn/01d.png';
+          if (["Rain", "Drizzle", "Thunderstorm", "Snow"].includes(mainCondition)) {
+            identifiedRisks.push({
+              center: [p[0], p[1]],
+              condition: mainCondition,
+              radius: 60000
+            });
+            risk = mainCondition === 'Thunderstorm' ? 'High' : 'Medium';
           }
+          // Use the first point's weather for overlay
+          if (p === samplePoints[0]) {
+            mainWeather = { temp, condition: mainCondition, risk, icon };
+          }
+        } catch (weatherErr) {
+          console.warn("Weather checkpoint failed for coordinates", p, weatherErr);
+        }
       }
-
       setRiskZones(identifiedRisks);
+      if (setWeather) setWeather(mainWeather);
 
     } catch (err) {
       console.error("Critical Mapping Failure:", err);
       // Absolute raw fallback
-      setRouteCoordinates([[start.lat, start.lng||start.lon], [end.lat, end.lng||end.lon]]);
+      setAllRoutes([{ id: 0, type: 'Fallback', color: '#ef4444', coords: [[start.lat, start.lng||start.lon], [end.lat, end.lng||end.lon]], distance: 0, duration: 0 }]);
     } finally {
       setLoading(false);
     }
@@ -193,23 +219,56 @@ export const RouteMap = ({ selectedSource, selectedDestination, onManualReset })
   const riskConfig = getOverallRiskConfig();
 
   return (
-    <div className="w-full h-full relative z-0 min-h-full">
+    <div className="w-full h-full relative z-0 min-h-full dashboard-map-area">
+      {/* Close/clear route button */}
+      {onClearRoute && (selectedSource || selectedDestination) && (
+        <button
+          className="absolute top-4 left-1/2 -translate-x-1/2 z-[1200] bg-white border border-slate-200 shadow-lg rounded-full px-4 py-2 flex items-center gap-2 text-slate-500 hover:text-red-600 hover:border-red-400 transition"
+          onClick={onClearRoute}
+        >
+          <X size={18} /> Close Route
+        </button>
+      )}
       
-      {/* Heads-up floating overlay showing Active Risk */}
-      {routeCoordinates.length > 0 && !loading && (
-        <div className="absolute top-4 left-4 z-[500] bg-white border border-slate-200 p-4 shadow-xl rounded-xl w-72">
-           <h3 className="font-bold text-slate-800 text-sm mb-2">AI Route Verification</h3>
-           
-           <div className={`p-2 rounded font-bold text-xs uppercase flex items-center justify-center`} 
-                style={{ backgroundColor: `${riskConfig.color}20`, color: riskConfig.color }}>
-             {riskConfig.label}
-           </div>
-
-           {riskZones.length > 0 && (
-              <p className="mt-3 text-xs text-slate-600 font-semibold leading-relaxed border-t border-slate-100 pt-2">
-                Identified {riskZones.length} hazard zone(s) natively crossing your transit path. Consider enabling auto-reroute safely.
-              </p>
-           )}
+      {/* Right side floating Weather / Route details overlay */}
+      {allRoutes.length > 0 && !loading && (
+        <div className="absolute top-4 right-16 z-[500] bg-white/90 backdrop-blur-md border border-slate-200 p-4 shadow-xl rounded-xl w-80">
+          <h3 className="font-bold text-slate-800 text-sm mb-3 border-b flex items-center justify-between pb-2 border-slate-200">
+            <span>AI Route Intelligence</span>
+            <span className="text-xs text-slate-500">{allRoutes[activeRouteIndex]?.distance?.toFixed(1)} km</span>
+          </h3>
+          <div className={`p-2 rounded font-bold text-[11px] mb-3 uppercase flex flex-col items-center justify-center`}
+            style={{ backgroundColor: `${riskConfig.color}15`, color: riskConfig.color }}>
+            <span className="mb-1">{riskConfig.label}</span>
+            <span className="text-slate-500 font-semibold tracking-wide">
+              Est. Time: {allRoutes[activeRouteIndex]?.duration?.toFixed(0)} minutes
+            </span>
+            <span className="text-xs text-slate-400 mt-1">Vehicle: {vehicleMode.charAt(0).toUpperCase() + vehicleMode.slice(1)}</span>
+          </div>
+          <div className="space-y-1">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Routes</div>
+            {allRoutes.map((r, i) => (
+              <div
+                key={i}
+                onClick={() => setActiveRouteIndex(r.id)}
+                className={`flex items-center justify-between p-2 rounded cursor-pointer transition ${r.id === activeRouteIndex ? 'bg-slate-100 ring-1 ring-slate-300' : 'hover:bg-slate-50'}`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: r.color }} />
+                  <span className="text-xs font-bold text-slate-700">{r.type}</span>
+                </div>
+                <span className="text-xs text-slate-500 font-semibold">{r.duration.toFixed(0)}m</span>
+              </div>
+            ))}
+          </div>
+          {riskZones.length > 0 && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg">
+              <div className="text-xs font-bold text-red-600 mb-1">WEATHER HAZARDS DETECTED</div>
+              <div className="text-xs text-red-500 font-medium">
+                {riskZones.length} checkpoint(s) reported <span className="uppercase font-bold">{riskZones[0].condition}</span>.
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -229,6 +288,15 @@ export const RouteMap = ({ selectedSource, selectedDestination, onManualReset })
         zoom={4} 
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
+        zoomSnap={0.25}
+        zoomDelta={0.25}
+        wheelPxPerZoomLevel={120}
+        minZoom={3}
+        maxZoom={18}
+        preferCanvas={true}
+        inertia={true}
+        inertiaDeceleration={3000}
+        inertiaMaxSpeed={1500}
       >
         <ZoomControl position="bottomright" />
         <LayersControl position="bottomleft">
@@ -271,7 +339,7 @@ export const RouteMap = ({ selectedSource, selectedDestination, onManualReset })
         </LayersControl>
 
         <MapInteractionHandler 
-          routeCoordinates={routeCoordinates} 
+          allRoutes={allRoutes} 
           onMapClick={handleMapClick} 
         />
         
@@ -308,16 +376,24 @@ export const RouteMap = ({ selectedSource, selectedDestination, onManualReset })
         ))}
 
         {/* Render Validated Route Tracing */}
-        {routeCoordinates.length > 0 && (
+        {allRoutes.length > 0 && allRoutes.slice().reverse().map((route, idx) => (
           <Polyline 
-            positions={routeCoordinates} 
-            color={riskConfig.color} 
-            weight={6} 
-            opacity={0.9}
+            key={route.id}
+            positions={route.coords} 
+            color={route.color} 
+            weight={route.id === activeRouteIndex ? 7 : 4} 
+            opacity={route.id === activeRouteIndex ? 1 : 0.6}
             lineCap="round"
             lineJoin="round"
-          />
-        )}
+          >
+            <Popup>
+               <div className="text-center font-bold font-sans p-1">
+                 <div style={{ color: route.color }}>{route.type} Route</div>
+                 <div className="text-xs text-slate-500 mt-1">{route.duration.toFixed(0)} min • {route.distance.toFixed(1)} km</div>
+               </div>
+            </Popup>
+          </Polyline>
+        ))}
 
       </MapContainer>
     </div>

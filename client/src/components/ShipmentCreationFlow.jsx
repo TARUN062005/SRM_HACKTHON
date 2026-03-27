@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { X, Car, Bike, Bus, Truck, Footprints } from 'lucide-react';
 import axios from 'axios';
 import { Search, MapPin, Loader2, Navigation } from 'lucide-react';
 
-export const ShipmentCreationFlow = ({ onLocationSelect }) => {
+export const ShipmentCreationFlow = ({ onLocationSelect, onClearRoute, vehicleMode, setVehicleMode }) => {
   const [sourceQuery, setSourceQuery] = useState('');
   const [destQuery, setDestQuery] = useState('');
   const [sourceResults, setSourceResults] = useState([]);
@@ -12,6 +13,15 @@ export const ShipmentCreationFlow = ({ onLocationSelect }) => {
   const [searchingSource, setSearchingSource] = useState(false);
   const [searchingDest, setSearchingDest] = useState(false);
   const [activeInput, setActiveInput] = useState(null);
+  const [sourceActiveIdx, setSourceActiveIdx] = useState(-1);
+  const [destActiveIdx, setDestActiveIdx] = useState(-1);
+  const vehicleOptions = [
+    { label: 'Car', value: 'car', icon: <Car size={16} /> },
+    { label: 'Bike', value: 'bike', icon: <Bike size={16} /> },
+    { label: 'Walk', value: 'foot', icon: <Footprints size={16} /> },
+    { label: 'Bus', value: 'bus', icon: <Bus size={16} /> },
+    { label: 'Truck', value: 'truck', icon: <Truck size={16} /> },
+  ];
 
   const searchLocation = async (query, setResults, setSearching) => {
     if (!query || query.length < 3) {
@@ -49,14 +59,14 @@ export const ShipmentCreationFlow = ({ onLocationSelect }) => {
     }
   };
 
-  const ResultDropdown = ({ results, onSelect, visible }) => {
+  const ResultDropdown = ({ results, onSelect, visible, activeIdx, setActiveIdx }) => {
     if (!visible || results.length === 0) return null;
     return (
       <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 shadow-xl rounded-lg z-50 max-h-48 overflow-y-auto">
         {results.map((loc, idx) => (
-          <div 
-            key={idx} 
-            className="p-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 cursor-pointer flex items-start gap-2 text-sm"
+          <div
+            key={idx}
+            className={`p-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 cursor-pointer flex items-start gap-2 text-sm ${activeIdx === idx ? 'bg-blue-50' : ''}`}
             onMouseDown={() => onSelect(loc)}
           >
             <MapPin size={16} className="text-blue-500 shrink-0 mt-0.5" />
@@ -72,6 +82,18 @@ export const ShipmentCreationFlow = ({ onLocationSelect }) => {
       
       {/* Search Start Point */}
       <div className="relative">
+        {/* Close/clear button for route search */}
+        {onClearRoute && (
+          <button
+            className="absolute top-0 right-0 z-20 p-1 text-slate-400 hover:text-red-500"
+            style={{ marginTop: '-2.2rem', marginRight: '-0.5rem' }}
+            onClick={onClearRoute}
+            tabIndex={-1}
+            type="button"
+          >
+            <X size={18} />
+          </button>
+        )}
         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">
           Origin Point
         </label>
@@ -79,27 +101,48 @@ export const ShipmentCreationFlow = ({ onLocationSelect }) => {
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
              {searchingSource ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
           </div>
-          <input 
-            type="text" 
-            placeholder="Choose starting point..." 
+          <input
+            type="text"
+            placeholder="Choose starting point..."
             value={sourceQuery}
             onChange={(e) => {
               setSourceQuery(e.target.value);
               setSelectedSource(null);
+              setSourceActiveIdx(-1);
             }}
             onFocus={() => setActiveInput('source')}
             onBlur={() => setTimeout(() => setActiveInput(null), 200)}
+            onKeyDown={e => {
+              if (sourceResults.length > 0 && activeInput === 'source') {
+                if (e.key === 'ArrowDown') {
+                  setSourceActiveIdx(idx => Math.min(idx + 1, sourceResults.length - 1));
+                  e.preventDefault();
+                } else if (e.key === 'ArrowUp') {
+                  setSourceActiveIdx(idx => Math.max(idx - 1, 0));
+                  e.preventDefault();
+                } else if (e.key === 'Enter' && sourceActiveIdx >= 0) {
+                  setSelectedSource(sourceResults[sourceActiveIdx]);
+                  setSourceQuery(sourceResults[sourceActiveIdx].display_name.split(',')[0]);
+                  setActiveInput(null);
+                  setSourceActiveIdx(-1);
+                  e.preventDefault();
+                }
+              }
+            }}
             className="w-full pl-9 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium transition-all"
           />
         </div>
-        <ResultDropdown 
-          results={sourceResults} 
+        <ResultDropdown
+          results={sourceResults}
           visible={activeInput === 'source' && !selectedSource}
-          onSelect={(loc) => {
-             setSelectedSource(loc);
-             setSourceQuery(loc.display_name.split(',')[0]);
-             setActiveInput(null);
-          }} 
+          onSelect={loc => {
+            setSelectedSource(loc);
+            setSourceQuery(loc.display_name.split(',')[0]);
+            setActiveInput(null);
+            setSourceActiveIdx(-1);
+          }}
+          activeIdx={sourceActiveIdx}
+          setActiveIdx={setSourceActiveIdx}
         />
       </div>
 
@@ -112,32 +155,67 @@ export const ShipmentCreationFlow = ({ onLocationSelect }) => {
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
              {searchingDest ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
           </div>
-          <input 
-            type="text" 
-            placeholder="Choose destination..." 
+          <input
+            type="text"
+            placeholder="Choose destination..."
             value={destQuery}
             onChange={(e) => {
               setDestQuery(e.target.value);
               setSelectedDest(null);
+              setDestActiveIdx(-1);
             }}
             onFocus={() => setActiveInput('dest')}
             onBlur={() => setTimeout(() => setActiveInput(null), 200)}
+            onKeyDown={e => {
+              if (destResults.length > 0 && activeInput === 'dest') {
+                if (e.key === 'ArrowDown') {
+                  setDestActiveIdx(idx => Math.min(idx + 1, destResults.length - 1));
+                  e.preventDefault();
+                } else if (e.key === 'ArrowUp') {
+                  setDestActiveIdx(idx => Math.max(idx - 1, 0));
+                  e.preventDefault();
+                } else if (e.key === 'Enter' && destActiveIdx >= 0) {
+                  setSelectedDest(destResults[destActiveIdx]);
+                  setDestQuery(destResults[destActiveIdx].display_name.split(',')[0]);
+                  setActiveInput(null);
+                  setDestActiveIdx(-1);
+                  e.preventDefault();
+                }
+              }
+            }}
             className="w-full pl-9 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium transition-all"
           />
         </div>
-        <ResultDropdown 
-          results={destResults} 
+        <ResultDropdown
+          results={destResults}
           visible={activeInput === 'dest' && !selectedDest}
-          onSelect={(loc) => {
-             setSelectedDest(loc);
-             setDestQuery(loc.display_name.split(',')[0]); 
-             setActiveInput(null);
-          }} 
+          onSelect={loc => {
+            setSelectedDest(loc);
+            setDestQuery(loc.display_name.split(',')[0]);
+            setActiveInput(null);
+            setDestActiveIdx(-1);
+          }}
+          activeIdx={destActiveIdx}
+          setActiveIdx={setDestActiveIdx}
         />
       </div>
 
+      {/* Vehicle selection */}
+      <div className="flex gap-2 mt-2 mb-1">
+        {vehicleOptions.map(opt => (
+          <button
+            key={opt.value}
+            type="button"
+            className={`flex items-center gap-1 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${vehicleMode === opt.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-slate-200 text-slate-700 hover:bg-blue-50'}`}
+            onClick={() => setVehicleMode(opt.value)}
+          >
+            {opt.icon} {opt.label}
+          </button>
+        ))}
+      </div>
+
       {/* Action Button */}
-      <button 
+      <button
         onClick={confirmSelection}
         disabled={!selectedSource || !selectedDest}
         className="mt-2 w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-200 flex justify-center items-center gap-2 transition-all"

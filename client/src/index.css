@@ -26,27 +26,47 @@
 
 @layer base {
   :root {
-    --background: #f8fafc; /* slate-50 */
-    --foreground: #0f172a; /* slate-900 */
+    --background: #f8fafc;
+    --foreground: #0f172a;
   }
-
   .dark {
-    --background: #020617; /* slate-950 */
-    --foreground: #f8fafc; /* slate-50 */
-    
-    /* Override slate colors in dark mode for better contrast */
+    --background: #020617;
+    --foreground: #f8fafc;
     --color-slate-900: #f8fafc;
     --color-slate-800: #f1f5f9;
     --color-slate-50: #0f172a;
     --color-slate-100: #1e293b;
     --color-slate-200: #334155;
   }
-
-  body {
-    @apply bg-[var(--background)] text-[var(--foreground)] antialiased transition-colors duration-300;
-    @apply selection:bg-primary-100 selection:text-primary-900;
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: var(--background);
+    color: var(--foreground);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
+  body {
+    @apply antialiased transition-colors duration-300 selection:bg-primary-100 selection:text-primary-900;
+  }
+}
+
+/* Dashboard layout fixes */
+.dashboard-root {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  overflow: hidden;
+}
+.dashboard-map-area {
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 
 @layer components {
