@@ -71,3 +71,39 @@ exports.getAlerts = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch alerts.' });
   }
 };
+
+const axios = require('axios');
+
+exports.getWeather = async (req, res) => {
+    const { lat, lon } = req.query;
+
+    try {
+        if (!lat || !lon) {
+            return res.status(400).json({ error: 'Missing coordinates' });
+        }
+        
+        // Use free Open-Meteo to simulate OpenWeatherMap
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code`;
+        const response = await axios.get(url);
+        
+        const code = response.data.current.weather_code;
+        let mainCondition = "Clear";
+        
+        if (code >= 51 && code <= 55) mainCondition = "Drizzle";
+        else if (code >= 61 && code <= 65) mainCondition = "Rain";
+        else if (code >= 95) mainCondition = "Thunderstorm";
+        else if (code >= 71) mainCondition = "Snow";
+        else if (code >= 1 && code <= 3) mainCondition = "Clouds";
+
+        // MERN Style Exact Match Response
+        res.json({
+            weather: [ { main: mainCondition } ],
+            coord: { lat: parseFloat(lat), lon: parseFloat(lon) },
+            main: { temp: 20 } // mock temp
+        });
+
+    } catch (error) {
+        console.error("Weather fetch failed", error.message);
+        res.status(500).json({ error: "API error" });
+    }
+};

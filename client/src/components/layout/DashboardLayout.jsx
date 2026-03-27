@@ -19,6 +19,7 @@ import {
   ExternalLink,
   CheckCircle,
   Clock,
+  Navigation,
 } from "lucide-react";
 
 // ✅ Push Notification Support
@@ -504,6 +505,17 @@ const DashboardLayout = () => {
 
           {/* Right */}
           <div className="flex items-center space-x-4">
+            
+            {/* ✅ New Route Action Button (Links to Map floating panel) */}
+            {location.pathname === '/dashboard' && (
+              <button 
+                onClick={() => window.dispatchEvent(new CustomEvent('toggleNewRoute'))}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-sm font-bold shadow-sm transition-all"
+              >
+                <Navigation size={16} /> New Route
+              </button>
+            )}
+
             {/* ✅ Enhanced Notification Bell with Dropdown */}
             <div className="relative" ref={notificationsDropdownRef}>
               <button

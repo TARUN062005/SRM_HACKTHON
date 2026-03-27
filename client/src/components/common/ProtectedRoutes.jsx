@@ -8,7 +8,7 @@ const ProtectedRoutes = ({ allowedRoles = [] }) => {
   if (loading) return <div className="h-screen flex items-center justify-center">Loading...</div>;
 
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {

@@ -7,5 +7,6 @@ router.post('/risk/analyze', aiRouteController.analyzeRisk);
 router.post('/shipment', aiRouteController.createShipment);
 router.get('/shipment/:id', aiRouteController.getShipment);
 router.get('/alerts', aiRouteController.getAlerts);
+router.get('/weather', aiRouteController.getWeather);
 
 module.exports = router;

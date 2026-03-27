@@ -5,7 +5,12 @@ export const AlertsWidget = () => {
   const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
-    getAlerts().then(res => setAlerts(res.data.data)).catch(console.error);
+    getAlerts()
+      .then(res => setAlerts(res?.data?.data || []))
+      .catch(err => {
+        console.error(err);
+        setAlerts([]);
+      });
   }, []);
 
   return (
@@ -17,7 +22,7 @@ export const AlertsWidget = () => {
         </h3>
       </div>
       <div className="p-3 max-h-64 overflow-y-auto space-y-3">
-        {alerts.map(alert => (
+        {alerts && alerts.map(alert => (
           <div key={alert._id} className="text-sm text-slate-300 border-l-2 border-red-500 pl-3">
             <div className="font-semibold text-white">
               Shipment {alert.shipmentId?.source} → {alert.shipmentId?.destination}

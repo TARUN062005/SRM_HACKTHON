@@ -27,6 +27,7 @@ const adminRoutes = require('./routes/admin.routes');
 
 // ✅ NEW: Push token routes
 const userPushRoutes = require('./routes/userPushRoutes');
+const aiRoutes = require('./routes/ai.routes');
 
 const app = express();
 
@@ -317,6 +318,7 @@ app.use('/api/user', userRoutes);
 
 // ✅ NEW push registration routes (IMPORTANT for system/phone notifications)
 app.use('/api/user/push', userPushRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.use('/api/admin', adminRoutes);
 
