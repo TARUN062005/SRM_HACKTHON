@@ -505,12 +505,13 @@ const SidePanel = ({
         {showWeatherChain && intel && intel.waypointReports && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-500">
             {/* Weather Chain Section (Already there) */}
+            {/* Strategic Corridor Intel (Geography-based) */}
             <div className="flex items-center justify-between px-2">
-               <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Atmospheric Strip (35KM Sectors)</div>
-               <div className="px-2 py-1 bg-primary-600/10 text-primary-600 rounded-md text-[8px] font-black">ACTIVE TELEMETRY</div>
+               <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Strategic Corridor Intel</div>
+               <div className="px-2 py-1 bg-primary-600/10 text-primary-600 rounded-md text-[8px] font-black">REGIONAL TELEMETRY</div>
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-5">
               {intel.waypointReports.map((item, i) => {
                 const WeatherIcon = getWeatherIcon(item.weather);
                 const severityColor = 
@@ -527,31 +528,28 @@ const SidePanel = ({
                       <div className="absolute left-[23px] top-12 bottom-0 w-0.5 bg-slate-100 dark:bg-slate-800 z-0" />
                     )}
 
-                    {/* Sequential Node Diagram */}
+                    {/* Geography Node Diagram */}
                     <div className="flex flex-col items-center z-10 shrink-0">
                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xl transition-all duration-300 group-hover:scale-110 ${severityColor}`}>
                           <WeatherIcon size={20} strokeWidth={2.5} />
                        </div>
-                       <div className="mt-2 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">
-                          {i * 35} KM
-                       </div>
                     </div>
 
-                    {/* Sector Intelligence Detail */}
-                    <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-4 shadow-sm group-hover:border-primary-500/30 transition-all flex justify-between items-center pr-6">
-                       <div>
-                          <div className="text-xs font-black text-slate-900 dark:text-white uppercase leading-none mb-1">
-                             {item.place || `Sector ${i + 1}`}
+                    {/* Tactical Nexus Detail */}
+                    <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[1.5rem] p-5 shadow-sm group-hover:border-primary-500/30 transition-all flex justify-between items-center pr-6">
+                       <div className="min-w-0">
+                          <div className="text-[9px] font-black text-primary-500 uppercase tracking-widest mb-1 opacity-60">
+                             Nexus {i + 1}
                           </div>
-                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                             {parts[2] || "Stable Atmos"}
+                          <div className="text-[13px] font-black text-slate-900 dark:text-white uppercase leading-tight truncate">
+                             {item.place}
                           </div>
                        </div>
-                       <div className="text-right">
-                          <div className="text-sm font-black text-slate-900 dark:text-white leading-none">
+                       <div className="text-right shrink-0">
+                          <div className="text-[11px] font-black text-slate-900 dark:text-white leading-none">
                              {parts[0]}
                           </div>
-                          <div className="text-[10px] font-bold text-primary-500 mt-1">
+                          <div className="text-[8px] font-bold text-slate-400 uppercase mt-1">
                              {parts[1]}
                           </div>
                        </div>

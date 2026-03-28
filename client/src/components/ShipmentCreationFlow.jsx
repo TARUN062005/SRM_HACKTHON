@@ -52,10 +52,15 @@ const LocationInput = ({ label, query, setQuery, results, searching, type, selec
                 <MapPin size={12} strokeWidth={3} />
               </div>
               <div className="flex-1 min-w-0">
-                 <div className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate leading-tight font-sans">
-                   {loc.display_name.split(',')[0]}
+                 <div className="flex items-center justify-between gap-2">
+                    <div className="text-[12px] font-black text-slate-900 dark:text-slate-100 truncate leading-tight font-sans">
+                      {loc.display_name.split(',')[0]}
+                    </div>
+                    <div className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded text-[8px] font-black uppercase tracking-tighter shrink-0">
+                      {loc.address?.state || loc.display_name.split(',').slice(-3, -2)[0]?.trim() || 'POI'}
+                    </div>
                  </div>
-                 <div className="text-[9px] font-medium text-slate-400 dark:text-slate-500 truncate mt-0.5 font-sans">
+                 <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 truncate mt-1 font-sans">
                    {loc.display_name.split(',').slice(1).join(',')}
                  </div>
               </div>

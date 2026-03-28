@@ -109,7 +109,7 @@ const getRouteIntelligence = async (coords, sourceName = "Mission Sector", destN
     // 2. Extract Key Tactical Nodes (Max 6 to prevent 429)
     const checkpoints = getCheckpoints(coords);
 
-    // 3. Environment Telemetry & Geographic Resolution (Parallel)
+    // 3. Environment Telemetry & Strategic Geographic Resolution (Parallel)
     const waypointData = await Promise.all(checkpoints.map(async (p, i) => {
       try {
         const [wRes, gRes] = await Promise.all([
@@ -120,7 +120,8 @@ const getRouteIntelligence = async (coords, sourceName = "Mission Sector", destN
         ]);
 
         const addr = gRes.data?.address;
-        const placeName = addr?.city || addr?.town || addr?.suburb || addr?.village || addr?.railway || `Hub ${i + 1}`;
+        // Priority Geolocation: City > Town > Suburb > District > County
+        const placeName = addr?.city || addr?.town || addr?.suburb || addr?.village || addr?.county || addr?.state_district || `Strategic Nexus ${i + 1}`;
         const current = wRes.data.current_weather;
 
         return {
@@ -135,7 +136,7 @@ const getRouteIntelligence = async (coords, sourceName = "Mission Sector", destN
       } catch (e) { 
         return {
           id: `A${i}`,
-          place: `Mission Hub ${i + 1}`,
+          place: `Tactical Nexus ${i + 1}`,
           condition: "Clear",
           temp: 25,
           wind: 5,
@@ -162,7 +163,7 @@ const getRouteIntelligence = async (coords, sourceName = "Mission Sector", destN
       severity: aiResp.severity,
       waypointReports: validWaypoints.map((v) => ({
         id: v.id,
-        place: v.place,
+        place: v.place, 
         weather: `${v.condition} • ${v.temp}°C • ${v.wind} km/h`,
         severity: v.condition === 'Storm' ? 'CRITICAL' : 'STABLE',
         raw: v
