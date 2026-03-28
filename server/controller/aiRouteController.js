@@ -39,20 +39,22 @@ const getRouteIntelligence = async (coords) => {
 
     // 3. Gemini Synthesis (Integrated News & Geopolitical Context)
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const prompt = `Analyze this travel route for real-time safety and logistics intelligence:
+    const prompt = `ACT AS A STRATEGIC LOGISTICS ANALYST.
+    Analyze this route from ${coords[0]} to ${coords[coords.length-1]} for real-time safety and geopolitical intelligence.
     WEATHER DATA: ${JSON.stringify(weatherSummary)}
-    Task: 
-    1. Assess weather risks (rain, visibility, wind impact).
-    2. Evaluate GEOPOLITICAL / REGIONAL risks (Identify the region between ${coords[0]} and ${coords[coords.length-1]} and summarize current news/safety status including conflicts, protests, or high-crime areas).
-    3. Generate a 'Smart Routing Summary' for a professional driver dashboard.
     
-    Return STRICTLY as a JSON object: 
+    CRITICAL TASKS:
+    1. ATMOSPHERIC: Analyze weather for rain, fog, and wind hazards.
+    2. GEOPOLITICAL / NEWS: Identify specific regional safety risks, including local news about strikes, protests, transit lockdowns, or geopolitical instability in the areas between these coordinates.
+    3. SUMMARY: Strategic travel advice (1 sentence).
+
+    Return STRICTLY JSON:
     { 
-      "summary": "Short 1-sentence strategic summary",
+      "summary": "High-level command summary",
       "riskLevel": "Low" | "Medium" | "High",
       "weatherAlerts": ["Alert 1", "Alert 2"],
-      "geopoliticalAlerts": ["Political/Safety Alert 1", "Safety Alert 2"],
-      "speedRecommendation": "e.g., Maintain 80km/h"
+      "geopoliticalAlerts": ["News-based Safety Alert 1", "Conflict/Strike Alert 2"],
+      "speedRecommendation": "Strategic speed advice"
     }`;
 
     const result = await model.generateContent(prompt);

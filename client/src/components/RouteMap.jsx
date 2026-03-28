@@ -3,11 +3,11 @@ import { MapContainer, TileLayer, Marker, Polyline, Popup, Circle, useMap, useMa
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
-import { AlertTriangle, Navigation, ChevronRight, Play, X, Clock, Info, Activity, Wind, Zap, MapPin, ShieldAlert, Globe } from 'lucide-react';
+import { AlertTriangle, Navigation, ChevronRight, Play, X, Clock, Info, Activity, Wind, Zap, MapPin, ShieldAlert, Globe, ArrowRight } from 'lucide-react';
 
 // --- VISUAL THEME ---
 const THEME = {
-  colors: ['#3b82f6', '#475569', '#94a3b8'],
+  colors: ['#2563eb', '#64748b', '#94a3b8'],
   weights: [8, 5, 5],
   opacities: [1, 0.7, 0.5]
 };
@@ -39,7 +39,7 @@ const NavigationSimulator = ({ coords, isActive, color, speedMultiplier = 1, isN
     const animate = () => {
        indexRef.current = (indexRef.current + Math.max(1, Math.floor(speedMultiplier / 2)));
        if (indexRef.current >= coords.length) {
-          indexRef.current = 0; // Loop or stop? User might prefer loop for simulation
+          indexRef.current = 0;
        }
        
        const cur = coords[indexRef.current];
@@ -126,6 +126,8 @@ export const RouteMap = ({
     } else {
       setAllRoutes([]);
       setIsNavigating(false);
+      // Feature 1 Fix: Explicitly notify parent that routes are gone
+      if (onRouteData) onRouteData({ allRoutes: [], activeRouteIndex: 0 });
     }
   }, [selectedSource, selectedDestination, vehicleMode]);
 
@@ -157,18 +159,18 @@ export const RouteMap = ({
     <div className="w-full h-full relative bg-slate-100 overflow-hidden">
       {allRoutes.length > 0 && (
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-3">
-           <div className="bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl px-6 py-3 flex items-center gap-4">
+           <div className="bg-white px-6 py-3 border border-slate-200 shadow-2xl rounded-2xl flex items-center gap-4">
               <button 
                 onClick={() => setIsNavigating(!isNavigating)}
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isNavigating ? 'bg-red-500 text-white animate-pulse' : 'bg-blue-600 text-white shadow-xl hover:scale-110'}`}
               >
                 {isNavigating ? <X size={20} /> : <Play size={22} className="ml-1" />}
               </button>
-              <div className="flex flex-col items-center min-w-[100px]">
-                 <span className="text-[10px] font-bold text-slate-400 uppercase mb-1">Sim Performance</span>
-                 <input type="range" min="1" max="10" value={simSpeed} onChange={(e) => setSimSpeed(Number(e.target.value))} className="w-24 h-1 bg-slate-200 rounded-lg accent-blue-600 cursor-pointer" />
+              <div className="flex flex-col items-center">
+                 <span className="text-[10px] font-bold text-slate-400 uppercase">Sim Speed</span>
+                 <input type="range" min="1" max="10" value={simSpeed} onChange={(e) => setSimSpeed(Number(e.target.value))} className="w-24 accentuate-blue-600 cursor-pointer" />
               </div>
-              <div className="text-sm font-black text-slate-700">{simSpeed}x</div>
+              <div className="text-xs font-black text-slate-700">{simSpeed}x</div>
            </div>
         </div>
       )}
@@ -176,7 +178,7 @@ export const RouteMap = ({
       {loading && (
         <div className="absolute inset-0 bg-white/70 backdrop-blur-md z-[2000] flex flex-col items-center justify-center">
            <div className="w-16 h-16 border-4 border-t-blue-600 border-blue-100 rounded-full animate-spin mb-4" />
-           <p className="font-black text-xs uppercase tracking-widest text-slate-800">Synchronizing Global Intelligence...</p>
+           <p className="font-black text-[10px] uppercase tracking-[0.2em] text-slate-800">Processing Tactical Intelligence</p>
         </div>
       )}
 
@@ -184,7 +186,7 @@ export const RouteMap = ({
         <MapInteractionHandler allRoutes={allRoutes} />
         <ZoomControl position="bottomright" />
         <LayersControl position="bottomright">
-          <LayersControl.BaseLayer checked name="Global Map">
+          <LayersControl.BaseLayer checked name="Voyager Navigation">
             <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
           </LayersControl.BaseLayer>
         </LayersControl>
@@ -209,19 +211,43 @@ const SidePanel = ({
     <div className="flex flex-col h-full bg-white relative">
       <div className="p-6 border-b border-slate-100 bg-slate-50/50">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="font-black text-xl tracking-tighter uppercase whitespace-nowrap">Tactical Dashboard</h2>
+          <h2 className="font-black text-xl tracking-tighter uppercase">Tactical Dashboard</h2>
           <button onClick={onClearRoute} className="p-2 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-red-500 shadow-sm transition"><X size={18} /></button>
         </div>
         
-        {/* Source and Destination Names */}
-        <div className="mt-4 space-y-2">
-           <div className="flex items-start gap-2">
-              <MapPin size={14} className="text-blue-500 mt-1 shrink-0" />
-              <div className="text-[11px] font-bold text-slate-700 line-clamp-1">{selectedSource?.display_name || "Origin Location"}</div>
+        {/* Origin & Destination Display */}
+        <div className="mt-4 px-3 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm space-y-4">
+           <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shrink-0 mt-1"><MapPin size={12} /></div>
+              <div className="flex-1">
+                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Origin Point</div>
+                 <div className="text-xs font-bold text-slate-800 line-clamp-2 leading-relaxed">{selectedSource?.display_name || "Custom Latitude/Longitude Entry"}</div>
+              </div>
            </div>
-           <div className="flex items-start gap-2">
-              <Activity size={14} className="text-red-500 mt-1 shrink-0" />
-              <div className="text-[11px] font-bold text-slate-700 line-clamp-1">{selectedDestination?.display_name || "Final Destination Target"}</div>
+           
+           <div className="flex items-center gap-4 pl-3">
+              <div className="w-0.5 h-4 bg-slate-100" />
+              <ArrowRight size={14} className="text-slate-200" />
+           </div>
+
+           <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-red-50 text-red-600 rounded-full flex items-center justify-center shrink-0 mt-1"><Activity size={12} /></div>
+              <div className="flex-1">
+                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Destination Target</div>
+                 <div className="text-xs font-bold text-slate-800 line-clamp-2 leading-relaxed">{selectedDestination?.display_name || "Target Marker Assigned"}</div>
+              </div>
+           </div>
+        </div>
+
+        {/* Distance & Time Stats */}
+        <div className="grid grid-cols-2 gap-3 mt-4">
+           <div className="bg-blue-600 text-white p-4 rounded-2xl shadow-lg">
+              <div className="text-[10px] font-bold uppercase opacity-60 mb-1">Duration</div>
+              <div className="text-2xl font-black leading-none">{(activeRoute.duration / 60).toFixed(0)} <span className="text-[10px]">MIN</span></div>
+           </div>
+           <div className="bg-slate-800 text-white p-4 rounded-2xl shadow-lg">
+              <div className="text-[10px] font-bold uppercase opacity-60 mb-1">Distance</div>
+              <div className="text-2xl font-black leading-none">{(activeRoute.distance / 1000).toFixed(1)} <span className="text-[10px]">KM</span></div>
            </div>
         </div>
       </div>
@@ -230,72 +256,62 @@ const SidePanel = ({
         {/* AI Intelligence Block */}
         {intel && (
           <div className="space-y-4">
-             <div className="bg-slate-900 text-white rounded-[2rem] p-6 shadow-2xl relative overflow-hidden group">
-                <div className="absolute -right-4 -top-4 opacity-10 group-hover:rotate-12 transition-all duration-500"><Globe size={100} /></div>
+             <div className="bg-slate-900 text-white rounded-[2.5rem] p-6 shadow-2xl relative overflow-hidden group border border-slate-800">
+                <div className="absolute -right-4 -top-4 opacity-10 group-hover:rotate-12 transition-all duration-700"><Globe size={120} /></div>
                 
-                <div className="flex items-center gap-3 mb-4">
-                   <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${intel.riskLevel === 'High' ? 'bg-red-500' : intel.riskLevel === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500'}`}>
+                <div className="flex items-center gap-3 mb-5">
+                   <div className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter ${intel.riskLevel === 'High' ? 'bg-red-500 shadow-red-500/20 shadow-lg' : intel.riskLevel === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500 text-white'}`}>
                       {intel.riskLevel} Security Status
                    </div>
-                   <div className="text-white/40 text-[10px] font-black uppercase tracking-widest">Global Intel</div>
+                   <div className="text-white/40 text-[10px] font-black uppercase tracking-widest">Live AI Intelligence Feed</div>
                 </div>
                 
-                <p className="text-lg font-bold tracking-tight leading-snug mb-6">"{intel.summary}"</p>
+                <p className="text-xl font-bold tracking-tight leading-snug mb-8">"{intel.summary}"</p>
                 
-                <div className="space-y-4">
-                   {/* Weather Intelligence Section */}
-                   <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-[10px] font-black text-blue-400 uppercase tracking-widest opacity-80"><Wind size={12} /> Atmospheric Risks</div>
+                <div className="space-y-5">
+                   <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-[10px] font-black text-blue-400 uppercase tracking-widest opacity-80"><Wind size={14} /> Global Atmospheric Risks</div>
                       {intel.weatherAlerts?.map((a, i) => (
-                         <div key={i} className="text-xs text-white/70 font-medium pl-2 border-l border-white/20">{a}</div>
+                         <div key={i} className="flex gap-3 items-start text-xs text-white/70 font-medium bg-white/5 p-3 rounded-2xl border border-white/10 group-hover:bg-white/10 transition-colors">
+                            <CloudRain size={14} className="text-blue-500 shrink-0" /> {a}
+                         </div>
                       ))}
                    </div>
                    
-                   {/* Geopolitical Intelligence Section */}
-                   <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-[10px] font-black text-red-400 uppercase tracking-widest opacity-80"><ShieldAlert size={12} /> Geopolitical Risks</div>
+                   <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-[10px] font-black text-red-400 uppercase tracking-widest opacity-80"><ShieldAlert size={14} /> Geopolitical Disruptions</div>
                       {intel.geopoliticalAlerts?.map((a, i) => (
-                         <div key={i} className="text-xs text-white/70 font-medium pl-2 border-l border-white/20">{a}</div>
+                         <div key={i} className="flex gap-3 items-start text-xs text-white/70 font-medium bg-white/5 p-3 rounded-2xl border border-white/10 group-hover:bg-white/10 transition-colors">
+                            <Zap size={14} className="text-red-500 shrink-0" /> {a}
+                         </div>
                       ))}
                    </div>
                 </div>
              </div>
              
-             {/* Recommendation Banner */}
-             <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-center gap-3">
-                <Zap size={20} className="text-blue-600 shrink-0" />
-                <div className="text-[11px] font-bold text-blue-900 uppercase">Recommendation: <span className="opacity-70 ml-1">{intel.speedRecommendation}</span></div>
+             <div className="bg-blue-600 text-white p-4 rounded-2xl flex items-center gap-3 shadow-xl">
+                <Zap size={24} className="text-white animate-pulse" />
+                <div>
+                   <div className="text-[10px] font-black uppercase opacity-60 leading-none mb-1">Strategic Command</div>
+                   <div className="text-xs font-black uppercase tracking-tighter">{intel.speedRecommendation}</div>
+                </div>
              </div>
           </div>
         )}
 
-        {/* Alternative Routes Switcher */}
-        <div className="space-y-2">
-           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Structural Alternatives</div>
-           <div className="flex gap-2">
+        {/* Structural Alternatives */}
+        <div className="space-y-3">
+           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Structural Path Alternatives</div>
+           <div className="flex gap-3">
               {allRoutes.slice(0, 3).map((r, i) => (
                  <button
                    key={i}
                    onClick={() => setActiveRouteIndex(i)}
-                   className={`flex-1 p-3 rounded-2xl border-2 transition-all ${i === activeRouteIndex ? 'border-blue-600 bg-blue-50' : 'border-slate-100 hover:border-slate-200'}`}
+                   className={`flex-1 p-4 rounded-3xl border-2 transition-all ${i === activeRouteIndex ? 'border-blue-600 bg-blue-50 shadow-lg -translate-y-1' : 'border-slate-100 hover:border-slate-200 opacity-60 hover:opacity-100'}`}
                  >
-                    <div className={`text-[10px] font-black uppercase mb-1 ${i === activeRouteIndex ? 'text-blue-600' : 'text-slate-400'}`}>Path {i+1}</div>
-                    <div className="text-sm font-black text-slate-800">{(r.duration / 60).toFixed(0)}m</div>
+                    <div className={`text-[10px] font-black uppercase mb-1 tracking-tighter ${i === activeRouteIndex ? 'text-blue-600' : 'text-slate-400'}`}>Path {i+1}</div>
+                    <div className="text-lg font-black text-slate-800 leading-none">{(r.duration / 60).toFixed(0)}m</div>
                  </button>
-              ))}
-           </div>
-        </div>
-
-        {/* Maneuver Pipeline */}
-        <div>
-           <div className="flex items-center gap-2 text-slate-400 font-black uppercase text-[10px] tracking-widest mb-6"><Navigation size={12} /> Live Maneuver Pipeline</div>
-           <div className="space-y-4 relative pl-4 border-l-2 border-slate-100 ml-2">
-              {activeRoute.steps?.map((s, i) => (
-                 <div key={i} className="relative group">
-                    <div className="absolute -left-[23px] top-1.5 w-3 h-3 rounded-full bg-white border-2 border-slate-300 group-hover:border-blue-500 shadow-sm" />
-                    <div className="text-xs font-bold text-slate-700 leading-tight mb-0.5 group-hover:text-blue-600">{s.instruction}</div>
-                    <div className="text-[10px] font-bold text-slate-400 tracking-tighter">{(s.distance / 1000).toFixed(1)} KM</div>
-                 </div>
               ))}
            </div>
         </div>
@@ -303,6 +319,14 @@ const SidePanel = ({
     </div>
   );
 };
+
+// Internal icon for UI consistency
+const CloudRain = ({ size, className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+    <path d="M8 19v2" /><path d="M12 17v2" /><path d="M16 19v2" />
+  </svg>
+);
 
 RouteMap.SidePanel = SidePanel;
 export default RouteMap;

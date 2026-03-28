@@ -1,20 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useAuth } from '../lib/auth/hooks/useAuth';
-import {
-  User,
-  Mail,
-  Shield,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  Loader2,
-  AlertCircle,
-  Edit3,
-  Phone,
-  MapPin,
-  Globe,
+import { 
+  User, Shield, Edit3, CheckCircle2, Mail, Phone, MapPin, Globe, Clock, 
+  ArrowRight, Activity, Zap, Play, ChevronRight, Layers, BellRing, Cpu, Fingerprint 
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const ProfilePage = () => {
   const { user: authUser } = useAuth();
@@ -55,331 +46,189 @@ const ProfilePage = () => {
   const ageText = useMemo(() => {
     const dob = displayUser?.dob;
     if (!dob) return 'Not Set';
-
     const birth = new Date(dob);
     if (Number.isNaN(birth.getTime())) return 'Invalid DOB';
-
     const today = new Date();
     let age = today.getFullYear() - birth.getFullYear();
     const m = today.getMonth() - birth.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-
-    if (age < 0) return 'Invalid DOB';
-    return `${age} years`;
+    return age < 0 ? 'Invalid DOB' : `${age} years`;
   }, [displayUser?.dob]);
 
-  // Loading
   if (loading) {
     return (
-      <div className="h-[60vh] flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="text-primary-600 animate-spin" size={40} />
-        <p className="text-slate-500 dark:text-slate-400 font-medium">
-          Loading your profile...
-        </p>
-      </div>
-    );
-  }
-
-  // Error
-  if (error) {
-    return (
-      <div className="h-[60vh] flex flex-col items-center justify-center space-y-4 text-center">
-        <AlertCircle className="text-red-500" size={48} />
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-          {error}
-        </h2>
-        <button
-          onClick={() => window.location.reload()}
-          className="text-primary-600 font-bold hover:underline"
-        >
-          Try Again
-        </button>
+      <div className="h-[60vh] flex flex-col items-center justify-center space-y-6">
+        <div className="relative">
+          <div className="h-20 w-20 border-t-2 border-primary-600 rounded-full animate-spin" />
+          <User className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary-600" size={32} />
+        </div>
+        <p className="text-slate-500 dark:text-slate-400 font-bold tracking-widest uppercase text-[10px]">Synchronizing Profile...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-            Account Profile
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-8 pb-32"
+    >
+      {/* Dynamic Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-600/10 border border-primary-600/20 text-primary-600 text-[10px] font-black uppercase tracking-widest">
+            <Shield size={12} /> Secure Identity Module
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
+            Account Node
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Your personal details, verification, and security history.
+          <p className="text-slate-500 dark:text-slate-400 font-medium">
+            Biometric verification and system clearance history.
           </p>
         </div>
 
         <button
           onClick={() => (window.location.href = '/settings')}
-          className="bg-primary-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-200/30 flex items-center justify-center space-x-2"
+          className="bg-primary-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-primary-700 transition-all shadow-xl shadow-primary-600/20 flex items-center justify-center space-x-3 active:scale-95 text-sm"
         >
           <Edit3 size={18} />
-          <span>Edit Profile</span>
+          <span>Modify Clearance</span>
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* LEFT COLUMN */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Profile Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-sm text-center">
-            <div className="relative inline-block">
-              <div className="h-28 w-28 sm:h-32 sm:w-32 bg-slate-100 dark:bg-slate-800 rounded-full mx-auto flex items-center justify-center text-primary-600 text-4xl font-bold shadow-inner overflow-hidden border-4 border-white dark:border-slate-900">
+        {/* LEFT PROFILE CARD */}
+        <div className="lg:col-span-1 space-y-8">
+          <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl rounded-[2.5rem] p-10 border border-white dark:border-slate-800 shadow-xl text-center relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary-600/5 blur-[50px] group-hover:bg-primary-600/10 transition-colors" />
+            
+            <div className="relative inline-block mb-8">
+              <div className="h-32 w-32 sm:h-40 sm:w-40 bg-slate-100 dark:bg-slate-800/50 rounded-full mx-auto flex items-center justify-center text-primary-600 text-5xl font-black shadow-2xl overflow-hidden border-4 border-white dark:border-slate-800">
                 {displayUser?.profileImage ? (
-                  <img
-                    src={displayUser.profileImage}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={displayUser.profileImage} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   displayUser?.name?.charAt(0) || 'U'
                 )}
               </div>
-
-              <div
-                className={`absolute bottom-1 right-1 h-5 w-5 rounded-full border-4 border-white dark:border-slate-900 shadow-sm ${
-                  displayUser?.isActive ? 'bg-green-500' : 'bg-slate-400'
-                }`}
-                title={displayUser?.isActive ? 'Account Active' : 'Inactive'}
-              />
+              <div className={`absolute bottom-2 right-2 h-6 w-6 rounded-full border-4 border-white dark:border-slate-900 shadow-lg ${displayUser?.isActive ? 'bg-green-500' : 'bg-slate-400'}`} />
             </div>
 
-            <h2 className="mt-6 text-2xl font-bold text-slate-900 dark:text-white">
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">
               {displayUser?.name || 'Anonymous'}
             </h2>
-
-            <p className="text-slate-500 dark:text-slate-400 font-medium uppercase text-xs tracking-widest mt-1">
-              {displayUser?.role || 'User'} • {displayUser?.authProvider || 'Local'}
+            <p className="text-primary-600 font-black uppercase text-[10px] tracking-[0.3em] mb-8">
+              {displayUser?.role || 'Operator'} • Lvl 4 Security
             </p>
 
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+            <div className="flex flex-wrap justify-center gap-3 mb-10">
+              <span className="px-4 py-1.5 rounded-full text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase tracking-widest">
                 Age: {ageText}
               </span>
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300">
-                {displayUser?.emailVerified ? 'Verified' : 'Not Verified'}
+              <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${displayUser?.emailVerified ? 'bg-green-500/10 text-green-600 border border-green-500/20' : 'bg-orange-500/10 text-orange-600 border border-orange-500/20'}`}>
+                {displayUser?.emailVerified ? 'Identity Verified' : 'Vetting Pending'}
               </span>
             </div>
 
-            <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-xl font-black text-slate-900 dark:text-white">
-                  {activities.length}
-                </p>
-                <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">
-                  Activities
-                </p>
+            <div className="grid grid-cols-2 gap-6 pt-10 border-t border-slate-100 dark:border-slate-800">
+              <div className="text-center">
+                <p className="text-2xl font-black text-slate-900 dark:text-white leading-none mb-1">{activities.length}</p>
+                <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Logs</p>
               </div>
-              <div>
-                <p className="text-xl font-black text-slate-900 dark:text-white">
-                  {displayUser?.isActive ? 'Active' : 'Offline'}
-                </p>
-                <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">
-                  Status
-                </p>
+              <div className="text-center">
+                <p className="text-2xl font-black text-slate-900 dark:text-white leading-none mb-1">{displayUser?.country || 'NA'}</p>
+                <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Region</p>
               </div>
             </div>
           </div>
 
-          {/* Verification Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <h3 className="font-bold text-slate-900 dark:text-white px-2">
-              Verification & Security
-            </h3>
-
-            <div
-              className={[
-                'flex items-center p-3 rounded-2xl space-x-3 border',
-                displayUser?.emailVerified
-                  ? 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 border-green-100 dark:border-green-500/20'
-                  : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-300 border-slate-100 dark:border-slate-700',
-              ].join(' ')}
-            >
-              <CheckCircle2 size={20} />
-              <span className="text-sm font-semibold">
-                {displayUser?.emailVerified ? 'Email Verified' : 'Email Unverified'}
-              </span>
-            </div>
-
-            <div className="flex items-center p-3 bg-blue-50 dark:bg-blue-500/10 rounded-2xl text-blue-700 dark:text-blue-300 space-x-3 border border-blue-100 dark:border-blue-500/20">
-              <Shield size={20} />
-              <span className="text-sm font-semibold">Security Level: High</span>
-            </div>
+          <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl rounded-[2rem] p-8 border border-white dark:border-slate-800 shadow-xl space-y-4">
+             <div className="flex items-center gap-3 p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl text-emerald-600 font-bold text-sm">
+                <CheckCircle2 size={18} /> System Integrity Optimal
+             </div>
+             <div className="flex items-center gap-3 p-4 bg-blue-500/5 border border-blue-500/10 rounded-2xl text-blue-600 font-bold text-sm">
+                <Shield size={18} /> Neural Handshake Active
+             </div>
           </div>
         </div>
 
-        {/* RIGHT COLUMN */}
+        {/* RIGHT INFO CARDS */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Info Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                Personal Information
+          <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl rounded-[2.5rem] border border-white dark:border-slate-800 shadow-xl overflow-hidden">
+            <div className="p-8 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+                <User size={20} className="text-primary-600" /> Clearance Intelligence
               </h3>
             </div>
 
-            <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Email */}
-              <div className="flex items-start space-x-4">
-                <div className="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400">
-                  <Mail size={20} />
+            <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
+              {[
+                { label: 'Primary Email', val: displayUser?.email || '—', icon: <Mail /> },
+                { label: 'Contact Comms', val: displayUser?.phone || 'Not Registered', icon: <Phone /> },
+                { label: 'Origin Point', val: displayUser?.location || 'Undisclosed', icon: <MapPin /> },
+                { label: 'Clearance Level', val: 'Level 4 Intelligence', icon: <Globe /> },
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-start gap-4 group">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-[1.25rem] text-slate-400 group-hover:text-primary-600 transition-colors">
+                    {React.cloneElement(item.icon, { size: 20 })}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
+                    <p className="text-slate-900 dark:text-white font-bold truncate text-base">{item.val}</p>
+                  </div>
                 </div>
-                <div className="overflow-hidden">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    Email
-                  </p>
-                  <p className="text-slate-900 dark:text-white font-semibold truncate">
-                    {displayUser?.email || '—'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Phone */}
-              <div className="flex items-start space-x-4">
-                <div className="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400">
-                  <Phone size={20} />
-                </div>
-                <div className="overflow-hidden">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    Phone
-                  </p>
-                  <p className="text-slate-900 dark:text-white font-semibold truncate">
-                    {displayUser?.phone || 'Not Added'}
-                  </p>
-                </div>
-              </div>
-
-              {/* DOB */}
-              <div className="flex items-start space-x-4">
-                <div className="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400">
-                  <Calendar size={20} />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    Date of Birth
-                  </p>
-                  <p className="text-slate-900 dark:text-white font-semibold">
-                    {displayUser?.dob
-                      ? new Date(displayUser.dob).toLocaleDateString()
-                      : 'Not Set'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Age */}
-              <div className="flex items-start space-x-4">
-                <div className="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400">
-                  <User size={20} />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    Age
-                  </p>
-                  <p className="text-slate-900 dark:text-white font-semibold">
-                    {ageText}
-                  </p>
-                </div>
-              </div>
-
-              {/* Location */}
-              <div className="flex items-start space-x-4">
-                <div className="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400">
-                  <MapPin size={20} />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    Location
-                  </p>
-                  <p className="text-slate-900 dark:text-white font-semibold">
-                    {displayUser?.location || 'Not Set'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Country */}
-              <div className="flex items-start space-x-4">
-                <div className="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400">
-                  <Globe size={20} />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    Country
-                  </p>
-                  <p className="text-slate-900 dark:text-white font-semibold">
-                    {displayUser?.country || 'Not Set'}
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
 
-            {/* Bio */}
-            <div className="px-6 sm:px-8 pb-8">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
-                Biography
-              </p>
-              <p className="text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl italic border border-slate-100 dark:border-slate-700">
-                {displayUser?.bio || 'No biography provided yet.'}
-              </p>
+            <div className="px-10 pb-10">
+               <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[1.5rem] border border-slate-100 dark:border-slate-800">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">System Biography</p>
+                  <p className="text-slate-600 dark:text-slate-300 font-medium italic">"{displayUser?.bio || 'No operative biography provided yet.'}"</p>
+               </div>
             </div>
           </div>
 
-          {/* Security Log */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                Security Log
+          {/* Activity Logs */}
+          <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl rounded-[2.5rem] border border-white dark:border-slate-800 shadow-xl overflow-hidden">
+            <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+                <Clock size={20} className="text-primary-600" /> Neural Activity Log
               </h3>
-              <Clock size={18} className="text-slate-400" />
             </div>
 
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {activities.length > 0 ? (
-                activities.slice(0, 6).map((log, i) => (
-                  <div
-                    key={log.id || log._id || i}
-                    className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
+                activities.slice(0, 8).map((log, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    className="p-8 flex items-center justify-between group hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                   >
-                    <div className="flex items-center space-x-4">
-                      <div
-                        className={`h-2.5 w-2.5 rounded-full ${
-                          (log.action || '').includes('Success')
-                            ? 'bg-green-500'
-                            : 'bg-blue-500'
-                        }`}
-                      ></div>
-
+                    <div className="flex items-center gap-5">
+                      <div className={`h-3 w-3 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.1)] ${log.action?.includes('Success') ? 'bg-green-500' : 'bg-primary-500'}`} />
                       <div>
-                        <p className="text-slate-900 dark:text-white font-bold text-sm group-hover:text-primary-600 transition-colors">
+                        <p className="text-slate-900 dark:text-white font-black text-sm group-hover:text-primary-600 transition-colors">
                           {log.action}
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {log.details || 'System log'}
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                          {log.details || 'Identity Handshake'}
                         </p>
                       </div>
                     </div>
-
                     <div className="text-right">
-                      <span className="text-xs font-bold text-slate-400 block">
-                        {log.createdAt ? new Date(log.createdAt).toLocaleDateString() : '—'}
-                      </span>
-                      <span className="text-[10px] text-slate-300 dark:text-slate-500">
-                        IP: {log.ip || '---'}
-                      </span>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{log.createdAt ? new Date(log.createdAt).toLocaleDateString() : '—'}</p>
+                       <p className="text-[10px] text-slate-300 font-mono mt-1">{log.ip || '0.0.0.0'}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))
               ) : (
-                <div className="p-10 text-center text-slate-400 dark:text-slate-500 text-sm">
-                  No activity logs found.
-                </div>
+                <div className="p-20 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">No Secure Logs Identified</div>
               )}
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

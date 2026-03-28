@@ -165,28 +165,6 @@ const DashboardLayout = () => {
       // Register service worker
       const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
       
-      // Get FCM token (you'll need to implement this based on your Firebase setup)
-      // This is a placeholder - you need to integrate with your Firebase/FCM setup
-      /*
-      const messaging = getMessaging();
-      const token = await getToken(messaging, {
-        vapidKey: "YOUR_VAPID_KEY",
-        serviceWorkerRegistration: registration,
-      });
-      
-      if (token) {
-        setFcmToken(token);
-        // Save token to backend
-        await axios.post(`${BASE_URL}/api/user/notifications/push-token`, {
-          token,
-          platform: "WEB",
-        }, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-        });
-        setPushEnabled(true);
-      }
-      */
-      
       // Listen for incoming push notifications
       navigator.serviceWorker.addEventListener("message", (event) => {
         if (event.data && event.data.type === "PUSH_NOTIFICATION") {
@@ -294,33 +272,8 @@ const DashboardLayout = () => {
       }
     }, 30000); // Poll every 30 seconds
     
-    // Set up WebSocket for real-time notifications (if implemented)
-    /*
-    const ws = new WebSocket(`wss://your-backend/notifications?token=${localStorage.getItem('token')}`);
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'NEW_NOTIFICATION') {
-        fetchUnreadCount();
-        fetchRecentNotifications();
-        
-        // Show desktop notification
-        if (Notification.permission === 'granted') {
-          new Notification(data.title, {
-            body: data.message,
-            icon: '/icon.png'
-          });
-        }
-        
-        toast.success(`New notification: ${data.title}`);
-      }
-    };
-    */
-    
     return () => {
       clearInterval(pollInterval);
-      /*
-      if (ws) ws.close();
-      */
     };
   }, [fetchUnreadCount, fetchRecentNotifications, setupPushNotifications, showNotificationsDropdown]);
 
@@ -386,7 +339,7 @@ const DashboardLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
+    <div className="h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 overflow-hidden flex">
       {/* Overlay only when sidebar open */}
       {isSidebarOpen && (
         <button
@@ -399,7 +352,7 @@ const DashboardLayout = () => {
       {/* Sidebar */}
       <aside
         className={[
-          "fixed top-0 left-0 z-50 h-screen w-72",
+          "fixed top-0 left-0 z-50 h-full w-72",
           "bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800",
           "transition-transform duration-300 ease-in-out",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full",
@@ -481,7 +434,7 @@ const DashboardLayout = () => {
       </aside>
 
       {/* Main wrapper */}
-      <div className={["flex flex-col min-h-screen transition-all duration-300 relative", isSidebarOpen ? "lg:pl-72" : "lg:pl-0"].join(" ")}>
+      <div className={["flex-1 flex flex-col h-full transition-all duration-300 relative", isSidebarOpen ? "lg:pl-72" : "lg:pl-0"].join(" ")}>
         {/* Navbar */}
         <header className={location.pathname === '/dashboard' 
           ? "h-20 absolute top-0 left-0 right-0 z-30 pointer-events-none bg-transparent flex items-center justify-between px-6 lg:px-10" 
@@ -509,7 +462,7 @@ const DashboardLayout = () => {
           {/* Right */}
           <div className={`flex items-center space-x-4 pointer-events-auto ${location.pathname === '/dashboard' ? 'bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 px-2 py-1.5 rounded-[1.25rem]' : ''}`}>
             
-            {/* ✅ New Route Action Button (Links to Map floating panel) */}
+            {/* ✅ New Route Action Button */}
             {location.pathname === '/dashboard' && (
               <button 
                 onClick={() => window.dispatchEvent(new CustomEvent('toggleNewRoute'))}
@@ -519,7 +472,7 @@ const DashboardLayout = () => {
               </button>
             )}
 
-            {/* ✅ Enhanced Notification Bell with Dropdown */}
+            {/* Notification Bell */}
             <div className="relative" ref={notificationsDropdownRef}>
               <button
                 onClick={() => {
@@ -536,14 +489,11 @@ const DashboardLayout = () => {
                 ) : (
                   <Bell size={22} />
                 )}
-
-                {/* dot */}
                 {unreadCount > 0 && (
                   <span className="absolute top-2 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900" />
                 )}
               </button>
 
-              {/* Notifications Dropdown */}
               {showNotificationsDropdown && (
                 <div className="absolute right-0 mt-3 w-96 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 py-3 z-[100] animate-in slide-in-from-top-2 duration-200 max-h-[80vh] overflow-hidden flex flex-col">
                   {/* Header */}
@@ -617,18 +567,6 @@ const DashboardLayout = () => {
                                   <span className="text-xs font-bold text-slate-400">
                                     {formatTime(notification.createdAt)}
                                   </span>
-                                  {notification.ctaLabel && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        trackCTAClick(notification.notificationId, notification.ctaUrl);
-                                      }}
-                                      className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1"
-                                    >
-                                      {notification.ctaLabel}
-                                      <ExternalLink size={10} />
-                                    </button>
-                                  )}
                                 </div>
                               </div>
                             </div>
@@ -647,41 +585,6 @@ const DashboardLayout = () => {
                     >
                       View all notifications
                     </Link>
-                    
-                    {/* Push Notification Toggle */}
-                    {pushEnabled && (
-                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Bell size={14} className="text-slate-400" />
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                              Push notifications
-                            </span>
-                          </div>
-                          <div className="relative inline-block w-10 h-5">
-                            <input
-                              type="checkbox"
-                              checked={pushEnabled}
-                              onChange={() => setPushEnabled(!pushEnabled)}
-                              className="sr-only"
-                              id="push-toggle"
-                            />
-                            <label
-                              htmlFor="push-toggle"
-                              className={`block h-5 rounded-full cursor-pointer transition-colors ${
-                                pushEnabled ? "bg-primary-600" : "bg-slate-300 dark:bg-slate-700"
-                              }`}
-                            >
-                              <div
-                                className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                                  pushEnabled ? "transform translate-x-5" : "transform translate-x-0.5"
-                                }`}
-                              />
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -742,10 +645,12 @@ const DashboardLayout = () => {
           </div>
         </header>
 
-        {/* Content */}
-        <main className={`flex-1 flex flex-col ${location.pathname === '/dashboard' ? 'overflow-hidden z-0' : 'p-6 lg:p-10 overflow-y-auto'}`}>
-          <div className={location.pathname === '/dashboard' ? 'flex-1 w-full flex flex-col relative' : 'max-w-7xl mx-auto'}>
-            <Outlet />
+        {/* Content - THE REAL SCROLL FIX */}
+        <main className={`flex-1 flex flex-col relative overflow-hidden`}>
+          <div className={`flex-1 w-full flex flex-col relative ${location.pathname === '/dashboard' ? 'overflow-hidden' : 'overflow-y-auto p-6 lg:p-10 pb-24'}`}>
+            <div className={location.pathname === '/dashboard' ? 'flex-1 w-full h-full relative' : 'max-w-7xl mx-auto w-full'}>
+              <Outlet />
+            </div>
           </div>
         </main>
       </div>

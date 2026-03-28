@@ -23,10 +23,10 @@ import toast from "react-hot-toast";
 
 import { getToken } from "firebase/messaging";
 import { messaging } from "../lib/push/firebaseClient";
+import { motion, AnimatePresence } from "framer-motion";
 
 const SettingsPage = () => {
   const { user, logout } = useAuth();
-
   const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
   const [formData, setFormData] = useState({
@@ -39,28 +39,19 @@ const SettingsPage = () => {
     country: user?.country || "",
   });
 
-  // Loading
   const [updateLoading, setUpdateLoading] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
-
-  // Image
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [profilePreview, setProfilePreview] = useState(user?.profileImage || "");
-
-  // Theme
   const [theme, setTheme] = useState("light");
-
-  // Push
   const [pushEnabled, setPushEnabled] = useState(false);
-  const [pushPermission, setPushPermission] = useState("default"); // granted | denied | default
+  const [pushPermission, setPushPermission] = useState("default");
 
-  // Helper: Auth header
   const getAuthHeader = () => {
     const token = localStorage.getItem("token");
     return { Authorization: `Bearer ${token}` };
   };
 
-  // Init theme + permission
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark") {
@@ -77,7 +68,6 @@ const SettingsPage = () => {
     }
   }, []);
 
-  // Cleanup preview blob url
   useEffect(() => {
     return () => {
       if (profilePreview && profilePreview.startsWith("blob:")) {
@@ -86,10 +76,8 @@ const SettingsPage = () => {
     };
   }, [profilePreview]);
 
-  // Theme toggle
   const toggleTheme = () => {
     const isDark = document.documentElement.classList.contains("dark");
-
     if (isDark) {
       document.documentElement.classList.remove("dark");
       localStorage.setItem("theme", "light");
@@ -103,49 +91,38 @@ const SettingsPage = () => {
     }
   };
 
-  // Image select
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     if (!file.type.startsWith("image/")) {
       toast.error("Please select a valid image file");
       return;
     }
-
     if (file.size > 2 * 1024 * 1024) {
       toast.error("Image too large. Max 2MB allowed.");
       return;
     }
-
     setProfileImageFile(file);
-
     if (profilePreview && profilePreview.startsWith("blob:")) {
       URL.revokeObjectURL(profilePreview);
     }
-
     const previewUrl = URL.createObjectURL(file);
     setProfilePreview(previewUrl);
   };
 
-  // Update profile
   const handleUpdate = async (e) => {
     e.preventDefault();
     setUpdateLoading(true);
-
     try {
       const fd = new FormData();
       Object.entries(formData).forEach(([key, val]) => fd.append(key, val || ""));
-
       if (profileImageFile) fd.append("profileImage", profileImageFile);
-
       const res = await axios.patch(`${BASE_URL}/api/user/settings`, fd, {
         headers: {
           ...getAuthHeader(),
           "Content-Type": "multipart/form-data",
         },
       });
-
       if (res.data?.success) {
         toast.success("Profile updated successfully!");
       } else {
@@ -159,46 +136,35 @@ const SettingsPage = () => {
     }
   };
 
-  // ✅ Enable Push Notifications
   const enablePushNotifications = async () => {
     try {
       setPushLoading(true);
-
       if (!("Notification" in window)) {
         toast.error("This browser does not support notifications.");
         return;
       }
-
-      // request permission
       const permission = await Notification.requestPermission();
       setPushPermission(permission);
-
       if (permission !== "granted") {
         toast.error("Notification permission denied.");
         setPushEnabled(false);
         return;
       }
-
       const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
       if (!vapidKey) {
         toast.error("Missing VITE_FIREBASE_VAPID_KEY in client .env");
         return;
       }
-
       const fcmToken = await getToken(messaging, { vapidKey });
-
       if (!fcmToken) {
         toast.error("Failed to generate FCM token");
         return;
       }
-
-      // ✅ IMPORTANT: correct backend route
       const res = await axios.post(
         `${BASE_URL}/api/user/notifications/push-token`,
         { token: fcmToken, platform: "WEB" },
         { headers: getAuthHeader() }
       );
-
       if (res.data?.success) {
         toast.success("Push notifications enabled ✅");
         setPushEnabled(true);
@@ -214,40 +180,32 @@ const SettingsPage = () => {
   };
 
   const disablePushNotifications = async () => {
-  try {
-    setPushLoading(true);
+    try {
+      setPushLoading(true);
+      const token = localStorage.getItem("token");
+      await axios.delete(`${BASE_URL}/api/user/notifications/push-token`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("Push notifications disabled for this account ✅");
+      setPushEnabled(false);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to disable push");
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
-    const token = localStorage.getItem("token");
-
-    await axios.delete(`${BASE_URL}/api/user/notifications/push-token`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    toast.success("Push notifications disabled for this account ✅");
-    setPushEnabled(false);
-  } catch (err) {
-    console.error(err);
-    toast.error(err.response?.data?.message || "Failed to disable push");
-  } finally {
-    setPushLoading(false);
-  }
-};
-
-  // Account action
   const handleAccountAction = async (actionType) => {
     const isPermanent = actionType === "permanent";
-
     const confirmMsg = isPermanent
       ? "WARNING: This will permanently delete your account and all data. This cannot be undone!"
       : "Are you sure you want to suspend your account? You can reactivate it later via email.";
-
     if (!window.confirm(confirmMsg)) return;
-
     try {
       await axios.delete(`${BASE_URL}/api/user/account?type=${actionType}`, {
         headers: getAuthHeader(),
       });
-
       toast.success(isPermanent ? "Account deleted" : "Account suspended");
       logout();
     } catch (err) {
@@ -256,272 +214,204 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-6 mb-8 flex-wrap">
-        <div className="flex items-center space-x-3">
-          <div className="bg-primary-600 p-3 rounded-2xl text-white shadow-lg shadow-primary-200/40">
-            <Settings size={28} />
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-4xl mx-auto space-y-12 pb-32"
+    >
+      {/* Dynamic Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-600/10 border border-primary-600/20 text-primary-600 text-[10px] font-black uppercase tracking-widest">
+            <Settings size={12} /> System Configuration
           </div>
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              Account Settings
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">
-              Update profile information and preferences.
-            </p>
-          </div>
+          <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
+            Settings Node
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">
+            Manage your operative profile and interface protocols.
+          </p>
         </div>
 
         <button
           onClick={toggleTheme}
-          className="flex items-center gap-2 px-5 py-3 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm"
+          className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white dark:border-slate-800 text-slate-700 dark:text-white px-6 py-4 rounded-2xl font-black hover:bg-white dark:hover:bg-slate-800 transition-all shadow-xl active:scale-95 text-sm flex items-center gap-3"
         >
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+          <span>{theme === "dark" ? "Day Protocol" : "Night Protocol"}</span>
         </button>
       </div>
 
-      {/* Push Notifications */}
-      <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <Bell size={18} />
-              Push Notifications
+      {/* Push Notifications Block */}
+      <section className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl rounded-[2.5rem] border border-white dark:border-slate-800 shadow-2xl overflow-hidden group">
+        <div className="p-10 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-6 flex-wrap">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
+              <Bell size={24} className="text-primary-600" /> Push Comms
             </h2>
-
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-bold">
-              Receive alerts when admin broadcasts system/security notifications.
-            </p>
-
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-3 font-bold leading-relaxed">
-              Permission: <span className="text-slate-600 dark:text-slate-300">{pushPermission}</span>
+            <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">
+              Real-time synchronization for security alerts and fleet broadcasts.
             </p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-4">
             {pushEnabled ? (
               <button
                 type="button"
                 onClick={disablePushNotifications}
                 disabled={pushLoading}
-                className="px-5 py-3 rounded-2xl font-black border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-60 flex items-center gap-2"
+                className="px-8 py-4 rounded-2xl font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all disabled:opacity-50 flex items-center gap-3 text-sm"
               >
-                {pushLoading ? (
-                  <Loader2 className="animate-spin" size={18} />
-                ) : (
-                  <BellOff size={18} />
-                )}
-                Disable
+                {pushLoading ? <Loader2 className="animate-spin" size={18} /> : <BellOff size={18} />}
+                Terminate Link
               </button>
             ) : (
               <button
                 type="button"
                 onClick={enablePushNotifications}
                 disabled={pushLoading}
-                className="px-5 py-3 rounded-2xl font-black bg-primary-600 hover:bg-primary-700 text-white transition disabled:opacity-60 flex items-center gap-2"
+                className="px-8 py-4 rounded-2xl font-black bg-primary-600 text-white hover:bg-primary-700 transition-all shadow-xl shadow-primary-600/20 disabled:opacity-50 flex items-center gap-3 text-sm"
               >
-                {pushLoading ? (
-                  <Loader2 className="animate-spin" size={18} />
-                ) : (
-                  <Bell size={18} />
-                )}
-                Enable
+                {pushLoading ? <Loader2 className="animate-spin" size={18} /> : <Bell size={18} />}
+                Establish Link
               </button>
             )}
           </div>
         </div>
 
-        <div className="p-6 sm:p-8">
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4">
-            <p className="text-sm font-black text-slate-700 dark:text-slate-200">
-              Status:{" "}
-              <span className={pushEnabled ? "text-emerald-600" : "text-rose-600"}>
-                {pushEnabled ? "ENABLED" : "DISABLED"}
-              </span>
-            </p>
-
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-2 leading-relaxed">
-              For push notifications to work when browser is closed, you must setup Firebase service worker
-              and deploy over HTTPS.
+        <div className="p-10">
+          <div className="bg-slate-50 dark:bg-slate-950/50 rounded-[2rem] border border-slate-100 dark:border-slate-900 p-8">
+            <div className="flex items-center gap-4 mb-4">
+              <div className={`h-3 w-3 rounded-full ${pushEnabled ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+              <p className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">
+                Status: {pushEnabled ? "Active Satellite Link" : "Comms Offline"}
+              </p>
+            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+              Establishing a secure push channel requires system-level permissions. Ensure your proxy 
+              and firewall protocols allow bidirectional data flow from the Firebase relay.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Profile Update */}
-      <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-400">
-              <User size={20} />
-            </div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white">
-              Personal Information
-            </h2>
+      {/* Main Profile Form */}
+      <section className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl rounded-[2.5rem] border border-white dark:border-slate-800 shadow-2xl overflow-hidden">
+        <div className="p-10 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-6">
+          <div className="flex items-center gap-4">
+             <div className="p-3 bg-primary-600/5 rounded-2xl text-primary-600">
+                <User size={24} />
+             </div>
+             <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Biometric Registry</h2>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border border-slate-200 dark:border-slate-700">
-              {profilePreview ? (
-                <img src={profilePreview} alt="preview" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-400 font-black">
-                  {user?.name?.charAt(0) || "U"}
-                </div>
-              )}
-            </div>
-
-            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-              <Camera size={16} />
-              <span className="text-sm">Change</span>
-              <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-            </label>
+          <div className="flex items-center gap-6">
+             <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-800 overflow-hidden border-2 border-white dark:border-slate-700 shadow-lg">
+                {profilePreview ? (
+                  <img src={profilePreview} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-300 font-black text-xl">
+                    {user?.name?.charAt(0) || "U"}
+                  </div>
+                )}
+             </div>
+             <label className="cursor-pointer bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-[1rem] font-black text-sm hover:scale-105 transition-transform flex items-center gap-2">
+                <Camera size={16} /> Update Bio-Data
+                <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+             </label>
           </div>
         </div>
 
-        <form onSubmit={handleUpdate} className="p-6 sm:p-8 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                Display Name
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                <Phone size={16} /> Phone Number
-              </label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+91xxxxxxxxxx"
-                className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                <Calendar size={16} /> Date of Birth
-              </label>
-              <input
-                type="date"
-                value={formData.dob}
-                onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                Gender Identity
-              </label>
-              <select
-                value={formData.gender}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-              >
-                <option value="">Prefer not to say</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                <MapPin size={16} /> Location
-              </label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="Hyderabad, Telangana"
-                className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                <Globe size={16} /> Country
-              </label>
-              <input
-                type="text"
-                value={formData.country}
-                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                placeholder="India"
-                className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-              />
-            </div>
+        <form onSubmit={handleUpdate} className="p-10 space-y-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            {[
+              { label: 'Display Identifier', key: 'name', type: 'text' },
+              { label: 'Comms Frequency', key: 'phone', type: 'tel', icon: <Phone size={14} />, placeholder: '+91xxxxxxxxxx' },
+              { label: 'Origin Date', key: 'dob', type: 'date', icon: <Calendar size={14} /> },
+              { label: 'Gender Protocol', key: 'gender', type: 'select', options: ['MALE', 'FEMALE', 'OTHER'] },
+              { label: 'Deployment Hub', key: 'location', type: 'text', icon: <MapPin size={14} />, placeholder: 'City, Region' },
+              { label: 'Territory', key: 'country', type: 'text', icon: <Globe size={14} />, placeholder: 'Country' }
+            ].map((field) => (
+              <div key={field.key} className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+                  {field.icon} {field.label}
+                </label>
+                {field.type === 'select' ? (
+                  <select
+                    value={formData[field.key]}
+                    onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
+                    className="w-full px-6 py-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 text-slate-900 dark:text-white font-bold outline-none focus:ring-4 focus:ring-primary-600/10 transition-all appearance-none"
+                  >
+                    <option value="">Unspecified</option>
+                    {field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                ) : (
+                  <input
+                    type={field.type}
+                    value={formData[field.key]}
+                    onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
+                    placeholder={field.placeholder}
+                    className="w-full px-6 py-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 text-slate-900 dark:text-white font-bold outline-none focus:ring-4 focus:ring-primary-600/10 transition-all"
+                  />
+                )}
+              </div>
+            ))}
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-200">
-              Short Bio
-            </label>
-            <textarea
-              value={formData.bio}
-              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              rows="4"
-              className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none resize-none"
-            />
+          <div className="space-y-3">
+             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Operative History (Bio)</label>
+             <textarea
+               value={formData.bio}
+               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+               rows="4"
+               className="w-full px-6 py-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 text-slate-900 dark:text-white font-bold outline-none focus:ring-4 focus:ring-primary-600/10 transition-all resize-none"
+             />
           </div>
 
-          <div className="flex justify-end pt-4">
+          <div className="flex justify-end pt-8">
             <button
               type="submit"
               disabled={updateLoading}
-              className="flex items-center space-x-2 bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100/40 active:scale-95 disabled:opacity-50"
+              className="bg-primary-600 text-white px-12 py-5 rounded-2xl font-black text-lg hover:bg-primary-700 transition-all shadow-2xl shadow-primary-600/30 active:scale-95 disabled:opacity-50 flex items-center gap-3"
             >
-              {updateLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white animate-spin rounded-full" />
-              ) : (
-                <Save size={18} />
-              )}
-              <span>{updateLoading ? "Updating..." : "Save Changes"}</span>
+              {updateLoading ? <Loader2 className="animate-spin" size={24} /> : <Save size={24} />}
+              <span>Commit Changes</span>
             </button>
           </div>
         </form>
       </section>
 
-      {/* Danger Zone */}
-      <section className="bg-red-50/30 dark:bg-red-500/10 rounded-3xl border border-red-100 dark:border-red-500/20 p-8">
-        <div className="flex items-center space-x-3 mb-4 text-red-600 dark:text-red-300">
-          <AlertCircle size={24} />
-          <h2 className="text-xl font-bold">Danger Zone</h2>
+      {/* Extreme Measures (Danger Zone) */}
+      <section className="bg-red-500/5 dark:bg-red-500/10 rounded-[2.5rem] border border-red-500/20 p-12">
+        <div className="flex items-center gap-4 mb-6">
+           <div className="p-3 bg-red-500 text-white rounded-2xl shadow-lg shadow-red-500/20">
+              <AlertCircle size={28} />
+           </div>
+           <div>
+              <h2 className="text-2xl font-black text-red-600 dark:text-red-400 tracking-tight">Critical Overrides</h2>
+              <p className="text-red-500/60 font-medium text-sm">Destructive protocols. Use with extreme caution.</p>
+           </div>
         </div>
 
-        <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm max-w-2xl leading-relaxed">
-          Be careful. These actions are permanent.
-        </p>
-
-        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+        <div className="flex flex-col sm:flex-row gap-6">
           <button
             onClick={() => handleAccountAction("suspend")}
-            className="px-6 py-4 bg-white dark:bg-slate-900 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-300 font-bold rounded-2xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-all flex items-center justify-center space-x-3 shadow-sm active:scale-95"
+            className="flex-1 px-8 py-5 bg-white dark:bg-slate-900 border border-red-500/20 text-red-600 dark:text-red-400 font-black rounded-2xl hover:bg-red-500/5 transition-all flex items-center justify-center gap-3 shadow-sm"
           >
-            <Shield size={18} />
-            <span>Suspend Account</span>
+            <Shield size={20} />
+            Suspend Proxy
           </button>
 
           <button
             onClick={() => handleAccountAction("permanent")}
-            className="px-6 py-4 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 transition-all shadow-lg shadow-red-100/40 flex items-center justify-center space-x-3 active:scale-95"
+            className="flex-1 px-8 py-5 bg-red-600 text-white font-black rounded-2xl hover:bg-red-700 transition-all shadow-xl shadow-red-600/30 flex items-center justify-center gap-3"
           >
-            <Trash2 size={18} />
-            <span>Permanently Delete</span>
+            <Trash2 size={20} />
+            Purge All Data
           </button>
         </div>
       </section>
-    </div>
+    </motion.div>
   );
 };
 

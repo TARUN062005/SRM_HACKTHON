@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth/hooks/useAuth';
 import { ShipmentCreationFlow } from '../components/ShipmentCreationFlow';
 import { RouteMap } from '../components/RouteMap';
-import { X, Car, Bike, Bus, Truck, Footprints } from 'lucide-react';
+import { X, Car, Bike, Bus, Truck, Footprints, Shield, Navigation, Activity, Zap, Play, ArrowRight, Fingerprint, Globe, Cpu, MapPin, Calendar, Phone, Mail, Save, Trash2, Edit3, Bell, BellOff, Loader2, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const vehicleOptions = [
   { label: 'Car', value: 'car', icon: <Car size={18} /> },
@@ -14,21 +15,19 @@ const vehicleOptions = [
 
 const Dashboard = () => {
   const { user } = useAuth();
-
   const [selectedSource, setSelectedSource] = useState(null);
   const [selectedDest, setSelectedDest] = useState(null);
   const [showSearchPanel, setShowSearchPanel] = useState(false);
-  const [weather, setWeather] = useState({ temp: 24, condition: 'Clear', risk: 'Low', icon: 'https://openweathermap.org/img/wn/01d.png' });
   const [vehicleMode, setVehicleMode] = useState('car');
-
   const [routeData, setRouteData] = useState(null);
   const [activeCheckpoint, setActiveCheckpoint] = useState(null);
 
-  // Clear/close route handler
   const handleClearRoute = () => {
     setSelectedSource(null);
     setSelectedDest(null);
+    setRouteData(null);
   };
+
   const resetMapFlow = () => {
     setSelectedSource(null);
     setSelectedDest(null);
@@ -40,51 +39,48 @@ const Dashboard = () => {
     return () => window.removeEventListener('toggleNewRoute', fn);
   }, []);
 
-  // Only show float when user calls it (e.g. via button)
-  const handleOpenFloat = () => setShowSearchPanel(true);
-
   return (
-    <div className="dashboard-root h-screen w-screen flex flex-col bg-slate-50 overflow-hidden">
-
-      {/* Floating Search Panel (only when user opens) */}
-      {showSearchPanel && (
-        <div className="absolute top-24 left-6 lg:left-10 z-[1100] shadow-2xl" style={{ maxWidth: 400 }}>
-          <div className="bg-white shadow-2xl rounded-2xl w-96 max-w-[calc(100vw-2rem)] overflow-hidden flex flex-col border border-slate-200">
-            <div className="bg-blue-600 px-4 py-3 flex items-center justify-between text-white">
-              <div className="flex items-center gap-2 font-bold">
-                Plan AI Route
+    <div className="h-full w-full relative overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col">
+      <AnimatePresence>
+        {showSearchPanel && (
+          <motion.div 
+            initial={{ opacity: 0, x: -20, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -20, scale: 0.95 }}
+            className="absolute top-24 left-6 lg:left-10 z-[1100] w-full max-w-[420px]"
+          >
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] rounded-[2.5rem] overflow-hidden flex flex-col border border-white dark:border-slate-800">
+              <div className="bg-primary-600 px-8 py-5 flex items-center justify-between text-white shadow-lg">
+                <div className="flex items-center gap-3 font-black text-sm uppercase tracking-widest">
+                  <Shield size={18} /> Plan Neural Route
+                </div>
+                <button onClick={() => setShowSearchPanel(false)} className="hover:bg-primary-700 p-2 rounded-xl transition-all active:scale-90">
+                  <X size={20} />
+                </button>
               </div>
-              <button onClick={() => setShowSearchPanel(false)} className="hover:bg-blue-700 p-1 rounded transition">
-                <X size={20} />
-              </button>
+              <div className="p-8">
+                <ShipmentCreationFlow
+                  onLocationSelect={(src, dest) => {
+                    setSelectedSource(src);
+                    setSelectedDest(dest);
+                    setShowSearchPanel(false);
+                  }}
+                  onClearRoute={handleClearRoute}
+                  vehicleMode={vehicleMode}
+                  setVehicleMode={setVehicleMode}
+                />
+              </div>
             </div>
-            <div className="p-4">
-              <ShipmentCreationFlow
-                onLocationSelect={(src, dest) => {
-                  setSelectedSource(src);
-                  setSelectedDest(dest);
-                  setShowSearchPanel(false);
-                }}
-                onClearRoute={handleClearRoute}
-                vehicleMode={vehicleMode}
-                setVehicleMode={setVehicleMode}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Main Layout: Map + Side Panel */}
-      <div className="w-full flex-1 relative h-[calc(100vh-0px)]">
-        {/* Map Area (Primary) */}
-        <div className="w-full h-full relative">
-
-          {/* Main Map Component */}
+      <div className="flex-1 relative">
+        <div className="absolute inset-0 z-0">
           <RouteMap
             selectedSource={selectedSource}
             selectedDestination={selectedDest}
             onManualReset={resetMapFlow}
-            setWeather={setWeather}
             vehicleMode={vehicleMode}
             onClearRoute={handleClearRoute}
             mapTiles="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
@@ -94,35 +90,48 @@ const Dashboard = () => {
             externalActiveRouteIndex={routeData?.activeRouteIndex}
             activeCheckpoint={activeCheckpoint}
           />
-
-          {/* Floating Transportation Modes (Bottom Center) */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1050] bg-white/90 backdrop-blur-md px-2 py-2 rounded-full shadow-2xl border border-slate-200 flex items-center gap-1">
-            {vehicleOptions.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => setVehicleMode(opt.value)}
-                title={`Route via ${opt.label}`}
-                className={`p-3 rounded-full flex items-center justify-center transition-all ${vehicleMode === opt.value ? 'bg-blue-600 text-white shadow-md shadow-blue-500/40 scale-105' : 'text-slate-600 hover:bg-slate-100 hover:text-blue-600'}`}
-              >
-                {opt.icon}
-              </button>
-            ))}
-          </div>
         </div>
-        {/* Side Panel (Route Details, Weather, Risk) */}
-        {routeData && routeData.allRoutes && routeData.allRoutes.length > 0 && (
-          <div className="absolute right-4 top-24 bottom-6 w-[25vw] min-w-[320px] max-w-[420px] bg-slate-50 border border-slate-200 shadow-2xl rounded-2xl flex flex-col p-5 gap-4 overflow-y-auto z-[1050]">
-            <RouteMap.SidePanel
-              selectedSource={selectedSource}
-              selectedDestination={selectedDest}
-              vehicleMode={vehicleMode}
-              setActiveCheckpoint={setActiveCheckpoint}
-              activeCheckpoint={activeCheckpoint}
-              onClearRoute={handleClearRoute}
-              {...routeData}
-            />
-          </div>
-        )}
+
+        {/* Transportation Mode HUD */}
+        <motion.div 
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[1050] bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl px-3 py-3 rounded-full shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] border border-white dark:border-slate-800 flex items-center gap-2"
+        >
+          {vehicleOptions.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setVehicleMode(opt.value)}
+              className={`p-4 rounded-full flex items-center justify-center transition-all ${vehicleMode === opt.value ? 'bg-primary-600 text-white shadow-xl shadow-primary-600/40 scale-110 active:scale-95' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+            >
+              {opt.icon}
+            </button>
+          ))}
+        </motion.div>
+
+        {/* Tactical Intelligence SidePanel */}
+        <AnimatePresence>
+          {routeData && routeData.allRoutes && routeData.allRoutes.length > 0 && (
+            <motion.div 
+              initial={{ x: 100, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 100, opacity: 0 }}
+              className="absolute right-6 top-6 bottom-6 w-[28vw] min-w-[360px] max-w-[480px] bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-white dark:border-slate-800 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] rounded-[3rem] flex flex-col p-8 z-[1050] overflow-hidden"
+            >
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <RouteMap.SidePanel
+                  selectedSource={selectedSource}
+                  selectedDestination={selectedDest}
+                  vehicleMode={vehicleMode}
+                  setActiveCheckpoint={setActiveCheckpoint}
+                  activeCheckpoint={activeCheckpoint}
+                  onClearRoute={handleClearRoute}
+                  {...routeData}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
