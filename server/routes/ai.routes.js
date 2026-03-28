@@ -3,6 +3,7 @@ const router = express.Router();
 const aiRouteController = require('../controller/aiRouteController');
 
 router.post('/route/optimize', aiRouteController.optimizeRoute);
+router.get('/directions', aiRouteController.getDirections);
 router.post('/risk/analyze', aiRouteController.analyzeRisk);
 router.post('/shipment', aiRouteController.createShipment);
 router.get('/shipment/:id', aiRouteController.getShipment);

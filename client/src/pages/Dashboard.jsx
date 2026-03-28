@@ -14,7 +14,7 @@ const vehicleOptions = [
 
 const Dashboard = () => {
   const { user } = useAuth();
-  
+
   const [selectedSource, setSelectedSource] = useState(null);
   const [selectedDest, setSelectedDest] = useState(null);
   const [showSearchPanel, setShowSearchPanel] = useState(false);
@@ -22,16 +22,16 @@ const Dashboard = () => {
   const [vehicleMode, setVehicleMode] = useState('car');
 
   const [routeData, setRouteData] = useState(null);
+  const [activeCheckpoint, setActiveCheckpoint] = useState(null);
 
   // Clear/close route handler
   const handleClearRoute = () => {
     setSelectedSource(null);
     setSelectedDest(null);
-    setShowSearchPanel(true);
   };
   const resetMapFlow = () => {
-     setSelectedSource(null);
-     setSelectedDest(null);
+    setSelectedSource(null);
+    setSelectedDest(null);
   };
 
   useEffect(() => {
@@ -75,10 +75,10 @@ const Dashboard = () => {
       )}
 
       {/* Main Layout: Map + Side Panel */}
-      <div className="flex flex-1 min-h-0 min-w-0 relative" style={{ height: 'calc(100vh - 0px)' }}>
+      <div className="w-full flex-1 relative h-[calc(100vh-0px)]">
         {/* Map Area (Primary) */}
-        <div className="flex-1 min-w-0 min-h-0 relative" style={{ width: '75vw', height: '100%' }}>
-          
+        <div className="w-full h-full relative">
+
           {/* Main Map Component */}
           <RouteMap
             selectedSource={selectedSource}
@@ -92,6 +92,7 @@ const Dashboard = () => {
             showWeatherInPanel={true}
             onRouteData={setRouteData}
             externalActiveRouteIndex={routeData?.activeRouteIndex}
+            activeCheckpoint={activeCheckpoint}
           />
 
           {/* Floating Transportation Modes (Bottom Center) */}
@@ -109,14 +110,19 @@ const Dashboard = () => {
           </div>
         </div>
         {/* Side Panel (Route Details, Weather, Risk) */}
-        <div className="w-[25vw] min-w-[320px] max-w-[420px] bg-slate-50 border-l border-slate-200 shadow-xl flex flex-col p-6 gap-4 overflow-y-auto z-[1050]" style={{ height: 'calc(100vh - 5rem)', marginTop: '5rem' }}>
-          <RouteMap.SidePanel
-            selectedSource={selectedSource}
-            selectedDestination={selectedDest}
-            vehicleMode={vehicleMode}
-            {...routeData}
-          />
-        </div>
+        {routeData && routeData.allRoutes && routeData.allRoutes.length > 0 && (
+          <div className="absolute right-4 top-24 bottom-6 w-[25vw] min-w-[320px] max-w-[420px] bg-slate-50 border border-slate-200 shadow-2xl rounded-2xl flex flex-col p-5 gap-4 overflow-y-auto z-[1050]">
+            <RouteMap.SidePanel
+              selectedSource={selectedSource}
+              selectedDestination={selectedDest}
+              vehicleMode={vehicleMode}
+              setActiveCheckpoint={setActiveCheckpoint}
+              activeCheckpoint={activeCheckpoint}
+              onClearRoute={handleClearRoute}
+              {...routeData}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
