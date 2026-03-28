@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Polyline, Popup, Circle, useMap, useMa
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
-import { AlertTriangle, Navigation, ChevronRight, Play, X, Clock, Info, Activity, Wind, Zap, MapPin, ShieldAlert, Globe, ArrowRight, Shield, Sun, CloudRain } from 'lucide-react';
+import { AlertTriangle, Navigation, ChevronRight, Play, X, Clock, Info, Activity, Wind, Zap, MapPin, ShieldAlert, Globe, ArrowRight, Shield, Sun, CloudRain, Footprints, Car, Bike, Bus, Truck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 // Force HMR Refresh: 2026-03-28T13:46:00Z
 
@@ -13,6 +13,18 @@ const THEME = {
   colors: ['#2563eb', '#64748b', '#94a3b8'],
   weights: [8, 5, 5],
   opacities: [1, 0.7, 0.5]
+};
+
+/**
+ * HELPER: Map condition to Icon
+ */
+const getWeatherIcon = (condition) => {
+  if (!condition) return Wind;
+  if (condition.includes("Storm")) return Zap;
+  if (condition.includes("Heavy Rain")) return CloudRain;
+  if (condition.includes("Rain")) return CloudRain;
+  if (condition.includes("Clear") || condition.includes("Sun")) return Sun;
+  return Wind;
 };
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
@@ -121,17 +133,21 @@ export const RouteMap = ({
   };
 
   const fetchRoutes = useCallback(async (start, end, mode) => {
-    // Heuristic scaling for instant UI feedback
+    // Corrected Heuristic: Update UI instantly without cumulative multiplier errors
     setAllRoutes(prev => {
       if (prev.length > 0) {
-        const scaleMap = { 'car': 1, 'bike': 3.5, 'foot': 9, 'bus': 1.2, 'truck': 1.3 };
+        const scaleMap = { 'car': 1, 'bike': 3, 'foot': 8, 'bus': 1.5, 'truck': 1.3 };
         const scale = scaleMap[mode] || 1;
-        const heuristicallyUpdated = prev.map(r => ({
-          ...r,
-          duration: r.duration * scale
-        }));
-        if (onRouteDataRef.current) onRouteDataRef.current({ allRoutes: heuristicallyUpdated, activeRouteIndex: 0 });
-        return heuristicallyUpdated;
+        
+        return prev.map(r => {
+          // If we don't have baseDuration yet (first load), treat current duration as base (likely car)
+          const base = r.baseDuration || r.duration;
+          return {
+            ...r,
+            duration: base * scale,
+            baseDuration: base // Preserve ground-truth
+          };
+        });
       }
       return prev;
     });
@@ -146,10 +162,16 @@ export const RouteMap = ({
         }
       });
       if (res.data.success && res.data.routes?.length > 0) {
+        const scaleMap = { 'car': 1, 'bike': 3, 'foot': 8, 'bus': 1.5, 'truck': 1.3 };
+        const currentScale = scaleMap[mode] || 1;
+
         const processed = res.data.routes.map((r, i) => ({
           ...r,
           coords: r.geometry.coordinates.map(c => [c[1], c[0]]),
-          color: THEME.colors[i % THEME.colors.length]
+          color: THEME.colors[i % THEME.colors.length],
+          intelligence: r.intelligence || {},
+          // Store ground-truth for future scaling
+          baseDuration: r.duration / currentScale 
         }));
         setAllRoutes(processed);
         setActiveRouteIndex(0);
@@ -172,6 +194,41 @@ export const RouteMap = ({
     }
   }, [selectedSource, selectedDestination, vehicleMode, fetchRoutes]);
 
+  const [hoveredInfo, setHoveredInfo] = useState(null);
+
+  // HELPER: Compute distance from start to hover point on route
+  const getEtaToPoint = (route, e) => {
+    const coords = route.coords;
+    const hoverLatLng = e.latlng;
+    
+    // Find closest index in course
+    let minDist = Infinity;
+    let closestIdx = 0;
+    for (let i = 0; i < coords.length; i++) {
+        const d = L.latLng(coords[i]).distanceTo(hoverLatLng);
+        if (d < minDist) {
+            minDist = d;
+            closestIdx = i;
+        }
+    }
+
+    // Estimate total time based on fraction of total distance
+    const totalDist = route.distance;
+    const totalDuration = route.duration;
+    
+    // Estimate cumulative distance along polyline to that point
+    let partialDist = 0;
+    for (let i = 1; i <= closestIdx; i++) {
+        partialDist += L.latLng(coords[i-1]).distanceTo(L.latLng(coords[i]));
+    }
+
+    const etaAtPoint = (partialDist / totalDist) * totalDuration;
+    return {
+        distKm: (partialDist / 1000).toFixed(1),
+        durMin: (etaAtPoint / 60).toFixed(0)
+    };
+  };
+
   const mapLayers = useMemo(() => {
     const sorted = [...allRoutes].sort((a, b) => a.id === activeRouteIndex ? 1 : -1);
     return sorted.map((route) => {
@@ -187,18 +244,39 @@ export const RouteMap = ({
             lineJoin="round"
             eventHandlers={{ 
               click: () => setActiveRouteIndex(route.id),
-              mouseover: (e) => e.target.setStyle({ weight: isActive ? 10 : 6, opacity: 1 }),
-              mouseout: (e) => e.target.setStyle({ weight: isActive ? 8 : 4, opacity: isActive ? 1 : 0.4 })
+              mouseover: (e) => {
+                const info = getEtaToPoint(route, e);
+                setHoveredInfo({ ...info, id: route.id });
+                e.target.setStyle({ weight: isActive ? 10 : 6, opacity: 1 });
+              },
+              mousemove: (e) => {
+                const info = getEtaToPoint(route, e);
+                setHoveredInfo({ ...info, id: route.id });
+              },
+              mouseout: (e) => {
+                setHoveredInfo(null);
+                e.target.setStyle({ weight: isActive ? 8 : 4, opacity: isActive ? 1 : 0.4 });
+              }
             }}
           >
             <Tooltip sticky direction="top" opacity={1} className="tactical-tooltip">
-              <div className="flex flex-col items-center bg-slate-900 text-white p-2 rounded-lg border border-slate-700 shadow-2xl">
-                <div className="text-[8px] font-black uppercase tracking-widest text-primary-500 mb-1">Path Intelligence</div>
-                <div className="flex items-center gap-2 whitespace-nowrap">
-                   <div className="text-xs font-black">{(route.distance / 1000).toFixed(1)} <span className="text-[8px] opacity-60">KM</span></div>
-                   <div className="w-1 h-3 bg-white/10 rounded-full" />
-                   <div className="text-xs font-black">{(route.duration / 60).toFixed(0)} <span className="text-[8px] opacity-60">MIN</span></div>
-                </div>
+              <div className="flex flex-col items-center bg-slate-900 border border-slate-700 text-white p-3 rounded-2xl shadow-2xl min-w-[120px]">
+                <div className="text-[10px] font-black uppercase tracking-widest text-primary-500 mb-2">Path Intelligence</div>
+                
+                {hoveredInfo && hoveredInfo.id === route.id ? (
+                   <div className="flex flex-col items-center">
+                      <div className="flex items-center gap-2 mb-1">
+                         <div className="text-xl font-black">{hoveredInfo.durMin} <span className="text-[10px] opacity-60">MIN</span></div>
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ETA TO POINT • {hoveredInfo.distKm} KM</div>
+                   </div>
+                ) : (
+                   <div className="flex items-center gap-2 whitespace-nowrap">
+                      <div className="text-xs font-black">{(route.distance / 1000).toFixed(1)} <span className="text-[8px] opacity-60">KM</span></div>
+                      <div className="w-1 h-3 bg-white/10 rounded-full" />
+                      <div className="text-xs font-black">{(route.duration / 60).toFixed(0)} <span className="text-[8px] opacity-60">MIN</span></div>
+                   </div>
+                )}
               </div>
             </Tooltip>
           </Polyline>
@@ -206,10 +284,28 @@ export const RouteMap = ({
             coords={route.coords} isActive={isActive}
             color={route.color} isNavigating={isNavigating} speedMultiplier={simSpeed}
           />
+          {isActive && route.intelligence?.waypointReports?.map((wp, idx) => (
+            <Marker 
+              key={`wp-${idx}`} 
+              position={wp.raw?.coords || route.coords[Math.floor(idx * route.coords.length / 5)]}
+              icon={L.divIcon({
+                className: 'custom-wp-icon',
+                html: `<div class="w-6 h-6 rounded-lg bg-white dark:bg-slate-900 border-2 ${wp.severity === 'CRITICAL' ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'border-primary-500'} flex items-center justify-center text-[10px] font-black shadow-lg">${idx + 1}</div>`,
+                iconSize: [24, 24]
+              })}
+            >
+              <Popup>
+                <div className="p-1 font-sans">
+                   <div className="text-[10px] font-black text-primary-600 uppercase mb-0.5">{wp.place}</div>
+                   <div className="text-xs font-bold text-slate-800">{wp.weather}</div>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
         </React.Fragment>
       );
     });
-  }, [allRoutes, activeRouteIndex, isNavigating, simSpeed]);
+  }, [allRoutes, activeRouteIndex, isNavigating, simSpeed, hoveredInfo]);
 
   return (
     <div className="w-full h-full relative bg-slate-900 overflow-hidden">
@@ -379,14 +475,20 @@ const SidePanel = ({
         {/* Vital Stats HUD */}
         <div className="grid grid-cols-2 gap-3 mt-4">
           <div className="bg-primary-600 text-white p-4 rounded-2xl shadow-xl shadow-primary-600/10">
-            <div className="text-[10px] font-black uppercase opacity-60 mb-1">Duration</div>
-            <div className="text-2xl font-black leading-none">{(activeRoute.duration / 60).toFixed(0)} <span className="text-[10px]">MIN</span></div>
+            <div className="flex justify-between items-start mb-1">
+               <div className="text-[10px] font-black uppercase opacity-60">Length</div>
+               <div className="text-[10px] font-black uppercase opacity-60">Time</div>
+            </div>
+            <div className="flex items-baseline justify-between">
+               <div className="text-2xl font-black leading-none">{(activeRoute.distance / 1000).toFixed(0)} <span className="text-[10px]">KM</span></div>
+               <div className="text-sm font-black opacity-90">{(activeRoute.duration / 60).toFixed(0)} <span className="text-[8px]">MIN</span></div>
+            </div>
           </div>
           <button 
             onClick={() => setShowWeatherChain(!showWeatherChain)}
             className={`p-4 rounded-2xl shadow-xl flex flex-col items-start transition-all border ${showWeatherChain ? 'bg-slate-900 border-slate-800 text-white shadow-2xl' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-400 opacity-60 hover:opacity-100'}`}
           >
-            <div className="text-[10px] font-black uppercase opacity-60 mb-1">Weather</div>
+            <div className="text-[10px] font-black uppercase opacity-60 mb-1">{(activeRoute.distance / 1000).toFixed(0)} KM</div>
             <div className="text-xl font-black leading-none flex items-center gap-2">
                Chain <CloudRain size={16} className={showWeatherChain ? 'text-primary-500' : ''} />
             </div>
@@ -395,130 +497,7 @@ const SidePanel = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-        {/* Intel Alert HUD */}
-        {intel && (
-          <div className="space-y-6">
-            {/* Risk Score Meter */}
-            <div className="bg-slate-900 rounded-[2.5rem] p-6 shadow-2xl relative overflow-hidden group border border-slate-800">
-              <div className="absolute right-0 top-0 w-32 h-32 bg-primary-600/10 blur-[60px] rounded-full" />
-
-              <div className="flex justify-between items-center mb-6">
-                <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase text-white shadow-lg ${getStatusColor(intel.severity)}`}>
-                  {intel.severity} Status
-                </div>
-                <div className="text-white/40 text-[10px] font-black uppercase tracking-widest">Active Intelligence</div>
-              </div>
-
-              <div className="flex items-baseline gap-2 mb-2">
-                <div className="text-5xl font-black text-white">{intel.riskScore}%</div>
-                <div className="text-xs font-black text-red-500 uppercase tracking-widest">Risk Index</div>
-              </div>
-
-              <div className="w-full h-2 bg-white/5 rounded-full mb-6 overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${intel.riskScore}%` }}
-                  className={`h-full ${intel.riskScore > 60 ? 'bg-red-500' : 'bg-primary-500'}`}
-                />
-              </div>
-
-              <p className="text-lg font-black text-white leading-snug">"{intel.summary}"</p>
-            </div>
-
-            {/* Weather Order Chain (35km Intervals) */}
-            {showWeatherChain && (
-               <div className="space-y-4">
-                 <div className="flex items-center justify-between px-2">
-                   <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Mission Chain (35KM Steps)</div>
-                   <div className="px-2 py-1 bg-red-500 text-white rounded-md text-[8px] font-black">{intel.waypointReports?.length || 0} SECTORS</div>
-                 </div>
-                 <div className="relative pl-6 space-y-4">
-                    {/* Visual Vertical Line Chain */}
-                    <div className="absolute left-2.5 top-2 bottom-6 w-0.5 border-l-2 border-dashed border-slate-200 dark:border-slate-800" />
-                    
-                    {intel.waypointReports?.map((item, i) => {
-                      const isFirst = i === 0;
-                      const isLast = i === (intel.waypointReports.length - 1);
-                      const severityColor = 
-                        item.severity === 'CRITICAL' ? 'text-red-500' : 
-                        item.severity === 'CAUTION' ? 'text-amber-500' : 'text-blue-500';
-
-                      const WeatherIcon = item.weather.includes('Rain') || item.weather.includes('Storm') ? CloudRain : item.weather.includes('Clear') ? Sun : Wind;
-
-                      return (
-                        <div key={i} className="relative group">
-                          {/* Node Circle */}
-                          <div className={`absolute -left-[24px] top-4 w-4 h-4 rounded-full ring-4 ring-white dark:ring-slate-900 flex items-center justify-center transition-all ${item.severity === 'CRITICAL' ? 'bg-red-500 scale-125 shadow-lg shadow-red-500/30' : 'bg-slate-200 dark:bg-slate-800 group-hover:bg-primary-500'}`} />
-                          
-                          <div className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-3xl flex items-center gap-4 transition-all shadow-sm ${isFirst || isLast ? 'ring-2 ring-primary-600/10' : ''}`}>
-                             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg shrink-0 ${item.severity === 'CRITICAL' ? 'bg-red-500 text-white shadow-red-500/20' : 'bg-slate-50 dark:bg-slate-950 text-slate-400'}`}>
-                                <WeatherIcon size={20} />
-                             </div>
-                             <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between mb-0.5">
-                                   <div className="flex items-center gap-2">
-                                      <span className="text-[10px] font-black text-slate-400">STAGE {i+1}</span>
-                                      <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase truncate">{item.place}</span>
-                                   </div>
-                                   <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full bg-slate-50 dark:bg-slate-950 ${severityColor}`}>{item.severity}</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                   <span className="text-xs font-black text-slate-900 dark:text-white uppercase">{item.weather.split(' • ')[0]}</span>
-                                   <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">{item.weather.split(' • ')[1]}</span>
-                                   <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">{item.weather.split(' • ')[2]}</span>
-                                </div>
-                             </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                 </div>
-               </div>
-            )}
-
-            {/* Geopolitical Flashpoint Briefing */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-[10px] font-black text-red-500 uppercase tracking-widest px-2"><AlertTriangle size={14} /> Critical Warnings</div>
-              <div className="bg-red-500/5 dark:bg-red-500/10 border border-red-500/10 rounded-3xl p-6 space-y-4">
-                {intel.strategicWarnings?.map((alert, i) => (
-                  <div key={i} className="flex gap-4 items-start">
-                    <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 shrink-0" />
-                    <p className="text-xs font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{alert}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Strategic Command Message */}
-            <div className="bg-primary-600 text-white p-6 rounded-[2rem] shadow-xl group overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 -rotate-45 translate-x-8 -translate-y-8" />
-              <div className="flex items-center gap-4 relative z-10">
-                <div className="p-3 bg-white/20 rounded-2xl"><Zap size={24} className="animate-pulse" /></div>
-                <div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-blue-100 mb-1">Tactical Directive</div>
-                  <div className="text-sm font-black leading-tight">{intel.commandDirective}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Path Selection HUD */}
-        <div className="space-y-4 pb-12">
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2 mb-2">Structural Path Alternatives</div>
-          <div className="grid grid-cols-3 gap-2">
-            {allRoutes.slice(0, 3).map((r, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveRouteIndex(i)}
-                className={`p-4 rounded-2xl border-2 transition-all text-left group ${i === activeRouteIndex ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/10' : 'border-slate-100 dark:border-slate-800 opacity-60'}`}
-              >
-                <div className={`text-[8px] font-black uppercase mb-1 tracking-tighter ${i === activeRouteIndex ? 'text-primary-600' : 'text-slate-500'}`}>Path {i + 1}</div>
-                <div className="text-base font-black text-slate-900 dark:text-white">{(r.duration / 60).toFixed(0)}<span className="text-[10px] ml-0.5 whitespace-nowrap">MIN</span></div>
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Secondary Intel Modules Removed Per Request */}
       </div>
     </div>
   );

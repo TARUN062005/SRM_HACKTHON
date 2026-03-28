@@ -65,12 +65,13 @@ function getCheckpoints(coords) {
 /**
  * HELPER: Convert Code to Human Readable
  */
-function getWeatherCondition(code, precipitation) {
-  if (code === 95) return "Storm";
+function getWeatherCondition(code) {
+  if (code >= 95) return "Storm";
+  if (code >= 80) return "Heavy Rain";
   if (code >= 71 && code <= 75) return "Snow";
-  if (precipitation > 10) return "Heavy Rain";
-  if (precipitation > 5) return "Moderate Rain";
-  if (precipitation > 0) return "Light Rain";
+  if (code >= 61) return "Moderate Rain";
+  if (code >= 51) return "Light Rain";
+  if (code >= 1 && code <= 3) return "Partly Cloudy";
   return "Clear";
 }
 
@@ -89,21 +90,20 @@ const getRouteIntelligence = async (coords) => {
     const waypointData = await Promise.all(checkpoints.map(async (p, i) => {
       try {
         const [wRes, gRes] = await Promise.all([
-          axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${p[1]}&longitude=${p[0]}&hourly=temperature_2m,precipitation,windspeed_10m,weathercode`),
+          axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${p[1]}&longitude=${p[0]}&current_weather=true`),
           axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p[1]}&lon=${p[0]}&zoom=14`, {
             headers: { 'User-Agent': 'RouteGuardian/1.0' }
           })
         ]);
         
-        const current = wRes.data.hourly;
-        const temp = current.temperature_2m[0];
-        const rain = current.precipitation[0];
-        const wind = current.windspeed_10m[0];
-        const code = current.weathercode[0];
-        const condition = getWeatherCondition(code, rain);
+        const current = wRes.data.current_weather;
+        const temp = current.temperature;
+        const wind = current.windspeed;
+        const code = current.weathercode;
+        const condition = getWeatherCondition(code);
         
         const addr = gRes.data?.address;
-        const placeName = addr?.railway || addr?.suburb || addr?.town || addr?.city || `Waypoint ${i + 1}`;
+        const placeName = addr?.railway || addr?.suburb || addr?.town || addr?.city || `Sector ${i + 1}`;
 
         return {
           id: `A${i}`,
@@ -111,44 +111,44 @@ const getRouteIntelligence = async (coords) => {
           condition,
           temp,
           wind,
-          rain,
+          code,
           coords: [p[1], p[0]]
         };
-      } catch (e) { return null; }
+      } catch (e) { 
+        console.error("Waypoint fetch error:", e.message);
+        return null; 
+      }
     }));
 
     const validWaypoints = waypointData.filter(Boolean);
+    if (validWaypoints.length === 0) throw new Error("No weather data found");
 
-    // 3. Gemini Synthesis: Geopolitical Context
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const prompt = `ACT AS A TACTICAL LOGISTICS ANALYST.
-    Analyze these checkpoints for geopolitical risks (meetings, strikes, conflicts).
-    SITES: ${validWaypoints.map(v => v.place).join(', ')}
-    
-    Return JSON only:
-    {
-      "summary": "Readout",
-      "riskScore": 50,
-      "severity": "STABLE",
-      "waypointBriefs": [
-        { "place": "Name", "intel": "Geopolitical report" }
-      ],
-      "directive": "Command"
-    }`;
+    // 3. SAFE SYNTHESIS (Bypassing Gemini instability per request)
+    const aiResp = {
+      summary: "High-fidelity atmospheric mission monitoring active.",
+      riskScore: validWaypoints.some(v => v.condition === 'Storm') ? 85 : 
+                 validWaypoints.some(v => v.condition.includes('Rain')) ? 45 : 15,
+      severity: validWaypoints.some(v => v.condition === 'Storm') ? "CRITICAL" : 
+                validWaypoints.some(v => v.condition.includes('Rain')) ? "CAUTION" : "STABLE",
+      waypointBriefs: validWaypoints.map(v => ({
+        place: v.place,
+        intel: `Atmospheric status: ${v.condition} with winds at ${v.wind} km/h`
+      })),
+      directive: "Maintain standard tactical separation. Monitor rain zones."
+    };
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().replace(/```json|```/g, '').trim();
-    const aiResp = JSON.parse(text);
-
-    // 4. Build Final waypointReports (Step 4 & 5)
+    // 4. Build Final waypointReports
     const waypointReports = validWaypoints.map((v, idx) => ({
       id: v.id,
       place: v.place,
       weather: `${v.condition} • ${v.temp}°C • ${v.wind} km/h`,
-      geopoliticalEffect: aiResp.waypointBriefs?.[idx]?.intel || `Precipitation: ${v.rain}mm • Wind: ${v.wind}km/h`,
-      severity: v.condition === 'Storm' || v.condition === 'Heavy Rain' ? 'CRITICAL' : v.condition.includes('Rain') || v.condition === 'Snow' ? 'CAUTION' : 'STABLE',
+      geopoliticalEffect: aiResp.waypointBriefs?.[idx]?.intel || `Winds: ${v.wind}km/h`,
+      severity: v.condition === 'Storm' || v.condition === 'Heavy Rain' ? 'CRITICAL' : 
+                v.condition.includes('Rain') || v.condition === 'Snow' ? 'CAUTION' : 'STABLE',
       raw: v
     }));
+
+    console.log("WAYPOINTS:", waypointReports);
 
     const finalIntel = {
       summary: aiResp.summary,
@@ -207,9 +207,24 @@ exports.getDirections = async (req, res) => {
     const cacheKey = `v6-${startLat}-${startLng}-${endLat}-${endLng}-${vehicle}`;
     if (routeCache.has(cacheKey)) return res.json({ success: true, routes: routeCache.get(cacheKey) });
 
-    let profile = 'driving';
-    if (vehicle === 'bike') profile = 'cycling';
-    else if (vehicle === 'foot') profile = 'walking';
+    const vehicleProfileMap = {
+      'car': 'driving',
+      'bike': 'cycling',
+      'foot': 'walking',
+      'bus': 'driving',
+      'truck': 'driving'
+    };
+
+    const speedScaleMap = {
+      'car': 1,
+      'bike': 3,   // Standard cycling multiplier
+      'foot': 8,   // Standard walking multiplier
+      'bus': 1.5,  // Accounting for stops and slower routes
+      'truck': 1.3 // Accounting for weight and speed limits
+    };
+
+    const profile = vehicleProfileMap[vehicle] || 'driving';
+    const scale = speedScaleMap[vehicle] || 1;
 
     let paths = await fetchRoutesFromProvider([startLat, startLng], [endLat, endLng], profile);
 
@@ -230,16 +245,25 @@ exports.getDirections = async (req, res) => {
       }
     }
 
-    const processedRoutes = await Promise.all(paths.slice(0, 3).map(async (route, i) => ({
-      id: i,
-      type: i === 0 ? 'Optimal' : i === 1 ? 'Balanced' : 'Alternative',
-      geometry: route.geometry,
-      distance: route.distance,
-      duration: route.duration,
-      summary: route.legs?.[0]?.summary || 'Primary Roadways',
-      intelligence: i === 0 ? await getRouteIntelligence(route.geometry.coordinates) : null,
-      steps: route.legs?.[0]?.steps?.map(s => ({ instruction: s.maneuver.instruction, distance: s.distance })) || []
-    })));
+    const processedRoutes = await Promise.all(paths.slice(0, 3).map(async (route, i) => {
+      // Apply mission timing correction
+      const correctedDuration = route.duration * scale;
+      
+      // Fetch intelligence for ALL routes (Step 4 & 5 requested)
+      const intelligence = await getRouteIntelligence(route.geometry.coordinates);
+      
+      return {
+        id: i,
+        type: i === 0 ? 'Optimal' : i === 1 ? 'Balanced' : 'Alternative',
+        geometry: route.geometry,
+        distance: route.distance,
+        duration: correctedDuration,
+        summary: route.legs?.[0]?.summary || 'Primary Roadways',
+        intelligence: intelligence,
+        vehicle: vehicle,
+        steps: route.legs?.[0]?.steps?.map(s => ({ instruction: s.maneuver.instruction, distance: s.distance })) || []
+      };
+    }));
 
     routeCache.set(cacheKey, processedRoutes);
     res.json({ success: true, routes: processedRoutes });
