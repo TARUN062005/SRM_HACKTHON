@@ -23,6 +23,8 @@ import {
   Navigation,
 } from "lucide-react";
 
+// FORCE HMR REBUILD: 08:53Z
+
 // ✅ Push Notification Support
 const requestNotificationPermission = () => {
   if (!("Notification" in window)) {

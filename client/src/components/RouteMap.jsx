@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, Circle, useMap, useMapEvents, ZoomControl, LayersControl, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
 import { AlertTriangle, Navigation, ChevronRight, Play, X, Clock, Info, Activity, Wind, Zap, MapPin, ShieldAlert, Globe, ArrowRight, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+// Force HMR Refresh: 2026-03-28T13:46:00Z
+
 
 // --- VISUAL THEME ---
 const THEME = {
@@ -12,6 +14,8 @@ const THEME = {
   weights: [8, 5, 5],
   opacities: [1, 0.7, 0.5]
 };
+
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 // Fix typical leaflet marker icon issues
 delete L.Icon.Default.prototype._getIconUrl;
@@ -38,6 +42,9 @@ const NavigationSimulator = ({ coords, isActive, color, speedMultiplier = 1, isN
     }
 
     const animate = () => {
+       // Deep check inside animation frame to handle quick state changes
+       if (!isNavigating) return;
+
        indexRef.current = (indexRef.current + Math.max(1, Math.floor(speedMultiplier / 2)));
        if (indexRef.current >= coords.length) {
           indexRef.current = 0;
@@ -48,11 +55,16 @@ const NavigationSimulator = ({ coords, isActive, color, speedMultiplier = 1, isN
          setPosition(cur);
          map.panTo(cur, { animate: true, duration: 0.1 });
        }
-       rafRef.current = setTimeout(() => requestAnimationFrame(animate), 100);
+       rafRef.current = setTimeout(() => {
+         if (isNavigating) requestAnimationFrame(animate);
+       }, 100);
     };
 
     rafRef.current = requestAnimationFrame(animate);
-    return () => clearTimeout(rafRef.current);
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      clearTimeout(rafRef.current);
+    };
   }, [isActive, coords, isNavigating, speedMultiplier, map]);
 
   if (!isActive || !position) return null;
@@ -95,17 +107,35 @@ export const RouteMap = ({
   const [loading, setLoading] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [simSpeed, setSimSpeed] = useState(2);
-  const [mapType, setMapType] = useState('voyager'); // 'voyager' | 'satellite' | 'dark'
+  const [showLayerPicker, setShowLayerPicker] = useState(false);
+  const [mapType, setMapType] = useState('voyager');
 
-  const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+  const onRouteDataRef = useRef(onRouteData);
+  useEffect(() => { onRouteDataRef.current = onRouteData; }, [onRouteData]);
 
   const mapStyles = {
     voyager: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
     satellite: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    traffic: "https://{s}.tile.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=HIDDEN" 
   };
 
-  const fetchRoutes = async (start, end, mode) => {
+  const fetchRoutes = useCallback(async (start, end, mode) => {
+    // Heuristic scaling for instant UI feedback
+    setAllRoutes(prev => {
+      if (prev.length > 0) {
+        const scaleMap = { 'car': 1, 'bike': 3.5, 'foot': 9, 'bus': 1.2, 'truck': 1.3 };
+        const scale = scaleMap[mode] || 1;
+        const heuristicallyUpdated = prev.map(r => ({
+          ...r,
+          duration: r.duration * scale 
+        }));
+        if (onRouteDataRef.current) onRouteDataRef.current({ allRoutes: heuristicallyUpdated, activeRouteIndex: 0 });
+        return heuristicallyUpdated;
+      }
+      return prev;
+    });
+
     setLoading(true);
     try {
       const res = await axios.get(`${BASE_URL}/api/ai/directions`, {
@@ -123,20 +153,24 @@ export const RouteMap = ({
         }));
         setAllRoutes(processed);
         setActiveRouteIndex(0);
-        if (onRouteData) onRouteData({ allRoutes: processed, activeRouteIndex: 0 });
+        if (onRouteDataRef.current) onRouteDataRef.current({ allRoutes: processed, activeRouteIndex: 0 });
       }
     } catch (err) { console.error(err); } finally { setLoading(false); }
-  };
+  }, []);
 
+  // Handle vehicleMode changes instantly with heuristic if possible
   useEffect(() => {
     if (selectedSource && selectedDestination) {
-      fetchRoutes(selectedSource, selectedDestination, vehicleMode);
+      const timer = setTimeout(() => {
+        fetchRoutes(selectedSource, selectedDestination, vehicleMode);
+      }, 300); // 300ms debounce
+      return () => clearTimeout(timer);
     } else {
       setAllRoutes([]);
       setIsNavigating(false);
       if (onRouteData) onRouteData({ allRoutes: [], activeRouteIndex: 0 });
     }
-  }, [selectedSource, selectedDestination, vehicleMode]);
+  }, [selectedSource, selectedDestination, vehicleMode, fetchRoutes]);
 
   const mapLayers = useMemo(() => {
     const sorted = [...allRoutes].sort((a,b) => a.id === activeRouteIndex ? 1 : -1);
@@ -176,7 +210,7 @@ export const RouteMap = ({
              <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl px-6 py-4 border border-white dark:border-slate-800 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] rounded-[2.5rem] flex items-center gap-6 pointer-events-auto">
                 <button 
                   onClick={() => setIsNavigating(!isNavigating)}
-                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isNavigating ? 'bg-red-500 text-white shadow-xl shadow-red-500/30' : 'bg-primary-600 text-white shadow-xl shadow-primary-600/30 hover:scale-110 active:scale-90'}`}
+                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isNavigating ? 'bg-red-500 text-white shadow-xl shadow-red-500/30' : 'bg-primary-600 text-white shadow-xl shadow-primary-600/40 hover:scale-110 active:scale-90'}`}
                 >
                   {isNavigating ? <X size={24} /> : <Play size={28} className="translate-x-0.5" />}
                 </button>
@@ -216,28 +250,48 @@ export const RouteMap = ({
         )}
       </AnimatePresence>
 
-      {/* Layer Control Switcher (Bottom Left) */}
-      <div className="absolute bottom-10 left-6 z-[1050] flex flex-col gap-3">
-         {[
-           { id: 'voyager', label: 'Roads', icon: <Navigation size={14} />, img: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=200' },
-           { id: 'satellite', label: 'Tactical', icon: <Globe size={14} />, img: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=200' },
-           { id: 'dark', label: 'Dark Ops', icon: <Zap size={14} />, img: 'https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?auto=format&fit=crop&q=80&w=200' }
-         ].map((t) => (
-           <button
-             key={t.id}
-             onClick={() => setMapType(t.id)}
-             className={`group relative w-16 h-16 rounded-2xl overflow-hidden border-2 transition-all shadow-xl active:scale-90 ${mapType === t.id ? 'border-primary-600 ring-4 ring-primary-600/10' : 'border-white dark:border-slate-800'}`}
-           >
-              <img src={t.img} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={t.label} />
-              <div className={`absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors`} />
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white pointer-events-none drop-shadow-lg">
-                 {t.icon}
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 bg-slate-900/60 backdrop-blur-sm text-[8px] font-black uppercase tracking-widest text-white py-0.5 text-center transition-all opacity-0 group-hover:opacity-100">
-                 {t.label}
-              </div>
-           </button>
-         ))}
+      {/* Layer Control Retractable HUD (Bottom Left) */}
+      <div className="absolute bottom-10 left-6 z-[1050] flex flex-col items-start gap-4">
+        <AnimatePresence>
+          {showLayerPicker && (
+            <motion.div 
+              initial={{ x: -100, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -100, opacity: 0 }}
+              className="flex gap-4 p-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-3xl rounded-[2rem] border border-white dark:border-slate-800 shadow-2xl"
+            >
+              {[
+                { id: 'voyager', label: 'Roads', icon: <Navigation size={14} />, img: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=200' },
+                { id: 'satellite', label: 'Tactical', icon: <Globe size={14} />, img: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=200' },
+                { id: 'dark', label: 'Dark Ops', icon: <Zap size={14} />, img: 'https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?auto=format&fit=crop&q=80&w=200' }
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setMapType(t.id)}
+                  className={`group relative w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all shadow-xl active:scale-90 ${mapType === t.id ? 'border-primary-600 ring-4 ring-primary-600/10' : 'border-white dark:border-slate-800'}`}
+                >
+                    <img src={t.img} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={t.label} />
+                    <div className={`absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors`} />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white pointer-events-none drop-shadow-lg">
+                      {t.icon}
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-slate-900/60 backdrop-blur-sm text-[8px] font-black uppercase tracking-widest text-white py-0.5 text-center transition-all opacity-0 group-hover:opacity-100">
+                      {t.label}
+                    </div>
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button
+          onClick={() => setShowLayerPicker(!showLayerPicker)}
+          className={`w-14 h-14 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white dark:border-slate-800 shadow-xl flex items-center justify-center text-slate-600 dark:text-slate-300 transition-all ${showLayerPicker ? 'rotate-90 bg-primary-600 text-white border-primary-600' : 'hover:scale-110 active:scale-90'}`}
+        >
+           {showLayerPicker ? <X size={24} /> : (
+             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 18-9-5 9-5 9 5-9 5Z"/><path d="m3 10 9 5 9-5"/><path d="m3 6 9 5 9-5"/></svg>
+           )}
+        </button>
       </div>
 
       <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }} zoomControl={false} dragging={true}>

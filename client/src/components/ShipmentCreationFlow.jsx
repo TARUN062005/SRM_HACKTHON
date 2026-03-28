@@ -42,14 +42,14 @@ export const ShipmentCreationFlow = ({ onLocationSelect, onClearRoute, vehicleMo
   useEffect(() => {
     const timer = setTimeout(() => {
       if (activeInput === 'source') searchLocation(sourceQuery, setSourceResults, setSearchingSource);
-    }, 500);
+    }, 300);
     return () => clearTimeout(timer);
   }, [sourceQuery, activeInput]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (activeInput === 'dest') searchLocation(destQuery, setDestResults, setSearchingDest);
-    }, 500);
+    }, 300);
     return () => clearTimeout(timer);
   }, [destQuery, activeInput]);
   
