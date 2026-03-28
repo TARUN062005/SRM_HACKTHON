@@ -12,65 +12,158 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyCF-jKD
 const geminiCache = new NodeCache({ stdTTL: 1800 }); // Longer cache for analysis
 
 /**
- * FEATURE 3 & 4: WEATHER + RISK ANALYSIS ENGINE
- * Process route points through weather/news APIs and summarize via Gemini
+ * HELPER: Haversine Distance between two [lng, lat] points
+ */
+function getDistance(p1, p2) {
+  const R = 6371e3; // meters
+  const φ1 = (p1[1] * Math.PI) / 180;
+  const φ2 = (p2[1] * Math.PI) / 180;
+  const Δφ = ((p2[1] - p1[1]) * Math.PI) / 180;
+  const Δλ = ((p2[0] - p1[0]) * Math.PI) / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
+
+/**
+ * HELPER: Extract Checkpoints every 35km
+ */
+function getCheckpoints(coords) {
+  if (coords.length < 2) return coords;
+  const result = [coords[0]];
+  let lastPoint = coords[0];
+  let accumulatedDist = 0;
+  const INTERVAL = 35000; // 35km
+
+  for (let i = 1; i < coords.length; i++) {
+    const d = getDistance(lastPoint, coords[i]);
+    accumulatedDist += d;
+    lastPoint = coords[i];
+
+    if (accumulatedDist >= INTERVAL) {
+      result.push(coords[i]);
+      accumulatedDist = 0;
+    }
+  }
+
+  // Ensure target is always there and not too close to the last checkpoint
+  const lastRes = result[result.length - 1];
+  const target = coords[coords.length - 1];
+  if (getDistance(lastRes, target) > 5000) {
+    result.push(target);
+  } else {
+    result[result.length - 1] = target; // Replace last with exact target
+  }
+
+  return result;
+}
+
+/**
+ * HELPER: Convert Code to Human Readable
+ */
+function getWeatherCondition(code, precipitation) {
+  if (code === 95) return "Storm";
+  if (code >= 71 && code <= 75) return "Snow";
+  if (precipitation > 10) return "Heavy Rain";
+  if (precipitation > 5) return "Moderate Rain";
+  if (precipitation > 0) return "Light Rain";
+  return "Clear";
+}
+
+/**
+ * FEATURE 3 & 4: HIGH-FIDELITY TACTICAL INTELLIGENCE (A -> CHECKPOINTS -> B)
  */
 const getRouteIntelligence = async (coords) => {
-  const cacheKey = `intel-v2-${coords[0][0]}-${coords[coords.length - 1][0]}`;
+  const cacheKey = `intel-v6-${coords[0][0]}-${coords[coords.length - 1][0]}`;
   if (geminiCache.has(cacheKey)) return geminiCache.get(cacheKey);
 
   try {
-    // 1. Sampling (Feature 3: Sample every 50 pts)
-    const samples = [];
-    for (let i = 0; i < coords.length; i += 50) samples.push(coords[i]);
-    if (samples.length < 2) samples.push(coords[coords.length - 1]);
+    // 1. Extract 5 Key Checkpoints (Step 1)
+    const checkpoints = getCheckpoints(coords);
 
-    // 2. Fetch Open-Meteo Weather
-    const weatherPromises = samples.map(p => 
-      axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${p[1]}&longitude=${p[0]}&current_weather=true`)
-    );
-    const weatherResponses = await Promise.all(weatherPromises.slice(0, 5));
-    
-    const weatherSummary = weatherResponses.map(r => ({
-      temp: r.data.current_weather.temperature,
-      wind: r.data.current_weather.windspeed,
-      condition: r.data.current_weather.weathercode
+    // 2. Fetch Raw Weather Data + Location Names (Parallel)
+    const waypointData = await Promise.all(checkpoints.map(async (p, i) => {
+      try {
+        const [wRes, gRes] = await Promise.all([
+          axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${p[1]}&longitude=${p[0]}&hourly=temperature_2m,precipitation,windspeed_10m,weathercode`),
+          axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p[1]}&lon=${p[0]}&zoom=14`, {
+            headers: { 'User-Agent': 'RouteGuardian/1.0' }
+          })
+        ]);
+        
+        const current = wRes.data.hourly;
+        const temp = current.temperature_2m[0];
+        const rain = current.precipitation[0];
+        const wind = current.windspeed_10m[0];
+        const code = current.weathercode[0];
+        const condition = getWeatherCondition(code, rain);
+        
+        const addr = gRes.data?.address;
+        const placeName = addr?.railway || addr?.suburb || addr?.town || addr?.city || `Waypoint ${i + 1}`;
+
+        return {
+          id: `A${i}`,
+          place: placeName,
+          condition,
+          temp,
+          wind,
+          rain,
+          coords: [p[1], p[0]]
+        };
+      } catch (e) { return null; }
     }));
 
-    // 3. Gemini Synthesis (Integrated News & Geopolitical Context)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const prompt = `ACT AS A STRATEGIC LOGISTICS ANALYST.
-    Analyze this route from ${coords[0]} to ${coords[coords.length-1]} for real-time safety and geopolitical intelligence.
-    WEATHER DATA: ${JSON.stringify(weatherSummary)}
-    
-    CRITICAL TASKS:
-    1. ATMOSPHERIC: Analyze weather for rain, fog, and wind hazards.
-    2. GEOPOLITICAL / NEWS: Identify specific regional safety risks, including local news about strikes, protests, transit lockdowns, or geopolitical instability in the areas between these coordinates.
-    3. SUMMARY: Strategic travel advice (1 sentence).
+    const validWaypoints = waypointData.filter(Boolean);
 
-    Return STRICTLY JSON:
-    { 
-      "summary": "High-level command summary",
-      "riskLevel": "Low" | "Medium" | "High",
-      "weatherAlerts": ["Alert 1", "Alert 2"],
-      "geopoliticalAlerts": ["News-based Safety Alert 1", "Conflict/Strike Alert 2"],
-      "speedRecommendation": "Strategic speed advice"
+    // 3. Gemini Synthesis: Geopolitical Context
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = `ACT AS A TACTICAL LOGISTICS ANALYST.
+    Analyze these checkpoints for geopolitical risks (meetings, strikes, conflicts).
+    SITES: ${validWaypoints.map(v => v.place).join(', ')}
+    
+    Return JSON only:
+    {
+      "summary": "Readout",
+      "riskScore": 50,
+      "severity": "STABLE",
+      "waypointBriefs": [
+        { "place": "Name", "intel": "Geopolitical report" }
+      ],
+      "directive": "Command"
     }`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text().replace(/```json|```/g, '').trim();
-    const analysis = JSON.parse(text);
-    
-    geminiCache.set(cacheKey, analysis);
-    return analysis;
-  } catch (err) {
-    console.error("Gemini Intel Failed:", err.message);
-    return { 
-      summary: "Standard travel conditions identified.", 
-      riskLevel: "Low", 
-      weatherAlerts: ["Weather stable"], 
-      geopoliticalAlerts: ["No major regional conflicts detected"] 
+    const aiResp = JSON.parse(text);
+
+    // 4. Build Final waypointReports (Step 4 & 5)
+    const waypointReports = validWaypoints.map((v, idx) => ({
+      id: v.id,
+      place: v.place,
+      weather: `${v.condition} • ${v.temp}°C • ${v.wind} km/h`,
+      geopoliticalEffect: aiResp.waypointBriefs?.[idx]?.intel || `Precipitation: ${v.rain}mm • Wind: ${v.wind}km/h`,
+      severity: v.condition === 'Storm' || v.condition === 'Heavy Rain' ? 'CRITICAL' : v.condition.includes('Rain') || v.condition === 'Snow' ? 'CAUTION' : 'STABLE',
+      raw: v
+    }));
+
+    const finalIntel = {
+      summary: aiResp.summary,
+      riskScore: aiResp.riskScore,
+      severity: aiResp.severity,
+      waypointReports: waypointReports,
+      strategicWarnings: [aiResp.directive],
+      commandDirective: aiResp.directive
     };
+    
+    geminiCache.set(cacheKey, finalIntel);
+    return finalIntel;
+  } catch (err) {
+    console.error("Tactical Intelligence Failed:", err.message);
+    return { summary: "Standard travel protocol active.", riskScore: 10, severity: "STABLE", waypointReports: [], strategicWarnings: [], commandDirective: "Proceed." };
   }
 };
 
@@ -119,7 +212,7 @@ exports.getDirections = async (req, res) => {
     else if (vehicle === 'foot') profile = 'walking';
 
     let paths = await fetchRoutesFromProvider([startLat, startLng], [endLat, endLng], profile);
-    
+
     // Artificial Discovery to guarantee 3 routes
     if (paths.length < 3 && paths.length > 0) {
       const primary = paths[0];
@@ -133,7 +226,7 @@ exports.getDirections = async (req, res) => {
           if (vRes.data.routes?.length > 0 && isUniqueRoute(vRes.data.routes[0], paths)) {
             paths.push(vRes.data.routes[0]);
           }
-        } catch (e) {}
+        } catch (e) { }
       }
     }
 

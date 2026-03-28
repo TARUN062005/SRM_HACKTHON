@@ -178,7 +178,7 @@ const LandingPage = () => {
         </motion.section>
 
         {/* Capabilities */}
-        <section id="features" className="py-32 bg-white/[0.02] border-y border-white/5">
+        <section id="features" className="py-32 bg-white/[0.02] border-y border-white/5 scroll-mt-24">
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
               <div className="max-w-2xl">
@@ -204,6 +204,26 @@ const LandingPage = () => {
               ))}
             </div>
           </div>
+        </section>
+
+        {/* Network Stats Section */}
+        <section id="network" className="py-32 px-6 scroll-mt-24">
+           <div className="max-w-7xl mx-auto">
+              <div className="grid md:grid-cols-4 gap-8">
+                {[
+                  { label: "Uptime SLA", val: "99.99%", desc: "Enterprise Reliability" },
+                  { label: "Active Nodes", val: "1.2M+", desc: "Global Coverage" },
+                  { label: "Avg Latency", val: "<45ms", desc: "Edge Computing" },
+                  { label: "Secure Routes", val: "250K+", desc: "Daily Optimized" }
+                ].map((s, i) => (
+                  <div key={i} className="text-center p-8 bg-white/5 border border-white/10 rounded-3xl">
+                    <div className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mb-4">{s.label}</div>
+                    <div className="text-4xl font-black text-white mb-2">{s.val}</div>
+                    <div className="text-xs text-slate-500 font-medium">{s.desc}</div>
+                  </div>
+                ))}
+              </div>
+           </div>
         </section>
 
         {/* Final CTA */}
