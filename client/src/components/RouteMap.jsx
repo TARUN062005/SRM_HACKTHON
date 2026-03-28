@@ -3,7 +3,11 @@ import { MapContainer, TileLayer, Marker, Polyline, Popup, Circle, useMap, useMa
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
-import { AlertTriangle, Navigation, ChevronRight, Play, X, Clock, Info, Activity, Wind, Zap, MapPin, ShieldAlert, Globe, ArrowRight, Shield, Sun, CloudRain, Footprints, Car, Bike, Bus, Truck, ExternalLink } from 'lucide-react';
+import {
+  AlertTriangle, Navigation, ChevronRight, Play, X, Clock, Info, Activity, Wind, Zap,
+  MapPin, ShieldAlert, Globe, ArrowRight, Shield, Sun, CloudRain, Footprints, Car,
+  Bike, Bus, Truck, ExternalLink, Volume2, Mic, Bot
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 // Force HMR Refresh: 2026-03-28T16:55:00Z
 
@@ -74,7 +78,7 @@ const NavigationSimulator = ({ coords, isActive, color, speedMultiplier = 1, isN
 
       const increment = Math.max(1, Math.floor(speedMultiplier * 2));
       const nextIndex = Math.min(indexRef.current + increment, coords.length - 1);
-      
+
       const prev = coords[indexRef.current];
       const cur = coords[nextIndex];
 
@@ -82,7 +86,7 @@ const NavigationSimulator = ({ coords, isActive, color, speedMultiplier = 1, isN
         setRotation(getBearing(prev, cur));
         setPosition(cur);
         indexRef.current = nextIndex;
-        
+
         // Auto-center map during mission preview
         if (isActive) map.panTo(cur, { animate: true, duration: 0.1 });
 
@@ -127,10 +131,18 @@ const MapInteractionHandler = ({ allRoutes }) => {
   const map = useMap();
   useEffect(() => {
     if (allRoutes && allRoutes.length > 0) {
-      const allCoords = allRoutes.flatMap(r => r.coords);
+      // Filter for valid coordinates to avoid NaN/Invalid bounds
+      const allCoords = allRoutes.flatMap(r => r.coords).filter(c => isValidCoord(c));
+      
       if (allCoords.length > 0) {
-        const bounds = L.polyline(allCoords).getBounds();
-        map.fitBounds(bounds, { padding: [100, 100], duration: 1.0 });
+        try {
+          const bounds = L.polyline(allCoords).getBounds();
+          if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [100, 100], duration: 1.0 });
+          }
+        } catch (e) {
+          console.warn("[MAP] Bound resolution failure:", e.message);
+        }
       }
     }
   }, [allRoutes, map]);
@@ -142,6 +154,7 @@ const MapInteractionHandler = ({ allRoutes }) => {
 export const RouteMap = ({
   selectedSource, selectedDestination, onManualReset,
   vehicleMode = 'car', onClearRoute, onRouteData,
+  setSelectedSource, setSelectedDestination, setShowSearchPanel
 }) => {
   const [allRoutes, setAllRoutes] = useState([]);
   const [activeRouteIndex, setActiveRouteIndex] = useState(0);
@@ -150,6 +163,7 @@ export const RouteMap = ({
   const [simSpeed, setSimSpeed] = useState(2);
   const [showLayerPicker, setShowLayerPicker] = useState(false);
   const [mapType, setMapType] = useState('voyager');
+  const [showAIHUD, setShowAIHUD] = useState(false);
 
   const onRouteDataRef = useRef(onRouteData);
   useEffect(() => { onRouteDataRef.current = onRouteData; }, [onRouteData]);
@@ -167,7 +181,7 @@ export const RouteMap = ({
       if (prev.length > 0) {
         const scaleMap = { 'car': 1, 'bike': 3, 'foot': 8, 'bus': 1.5, 'truck': 1.3 };
         const scale = scaleMap[mode] || 1;
-        
+
         return prev.map(r => {
           // If we don't have baseDuration yet (first load), treat current duration as base (likely car)
           const base = r.baseDuration || r.duration;
@@ -202,7 +216,7 @@ export const RouteMap = ({
           color: THEME.colors[i % THEME.colors.length],
           intelligence: r.intelligence || {},
           // Store ground-truth for future scaling
-          baseDuration: r.duration / currentScale 
+          baseDuration: r.duration / currentScale
         }));
         setAllRoutes(processed);
         setActiveRouteIndex(0);
@@ -231,42 +245,43 @@ export const RouteMap = ({
   const getEtaToPoint = (route, e) => {
     const coords = route.coords;
     const hoverLatLng = e.latlng;
-    
+
     // Find closest index in course
     let minDist = Infinity;
     let closestIdx = 0;
     for (let i = 0; i < coords.length; i++) {
-        const d = L.latLng(coords[i]).distanceTo(hoverLatLng);
-        if (d < minDist) {
-            minDist = d;
-            closestIdx = i;
-        }
+      const d = L.latLng(coords[i]).distanceTo(hoverLatLng);
+      if (d < minDist) {
+        minDist = d;
+        closestIdx = i;
+      }
     }
 
     // Estimate total time based on fraction of total distance
     const totalDist = route.distance;
     const totalDuration = route.duration;
-    
+
     // Estimate cumulative distance along polyline to that point
     let partialDist = 0;
     for (let i = 1; i <= closestIdx; i++) {
-        partialDist += L.latLng(coords[i-1]).distanceTo(L.latLng(coords[i]));
+      partialDist += L.latLng(coords[i - 1]).distanceTo(L.latLng(coords[i]));
     }
 
     const etaAtPoint = (partialDist / totalDist) * totalDuration;
     return {
-        distKm: (partialDist / 1000).toFixed(1),
-        durMin: (etaAtPoint / 60).toFixed(0)
+      distKm: (partialDist / 1000).toFixed(1),
+      durMin: (etaAtPoint / 60).toFixed(0)
     };
   };
 
   const mapLayers = useMemo(() => {
     const sorted = [...allRoutes].sort((a, b) => a.id === activeRouteIndex ? 1 : -1);
     return sorted.map((route) => {
+      if (!route.coords || route.coords.length === 0) return null;
       const isActive = route.id === activeRouteIndex;
       // Fixed Colors (Route 0 is Blue, 1 is Green, 2 is Red)
       const pathColor = THEME.colors[route.id % THEME.colors.length];
-      
+
       return (
         <React.Fragment key={route.id}>
           {/* Neon Under-glow for high visibility */}
@@ -285,7 +300,7 @@ export const RouteMap = ({
             opacity={isActive ? 1 : 0.6}
             lineCap="round"
             lineJoin="round"
-            eventHandlers={{ 
+            eventHandlers={{
               click: () => setActiveRouteIndex(route.id),
               mouseover: (e) => {
                 const info = getEtaToPoint(route, e);
@@ -306,20 +321,20 @@ export const RouteMap = ({
             <Tooltip sticky direction="top" opacity={1} className="tactical-tooltip">
               <div className="flex flex-col items-center bg-slate-900 border border-slate-700 text-white p-3 rounded-2xl shadow-2xl min-w-[120px]">
                 <div className="text-[10px] font-black uppercase tracking-widest text-primary-500 mb-2">Path Intelligence</div>
-                
+
                 {hoveredInfo && hoveredInfo.id === route.id ? (
-                   <div className="flex flex-col items-center">
-                      <div className="flex items-center gap-2 mb-1">
-                         <div className="text-xl font-black">{hoveredInfo.durMin} <span className="text-[10px] opacity-60">MIN</span></div>
-                      </div>
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ETA TO POINT • {hoveredInfo.distKm} KM</div>
-                   </div>
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="text-xl font-black">{hoveredInfo.durMin} <span className="text-[10px] opacity-60">MIN</span></div>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ETA TO POINT • {hoveredInfo.distKm} KM</div>
+                  </div>
                 ) : (
-                   <div className="flex items-center gap-2 whitespace-nowrap">
-                      <div className="text-xs font-black">{(route.distance / 1000).toFixed(1)} <span className="text-[8px] opacity-60">KM</span></div>
-                      <div className="w-1 h-3 bg-white/10 rounded-full" />
-                      <div className="text-xs font-black">{(route.duration / 60).toFixed(0)} <span className="text-[8px] opacity-60">MIN</span></div>
-                   </div>
+                  <div className="flex items-center gap-2 whitespace-nowrap">
+                    <div className="text-xs font-black">{(route.distance / 1000).toFixed(1)} <span className="text-[8px] opacity-60">KM</span></div>
+                    <div className="w-1 h-3 bg-white/10 rounded-full" />
+                    <div className="text-xs font-black">{(route.duration / 60).toFixed(0)} <span className="text-[8px] opacity-60">MIN</span></div>
+                  </div>
                 )}
               </div>
             </Tooltip>
@@ -333,8 +348,8 @@ export const RouteMap = ({
             if (!isValidCoord(wpPos)) return null;
 
             return (
-              <Marker 
-                key={`wp-${idx}`} 
+              <Marker
+                key={`wp-${idx}`}
                 position={wpPos}
                 icon={L.divIcon({
                   className: 'custom-wp-icon',
@@ -344,8 +359,8 @@ export const RouteMap = ({
               >
                 <Popup>
                   <div className="p-1 font-sans">
-                     <div className="text-[10px] font-black text-primary-600 uppercase mb-0.5">{wp.place}</div>
-                     <div className="text-xs font-bold text-slate-800">{wp.weather}</div>
+                    <div className="text-[10px] font-black text-primary-600 uppercase mb-0.5">{wp.place}</div>
+                    <div className="text-xs font-bold text-slate-800">{wp.weather}</div>
                   </div>
                 </Popup>
               </Marker>
@@ -409,6 +424,7 @@ export const RouteMap = ({
         )}
       </AnimatePresence>
 
+
       {/* Layer Control Retractable HUD (Bottom Left) */}
       <div className="absolute bottom-10 left-6 z-[1050] flex flex-col items-start gap-4">
         <AnimatePresence>
@@ -443,15 +459,38 @@ export const RouteMap = ({
           )}
         </AnimatePresence>
 
-        <button
-          onClick={() => setShowLayerPicker(!showLayerPicker)}
-          className={`w-14 h-14 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white dark:border-slate-800 shadow-xl flex items-center justify-center text-slate-600 dark:text-slate-300 transition-all ${showLayerPicker ? 'rotate-90 bg-primary-600 text-white border-primary-600' : 'hover:scale-110 active:scale-90'}`}
-        >
-          {showLayerPicker ? <X size={24} /> : (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 18-9-5 9-5 9 5-9 5Z" /><path d="m3 10 9 5 9-5" /><path d="m3 6 9 5 9-5" /></svg>
-          )}
-        </button>
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={() => setShowAIHUD(!showAIHUD)}
+            className={`w-14 h-14 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white dark:border-slate-800 shadow-xl flex items-center justify-center transition-all ${showAIHUD ? 'bg-primary-600 text-white border-primary-600 shadow-primary-600/30' : 'text-slate-600 dark:text-slate-300 hover:scale-110 active:scale-90'}`}
+          >
+            <Bot size={24} className={showAIHUD ? 'animate-pulse' : ''} />
+          </button>
+          <button
+            onClick={() => setShowLayerPicker(!showLayerPicker)}
+            className={`w-14 h-14 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white dark:border-slate-800 shadow-xl flex items-center justify-center text-slate-600 dark:text-slate-300 transition-all ${showLayerPicker ? 'rotate-90 bg-primary-600 text-white border-primary-600' : 'hover:scale-110 active:scale-90'}`}
+          >
+            {showLayerPicker ? <X size={24} /> : (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 18-9-5 9-5 9 5-9 5Z" /><path d="m3 10 9 5 9-5" /><path d="m3 6 9 5 9-5" /></svg>
+            )}
+          </button>
+        </div>
       </div>
+
+      <RouteAIHUD
+        isOpen={showAIHUD}
+        onClose={() => setShowAIHUD(false)}
+        onRouteResolved={(data) => {
+          // Protocol v20.3: Simulate Manual Handshake
+          // We set the targets, and the RouteMap's useEffect will automatically
+          // trigger the manual fetchRoutes() logic (weather, news, etc).
+          setSelectedSource(data.source);
+          setSelectedDestination(data.destination);
+          
+          if (setShowSearchPanel) setShowSearchPanel(false);
+          setShowAIHUD(false);
+        }}
+      />
 
       <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }} zoomControl={false} dragging={true}>
         <MapInteractionHandler allRoutes={allRoutes} />
@@ -471,7 +510,7 @@ const SidePanel = ({
   activeRouteIndex = 0, setActiveRouteIndex, onClearRoute
 }) => {
   const [showWeatherChain, setShowWeatherChain] = useState(true);
-  
+
   if (allRoutes.length === 0) return null;
   const activeRoute = allRoutes[activeRouteIndex] || allRoutes[0];
   const intel = activeRoute?.intelligence;
@@ -493,7 +532,7 @@ const SidePanel = ({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-xl text-white shadow-lg ${globalSeverity === 'CRITICAL' ? 'bg-red-600 shadow-red-600/20' : 'bg-primary-600 shadow-primary-600/20'}`}>
-               <Shield size={18} />
+              <Shield size={18} />
             </div>
             <h2 className="font-black text-xl tracking-tighter uppercase dark:text-white">Objective Hub</h2>
           </div>
@@ -503,21 +542,21 @@ const SidePanel = ({
         {/* Origin & Destination Display */}
         <div className="px-4 py-4 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm space-y-4">
           <div className="flex items-start gap-4 uppercase relative">
-             <div className="relative flex flex-col items-center pt-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-600 ring-4 ring-blue-600/20 z-10" />
-                <div className="w-0.5 h-8 bg-slate-100 dark:bg-slate-800 my-1" />
-                <div className="w-2.5 h-2.5 rounded-full bg-red-600 ring-4 ring-red-600/20 z-10" />
-             </div>
-             <div className="flex-1 space-y-4">
-                <div>
-                   <div className="text-[10px] font-black text-slate-400 tracking-widest leading-none mb-1">Origin Node</div>
-                   <div className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{selectedSource?.display_name || "Point Alpha"}</div>
-                </div>
-                <div>
-                   <div className="text-[10px] font-black text-slate-400 tracking-widest leading-none mb-1">Target Point</div>
-                   <div className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{selectedDestination?.display_name || "Point Beta"}</div>
-                </div>
-             </div>
+            <div className="relative flex flex-col items-center pt-1">
+              <div className="w-2.5 h-2.5 rounded-full bg-blue-600 ring-4 ring-blue-600/20 z-10" />
+              <div className="w-0.5 h-8 bg-slate-100 dark:bg-slate-800 my-1" />
+              <div className="w-2.5 h-2.5 rounded-full bg-red-600 ring-4 ring-red-600/20 z-10" />
+            </div>
+            <div className="flex-1 space-y-4">
+              <div>
+                <div className="text-[10px] font-black text-slate-400 tracking-widest leading-none mb-1">Origin Node</div>
+                <div className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{selectedSource?.display_name || "Point Alpha"}</div>
+              </div>
+              <div>
+                <div className="text-[10px] font-black text-slate-400 tracking-widest leading-none mb-1">Target Point</div>
+                <div className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{selectedDestination?.display_name || "Point Beta"}</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -525,21 +564,21 @@ const SidePanel = ({
         <div className="grid grid-cols-2 gap-3 mt-4">
           <div className="bg-primary-600 text-white p-4 rounded-2xl shadow-xl shadow-primary-600/10">
             <div className="flex justify-between items-start mb-1">
-               <div className="text-[10px] font-black uppercase opacity-60">Length</div>
-               <div className="text-[10px] font-black uppercase opacity-60">Time</div>
+              <div className="text-[10px] font-black uppercase opacity-60">Length</div>
+              <div className="text-[10px] font-black uppercase opacity-60">Time</div>
             </div>
             <div className="flex items-baseline justify-between">
-               <div className="text-2xl font-black leading-none">{(activeRoute.distance / 1000).toFixed(0)} <span className="text-[10px]">KM</span></div>
-               <div className="text-sm font-black opacity-90">{(activeRoute.duration / 60).toFixed(0)} <span className="text-[8px]">MIN</span></div>
+              <div className="text-2xl font-black leading-none">{(activeRoute.distance / 1000).toFixed(0)} <span className="text-[10px]">KM</span></div>
+              <div className="text-sm font-black opacity-90">{(activeRoute.duration / 60).toFixed(0)} <span className="text-[8px]">MIN</span></div>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => setShowWeatherChain(!showWeatherChain)}
             className={`p-4 rounded-2xl shadow-xl flex flex-col items-start transition-all border ${showWeatherChain ? 'bg-slate-900 border-slate-800 text-white shadow-2xl' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-400 opacity-60 hover:opacity-100'}`}
           >
             <div className="text-[10px] font-black uppercase opacity-60 mb-1">{(activeRoute.distance / 1000).toFixed(0)} KM</div>
             <div className="text-xl font-black leading-none flex items-center gap-2">
-               Chain <CloudRain size={16} className={showWeatherChain ? 'text-primary-500' : ''} />
+              Chain <CloudRain size={16} className={showWeatherChain ? 'text-primary-500' : ''} />
             </div>
           </button>
         </div>
@@ -548,33 +587,32 @@ const SidePanel = ({
       <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
         {/* Mission Route Selector (Exactly 3 Routes) */}
         <div className="space-y-4">
-           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] px-2 mb-2">Tactical Route Selection</div>
-           <div className="grid grid-cols-3 gap-2">
-              {allRoutes.slice(0, 3).map((route, idx) => {
-                 const isActive = idx === activeRouteIndex;
-                 return (
-                    <button
-                       key={idx}
-                       onClick={() => setActiveRouteIndex(idx)}
-                       className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-1.5 ${
-                          isActive 
-                          ? 'border-primary-600 bg-primary-600/10 shadow-lg shadow-primary-600/5' 
-                          : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
-                       }`}
-                    >
-                       <div className={`text-[8px] font-black uppercase tracking-tighter ${isActive ? 'text-primary-600' : 'text-slate-400'}`}>
-                          Route {String.fromCharCode(65 + idx)}
-                       </div>
-                       <div className="text-xs font-black text-slate-900 dark:text-white leading-none">
-                          {(route.duration / 60).toFixed(0)}<span className="text-[8px] opacity-60 ml-0.5">MIN</span>
-                       </div>
-                       <div className="text-[9px] font-bold text-slate-400">
-                          {(route.distance / 1000).toFixed(0)}KM
-                       </div>
-                    </button>
-                 );
-              })}
-           </div>
+          <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] px-2 mb-2">Tactical Route Selection</div>
+          <div className="grid grid-cols-3 gap-2">
+            {allRoutes.slice(0, 3).map((route, idx) => {
+              const isActive = idx === activeRouteIndex;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setActiveRouteIndex(idx)}
+                  className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-1.5 ${isActive
+                      ? 'border-primary-600 bg-primary-600/10 shadow-lg shadow-primary-600/5'
+                      : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
+                    }`}
+                >
+                  <div className={`text-[8px] font-black uppercase tracking-tighter ${isActive ? 'text-primary-600' : 'text-slate-400'}`}>
+                    Route {String.fromCharCode(65 + idx)}
+                  </div>
+                  <div className="text-xs font-black text-slate-900 dark:text-white leading-none">
+                    {(route.duration / 60).toFixed(0)}<span className="text-[8px] opacity-60 ml-0.5">MIN</span>
+                  </div>
+                  <div className="text-[9px] font-bold text-slate-400">
+                    {(route.distance / 1000).toFixed(0)}KM
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {showWeatherChain && intel && intel.waypointReports && (
@@ -582,17 +620,17 @@ const SidePanel = ({
             {/* Weather Chain Section (Already there) */}
             {/* Strategic Corridor Intel (Geography-based) */}
             <div className="flex items-center justify-between px-2">
-               <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Strategic Corridor Intel</div>
-               <div className="px-2 py-1 bg-primary-600/10 text-primary-600 rounded-md text-[8px] font-black">REGIONAL TELEMETRY</div>
+              <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Strategic Corridor Intel</div>
+              <div className="px-2 py-1 bg-primary-600/10 text-primary-600 rounded-md text-[8px] font-black">REGIONAL TELEMETRY</div>
             </div>
 
             <div className="flex flex-col gap-5">
               {intel.waypointReports.map((item, i) => {
                 const WeatherIcon = getWeatherIcon(item.weather);
-                const severityColor = 
-                  item.severity === 'CRITICAL' ? 'bg-red-500 shadow-red-500/20' : 
-                  item.severity === 'CAUTION' ? 'bg-amber-500 shadow-amber-500/20' : 
-                  'bg-blue-500 shadow-blue-500/20';
+                const severityColor =
+                  item.severity === 'CRITICAL' ? 'bg-red-500 shadow-red-500/20' :
+                    item.severity === 'CAUTION' ? 'bg-amber-500 shadow-amber-500/20' :
+                      'bg-blue-500 shadow-blue-500/20';
 
                 const parts = (item.weather || "Clear • 25°C").split(" • ");
 
@@ -605,29 +643,29 @@ const SidePanel = ({
 
                     {/* Geography Node Diagram */}
                     <div className="flex flex-col items-center z-10 shrink-0">
-                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xl transition-all duration-300 group-hover:scale-110 ${severityColor}`}>
-                          <WeatherIcon size={20} strokeWidth={2.5} />
-                       </div>
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xl transition-all duration-300 group-hover:scale-110 ${severityColor}`}>
+                        <WeatherIcon size={20} strokeWidth={2.5} />
+                      </div>
                     </div>
 
                     {/* Tactical Nexus Detail */}
                     <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[1.5rem] p-5 shadow-sm group-hover:border-primary-500/30 transition-all flex justify-between items-center pr-6">
-                       <div className="min-w-0">
-                          <div className="text-[9px] font-black text-primary-500 uppercase tracking-widest mb-1 opacity-60">
-                             Nexus {i + 1}
-                          </div>
-                          <div className="text-[13px] font-black text-slate-900 dark:text-white uppercase leading-tight truncate">
-                             {item.place}
-                          </div>
-                       </div>
-                       <div className="text-right shrink-0">
-                          <div className="text-[11px] font-black text-slate-900 dark:text-white leading-none">
-                             {parts[0]}
-                          </div>
-                          <div className="text-[8px] font-bold text-slate-400 uppercase mt-1">
-                             {parts[1]}
-                          </div>
-                       </div>
+                      <div className="min-w-0">
+                        <div className="text-[9px] font-black text-primary-500 uppercase tracking-widest mb-1 opacity-60">
+                          Nexus {i + 1}
+                        </div>
+                        <div className="text-[13px] font-black text-slate-900 dark:text-white uppercase leading-tight truncate">
+                          {item.place}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-[11px] font-black text-slate-900 dark:text-white leading-none">
+                          {parts[0]}
+                        </div>
+                        <div className="text-[8px] font-bold text-slate-400 uppercase mt-1">
+                          {parts[1]}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -638,45 +676,44 @@ const SidePanel = ({
             {intel.newsFeed && intel.newsFeed.length > 0 && (
               <div className="pt-8 space-y-6">
                 <div className="flex items-center justify-between px-2">
-                   <div className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em]">Tactical Briefing (Risk Alerts)</div>
-                   <div className="px-2 py-1 bg-red-600/10 text-red-600 rounded-md text-[8px] font-black">{intel.newsFeed.length} DISRUPTIONS</div>
+                  <div className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em]">Tactical Briefing (Risk Alerts)</div>
+                  <div className="px-2 py-1 bg-red-600/10 text-red-600 rounded-md text-[8px] font-black">{intel.newsFeed.length} DISRUPTIONS</div>
                 </div>
 
                 <div className="grid gap-4">
-                   {intel.newsFeed.map((news, i) => (
-                      <div key={i} className="bg-slate-950/5 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-5 hover:border-red-500/30 transition-all space-y-4 group">
-                         <div className="flex justify-between items-start">
-                            <div className="flex flex-wrap gap-1.5">
-                               {news.categories?.map((cat, ci) => (
-                                  <span key={ci} className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${
-                                     cat === 'conflict' ? 'bg-red-600 text-white' :
-                                     cat === 'weather' ? 'bg-blue-600 text-white' :
-                                     'bg-amber-500 text-white'
-                                  }`}>
-                                     {cat}
-                                  </span>
-                               ))}
-                            </div>
-                            <div className="text-[9px] text-slate-500 font-bold uppercase">{new Date(news.date).toLocaleDateString()}</div>
-                         </div>
-                         
-                         <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug group-hover:text-red-500 transition-colors">
-                            {news.title}
-                         </h4>
-
-                         <div className="flex justify-between items-center">
-                            <div className="text-[9px] font-bold text-slate-400 uppercase">{news.source || 'Intel Link'}</div>
-                            <a 
-                              href={news.link} 
-                              target="_blank" 
-                              rel="noreferrer" 
-                              className="text-[10px] font-black text-primary-500 hover:text-primary-600 flex items-center gap-1 uppercase tracking-tighter"
-                            >
-                               Analyze Brief <ExternalLink size={12} />
-                            </a>
-                         </div>
+                  {intel.newsFeed.map((news, i) => (
+                    <div key={i} className="bg-slate-950/5 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-5 hover:border-red-500/30 transition-all space-y-4 group">
+                      <div className="flex justify-between items-start">
+                        <div className="flex flex-wrap gap-1.5">
+                          {news.categories?.map((cat, ci) => (
+                            <span key={ci} className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${cat === 'conflict' ? 'bg-red-600 text-white' :
+                                cat === 'weather' ? 'bg-blue-600 text-white' :
+                                  'bg-amber-500 text-white'
+                              }`}>
+                              {cat}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="text-[9px] text-slate-500 font-bold uppercase">{new Date(news.date).toLocaleDateString()}</div>
                       </div>
-                   ))}
+
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug group-hover:text-red-500 transition-colors">
+                        {news.title}
+                      </h4>
+
+                      <div className="flex justify-between items-center">
+                        <div className="text-[9px] font-bold text-slate-400 uppercase">{news.source || 'Intel Link'}</div>
+                        <a
+                          href={news.link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[10px] font-black text-primary-500 hover:text-primary-600 flex items-center gap-1 uppercase tracking-tighter"
+                        >
+                          Analyze Brief <ExternalLink size={12} />
+                        </a>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -688,4 +725,128 @@ const SidePanel = ({
 };
 
 RouteMap.SidePanel = SidePanel;
+
+// --- FEATURE 18: DETERMINISTIC AI AGENT COMPONENT (Protocol v18) ---
+const RouteAIHUD = ({ isOpen, onClose, onRouteResolved }) => {
+  const [inputText, setInputText] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
+  const [statusText, setStatusText] = useState("INITIATE MISSION");
+  const [history, setHistory] = useState([]);
+
+  const speak = (text) => {
+    if (!text) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.05;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const startVoice = () => {
+    const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+    if (!SpeechRecognition) return alert("Speech recognition not supported in this browser.");
+    const recognition = new SpeechRecognition();
+    recognition.onstart = () => { setIsListening(true); setStatusText("LISTENING"); speak("Listening."); };
+    recognition.onend = () => { setIsListening(false); if (statusText === "LISTENING") setStatusText("INITIATE MISSION"); };
+    recognition.onresult = (e) => handleAI(e.results[0][0].transcript);
+    recognition.start();
+  };
+
+  const handleAI = async (text) => {
+    if (!text) return;
+    setHistory(prev => [...prev, { type: 'user', text }]);
+    setIsThinking(true);
+    setStatusText("PLANNING NEURAL ROUTE");
+    speak("Planning neural route.");
+    try {
+      const res = await axios.post(`${BASE_URL}/api/ai/intent`, { command: text }, { timeout: 60000 });
+      if (res.data.success && res.data.analysis) {
+        setHistory(prev => [...prev, { type: 'ai', ...res.data.analysis }]);
+        speak(res.data.analysis.voice_text || res.data.analysis.summary);
+        setStatusText("INITIATING MISSION");
+        if (res.data.source && res.data.destination) {
+          setTimeout(() => onRouteResolved(res.data), 800);
+        }
+      } else {
+        const errorMsg = res.data.error || "Neural Desync: Targets unclear.";
+        setHistory(prev => [...prev, { type: 'error', summary: errorMsg }]);
+        setStatusText("INITIATE MISSION");
+      }
+    } catch (err) {
+      console.error("AI HUD Failure:", err);
+      const errorMsg = err.code === 'ECONNABORTED' ? "Neural Latency Timeout (60s)." : "Mission Link Lost.";
+      setHistory(prev => [...prev, { type: 'error', summary: errorMsg }]);
+      setStatusText("INITIATE MISSION");
+    } finally {
+      setIsThinking(false);
+      setInputText("");
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -100, opacity: 0 }}
+          className="fixed left-6 bottom-32 z-[1200] w-full max-w-[320px] bg-white border border-slate-200 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.1)] flex flex-col h-[400px]"
+        >
+          {/* HUD Header */}
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${isThinking ? 'bg-primary-500 animate-ping' : isListening ? 'bg-red-500' : 'bg-emerald-500'}`} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">Neural Decision Hub</span>
+            </div>
+            <button onClick={onClose} className="p-1 hover:bg-slate-50 rounded-md transition-colors"><X size={14} className="text-slate-400" /></button>
+          </div>
+
+          {/* Chat History Area */}
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar flex flex-col gap-4">
+            {history.map((msg, i) => (
+              <motion.div
+                key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className={`flex flex-col gap-1 ${msg.type === 'user' ? 'items-end' : 'items-start'}`}
+              >
+                <div className={`px-4 py-2 rounded-xl text-[11px] max-w-[85%] ${msg.type === 'user' ? 'bg-primary-600 text-white rounded-tr-none shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-tl-none font-bold shadow-sm border border-slate-200 dark:border-slate-700'}`}>
+                  {msg.type === 'user' ? msg.text : msg.summary}
+                </div>
+                {msg.reasons && (
+                   <div className="flex flex-wrap gap-1 mt-1">
+                      {msg.reasons.map((r, ri) => (
+                        <span key={ri} className="px-1.5 py-0.5 bg-slate-50 text-slate-400 text-[8px] uppercase font-bold rounded">{r}</span>
+                      ))}
+                   </div>
+                )}
+              </motion.div>
+            ))}
+
+            {isThinking && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-1.5 p-2 items-center">
+                 {[0, 1, 2].map(i => (
+                    <motion.div key={i} animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }} transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }} className="w-1 h-1 bg-primary-600 rounded-full" />
+                 ))}
+                 <span className="text-[9px] uppercase font-black text-slate-400 ml-2">Neural Processing...</span>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Input Area */}
+          <div className="p-4 border-t border-slate-50 bg-slate-50/50">
+            <div className="flex items-center gap-2">
+              <input
+                value={inputText} onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAI(inputText)}
+                placeholder="MISSION COMMAND..."
+                className="flex-1 bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-[11px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-primary-600/20 transition-all shadow-sm"
+              />
+              <button onClick={startVoice} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${isListening ? 'bg-red-500 text-white shadow-lg animate-pulse' : 'bg-white text-slate-400 border border-slate-200 hover:text-slate-600'}`}>
+                <Mic size={16} />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 export default RouteMap;

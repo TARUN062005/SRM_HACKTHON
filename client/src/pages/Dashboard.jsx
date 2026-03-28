@@ -68,6 +68,8 @@ const Dashboard = () => {
                   onClearRoute={handleClearRoute}
                   vehicleMode={vehicleMode}
                   setVehicleMode={setVehicleMode}
+                  initialSource={selectedSource}
+                  initialDest={selectedDest}
                 />
               </div>
             </div>
@@ -80,6 +82,9 @@ const Dashboard = () => {
           <RouteMap
             selectedSource={selectedSource}
             selectedDestination={selectedDest}
+            setSelectedSource={setSelectedSource}
+            setSelectedDestination={setSelectedDest}
+            setShowSearchPanel={setShowSearchPanel}
             onManualReset={resetMapFlow}
             vehicleMode={vehicleMode}
             onClearRoute={handleClearRoute}

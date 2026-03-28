@@ -2,7 +2,10 @@ const express = require('express');
 const router = express.Router();
 const aiRouteController = require('../controller/aiRouteController');
 
+const aiAgentController = require('../controller/aiAgentController');
+
 router.post('/route/optimize', aiRouteController.optimizeRoute);
+router.post('/intent', aiAgentController.processAIIntent);
 router.get('/directions', aiRouteController.getDirections);
 router.post('/risk/analyze', aiRouteController.analyzeRisk);
 router.post('/shipment', aiRouteController.createShipment);

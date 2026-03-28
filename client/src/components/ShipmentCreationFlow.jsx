@@ -75,7 +75,14 @@ const LocationInput = ({ label, query, setQuery, results, searching, type, selec
 const searchCache = new Map();
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
-export const ShipmentCreationFlow = ({ onLocationSelect, onClearRoute, vehicleMode, setVehicleMode }) => {
+export const ShipmentCreationFlow = ({ 
+  onLocationSelect, 
+  onClearRoute, 
+  vehicleMode, 
+  setVehicleMode,
+  initialSource = null,
+  initialDest = null 
+}) => {
   const [sourceQuery, setSourceQuery] = useState('');
   const [destQuery, setDestQuery] = useState('');
   const [sourceResults, setSourceResults] = useState([]);
@@ -86,7 +93,22 @@ export const ShipmentCreationFlow = ({ onLocationSelect, onClearRoute, vehicleMo
   const [selectedDest, setSelectedDest] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
 
-  // Optimized Search Logic with Intelligent Backend Proxy
+  // Sync with External/AI State
+  useEffect(() => {
+    if (initialSource) {
+      setSelectedSource(initialSource);
+      setSourceQuery(initialSource.display_name || '');
+    }
+  }, [initialSource]);
+
+  useEffect(() => {
+    if (initialDest) {
+      setSelectedDest(initialDest);
+      setDestQuery(initialDest.display_name || '');
+    }
+  }, [initialDest]);
+
+  // Optimized Search Logic...
   const fetchLocations = async (query, setResults, setSearching) => {
     if (!query || query.trim().length < 3) {
       setResults([]);
@@ -170,12 +192,8 @@ export const ShipmentCreationFlow = ({ onLocationSelect, onClearRoute, vehicleMo
           onSelect={handleSelect}
         />
 
-        <div className="relative h-0 flex items-center justify-center">
-           <div className="absolute w-8 h-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-full flex items-center justify-center text-slate-300 dark:text-slate-700 z-10 shadow-sm">
-              <Navigation size={14} />
-           </div>
-           <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
-        </div>
+
+        <div className="h-2" /> 
 
         <LocationInput 
           label="Destination Point" 

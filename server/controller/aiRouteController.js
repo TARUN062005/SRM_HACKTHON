@@ -148,7 +148,7 @@ const harvestNews = async (queryFull, locations = []) => {
 };
 
 const getRouteIntelligence = async (coords, sourceName = "Mission Sector", destName = "Target Point", distanceMeters = 50000) => {
-  const cacheKey = `intel-v17-${coords[0][0]}-${coords[coords.length - 1][0]}`;
+  const cacheKey = `intel-v18-${coords[0][0]}-${coords[coords.length - 1][0]}`;
   if (geminiCache.has(cacheKey)) return geminiCache.get(cacheKey);
 
   try {
@@ -274,7 +274,7 @@ exports.getDirections = async (req, res) => {
     const { startLat, startLng, endLat, endLng, vehicle = 'driving', sourceName, destName } = req.query;
     if (!startLat || !startLng || !endLat || !endLng) return res.status(400).json({ error: 'Missing coords' });
 
-    const cacheKey = `v17-${startLat}-${startLng}-${endLat}-${endLng}-${vehicle}`;
+    const cacheKey = `v18-${startLat}-${startLng}-${endLat}-${endLng}-${vehicle}`;
     if (routeCache.has(cacheKey)) return res.json({ success: true, routes: routeCache.get(cacheKey) });
 
     const vehicleProfileMap = { 'car': 'driving', 'bike': 'cycling', 'foot': 'walking', 'bus': 'driving', 'truck': 'driving' };
