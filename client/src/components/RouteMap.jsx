@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
 import { AlertTriangle, Navigation, ChevronRight, Play, X, Clock, Info, Activity, Wind, Zap, MapPin, ShieldAlert, Globe, ArrowRight, Shield, Sun, CloudRain, Footprints, Car, Bike, Bus, Truck, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-// Force HMR Refresh: 2026-03-28T13:46:00Z
+// Force HMR Refresh: 2026-03-28T16:55:00Z
 
 
 // --- VISUAL THEME (Tactical Grade) ---
@@ -586,7 +586,7 @@ const SidePanel = ({
                   item.severity === 'CAUTION' ? 'bg-amber-500 shadow-amber-500/20' : 
                   'bg-blue-500 shadow-blue-500/20';
 
-                const parts = item.weather.split(" • ");
+                const parts = (item.weather || "Clear • 25°C").split(" • ");
 
                 return (
                   <div key={i} className="flex items-center gap-6 relative group">

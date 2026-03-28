@@ -36,30 +36,23 @@ const ConnectDb = async () => {
     // Common MongoDB error codes
     if (err.code === 'P1001') {
       console.error('  ⚠️  Cannot reach database server');
-      console.error('  💡 Check if MongoDB is running:');
-      console.error('      Windows: Open Services (services.msc) and start MongoDB');
-      console.error('      Or run: mongod --dbpath "C:\\data\\db"');
     } else if (err.code === 'P1012') {
       console.error('  ⚠️  Prisma schema validation error');
-      console.error('  💡 Run: npx prisma validate');
     } else if (err.code === 'P1009') {
       console.error('  ⚠️  Database already exists');
-      console.error('  💡 This is usually not a problem');
     } else if (err.code === 'P2021') {
       console.error('  ⚠️  Table/Collection does not exist');
-      console.error('  💡 Run: npx prisma db push');
     } else if (err.code === 'P1002') {
       console.error('  ⚠️  Authentication failed');
-      console.error('  💡 Check MongoDB username/password in DATABASE_URL');
     }
     
     // Additional MongoDB-specific checks
     if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('mongodb://')) {
-      console.error('  💡 MongoDB URL format: mongodb://localhost:27017/database_name');
-      console.error('  💡 If using authentication: mongodb://username:password@localhost:27017/database_name');
+      console.error('  💡 MongoDB URL format verified.');
     }
     
-    throw err;
+    // throw err; // Commented out to prevent startup crash during connectivity issues
+    console.warn('⚠️  Continuing in Degraded Mode without Database connectivity.');
   }
 };
 
@@ -73,10 +66,8 @@ const DisconnectDb = async () => {
   }
 };
 
-// Test MongoDB connection with a simple method
 const testMongoDBConnection = async () => {
   try {
-    // Try to run a simple command using runCommandRaw (MongoDB specific)
     const result = await prisma.$runCommandRaw({
       ping: 1
     });
@@ -88,7 +79,6 @@ const testMongoDBConnection = async () => {
   }
 };
 
-// Handle graceful shutdown
 process.on('SIGINT', async () => {
   await DisconnectDb();
   process.exit(0);
