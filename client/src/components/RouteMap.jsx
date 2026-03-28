@@ -8,10 +8,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Force HMR Refresh: 2026-03-28T13:46:00Z
 
 
-// --- VISUAL THEME ---
+// --- VISUAL THEME (Tactical Grade) ---
 const THEME = {
-  colors: ['#2563eb', '#64748b', '#94a3b8'],
-  weights: [8, 5, 5],
+  colors: ['#2563eb', '#10b981', '#ef4444'], // Blue (Optimal), Green (Balanced), Red (Alternative)
+  weights: [8, 6, 6],
   opacities: [1, 0.7, 0.5]
 };
 
@@ -38,7 +38,7 @@ L.Icon.Default.mergeOptions({
 });
 
 /**
- * NavigationSimulator: Moves an indicator with high-fidelity interpolation
+ * NavigationSimulator: Moves an indicator with directional bearing and high-fidelity velocity
  */
 const NavigationSimulator = ({ coords, isActive, color, speedMultiplier = 1, isNavigating }) => {
   const map = useMap();
@@ -47,6 +47,19 @@ const NavigationSimulator = ({ coords, isActive, color, speedMultiplier = 1, isN
   const indexRef = useRef(0);
   const rafRef = useRef();
 
+  // Helper to calculate bearing
+  const getBearing = (p1, p2) => {
+    if (!p1 || !p2) return 0;
+    const lat1 = (p1[0] * Math.PI) / 180;
+    const lon1 = (p1[1] * Math.PI) / 180;
+    const lat2 = (p2[0] * Math.PI) / 180;
+    const lon2 = (p2[1] * Math.PI) / 180;
+    const y = Math.sin(lon2 - lon1) * Math.cos(lat2);
+    const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
+    const bearing = (Math.atan2(y, x) * 180) / Math.PI;
+    return (bearing + 360) % 360;
+  };
+
   useEffect(() => {
     if (!isActive || !coords || coords.length < 2 || !isNavigating) {
       if (!isNavigating) indexRef.current = 0;
@@ -54,22 +67,30 @@ const NavigationSimulator = ({ coords, isActive, color, speedMultiplier = 1, isN
     }
 
     const animate = () => {
-      // Deep check inside animation frame to handle quick state changes
       if (!isNavigating) return;
 
-      indexRef.current = (indexRef.current + Math.max(1, Math.floor(speedMultiplier / 2)));
-      if (indexRef.current >= coords.length) {
-        indexRef.current = 0;
-      }
+      const increment = Math.max(1, Math.floor(speedMultiplier * 2));
+      const nextIndex = Math.min(indexRef.current + increment, coords.length - 1);
+      
+      const prev = coords[indexRef.current];
+      const cur = coords[nextIndex];
 
-      const cur = coords[indexRef.current];
       if (cur) {
+        setRotation(getBearing(prev, cur));
         setPosition(cur);
-        map.panTo(cur, { animate: true, duration: 0.1 });
+        indexRef.current = nextIndex;
+        
+        // Auto-center map during mission preview
+        if (isActive) map.panTo(cur, { animate: true, duration: 0.1 });
+
+        if (nextIndex >= coords.length - 1) {
+          indexRef.current = 0; // Restart loop
+        }
+
+        rafRef.current = setTimeout(() => {
+          requestAnimationFrame(animate);
+        }, 300 / speedMultiplier);
       }
-      rafRef.current = setTimeout(() => {
-        if (isNavigating) requestAnimationFrame(animate);
-      }, 100);
     };
 
     rafRef.current = requestAnimationFrame(animate);
@@ -82,10 +103,15 @@ const NavigationSimulator = ({ coords, isActive, color, speedMultiplier = 1, isN
   if (!isActive || !position) return null;
 
   const arrowIcon = L.divIcon({
-    html: `<div style="transform: rotate(${rotation}deg); color: ${color};"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"/></svg></div>`,
+    html: `
+      <div style="transform: rotate(${rotation}deg); color: ${color}; filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.4));">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor">
+           <path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"/>
+        </svg>
+      </div>`,
     className: '',
-    iconSize: [28, 28],
-    iconAnchor: [14, 14]
+    iconSize: [34, 34],
+    iconAnchor: [17, 17]
   });
 
   return <Marker position={position} icon={arrowIcon} zIndexOffset={5000} />;
@@ -235,15 +261,25 @@ export const RouteMap = ({
     const sorted = [...allRoutes].sort((a, b) => a.id === activeRouteIndex ? 1 : -1);
     return sorted.map((route) => {
       const isActive = route.id === activeRouteIndex;
-      const pathColor = isActive ? '#2563eb' : '#94a3b8'; // Blue for active, Gray for inactive
+      // Fixed Colors (Route 0 is Blue, 1 is Green, 2 is Red)
+      const pathColor = THEME.colors[route.id % THEME.colors.length];
       
       return (
         <React.Fragment key={route.id}>
+          {/* Neon Under-glow for high visibility */}
+          <Polyline
+            positions={route.coords}
+            color={pathColor}
+            weight={isActive ? 12 : 8}
+            opacity={0.15}
+            lineCap="round"
+          />
+          {/* Tactical Ground-Truth Path */}
           <Polyline
             positions={route.coords}
             color={pathColor}
             weight={isActive ? 8 : 4}
-            opacity={isActive ? 1 : 0.4}
+            opacity={isActive ? 1 : 0.6}
             lineCap="round"
             lineJoin="round"
             eventHandlers={{ 
@@ -502,6 +538,37 @@ const SidePanel = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+        {/* Mission Route Selector (Exactly 3 Routes) */}
+        <div className="space-y-4">
+           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] px-2 mb-2">Tactical Route Selection</div>
+           <div className="grid grid-cols-3 gap-2">
+              {allRoutes.slice(0, 3).map((route, idx) => {
+                 const isActive = idx === activeRouteIndex;
+                 return (
+                    <button
+                       key={idx}
+                       onClick={() => setActiveRouteIndex(idx)}
+                       className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-1.5 ${
+                          isActive 
+                          ? 'border-primary-600 bg-primary-600/10 shadow-lg shadow-primary-600/5' 
+                          : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
+                       }`}
+                    >
+                       <div className={`text-[8px] font-black uppercase tracking-tighter ${isActive ? 'text-primary-600' : 'text-slate-400'}`}>
+                          Route {String.fromCharCode(65 + idx)}
+                       </div>
+                       <div className="text-xs font-black text-slate-900 dark:text-white leading-none">
+                          {(route.duration / 60).toFixed(0)}<span className="text-[8px] opacity-60 ml-0.5">MIN</span>
+                       </div>
+                       <div className="text-[9px] font-bold text-slate-400">
+                          {(route.distance / 1000).toFixed(0)}KM
+                       </div>
+                    </button>
+                 );
+              })}
+           </div>
+        </div>
+
         {showWeatherChain && intel && intel.waypointReports && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-500">
             {/* Weather Chain Section (Already there) */}

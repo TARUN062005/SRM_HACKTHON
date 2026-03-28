@@ -30,16 +30,20 @@ function getDistance(p1, p2) {
 }
 
 /**
- * HELPER: Extract MAX 6 Checkpoints (Start, End + 4 Distributed)
- * Prevents 429 Rate Limiting for long routes.
+ * Adaptive Mission Sampling: Distribute tactical nodes across the corridor
+ * Based on 'Production Standard' Adaptive Fixed-Cap Sampling (Max 10)
  */
-function getCheckpoints(coords) {
-  if (coords.length <= 6) return coords;
+function getCheckpoints(coords, distanceMeters = 50000) {
+  const distanceKm = distanceMeters / 1000;
+  // Adaptive Count: 100km=3, 600km=4, 1500km=10 (MAX CAP to avoid 429)
+  const count = Math.min(10, Math.max(3, Math.ceil(distanceKm / 150)));
+  
   const result = [];
   const total = coords.length;
-  // Pick Start, End and 4 optimally distributed points
-  const indices = [0, Math.floor(total * 0.2), Math.floor(total * 0.4), Math.floor(total * 0.6), Math.floor(total * 0.8), total - 1];
-  indices.forEach(idx => result.push(coords[idx]));
+  for (let i = 0; i < count; i++) {
+    const idx = Math.floor((i / (count - 1)) * (total - 1));
+    result.push(coords[idx]);
+  }
   return result;
 }
 
@@ -81,7 +85,7 @@ function classifyNews(article) {
 /**
  * FEATURE 3 & 4: HIGH-FIDELITY TACTICAL INTELLIGENCE (A -> KEY POINTS -> B)
  */
-const getRouteIntelligence = async (coords, sourceName = "Mission Sector", destName = "Target Point") => {
+const getRouteIntelligence = async (coords, sourceName = "Mission Sector", destName = "Target Point", distanceMeters = 50000) => {
   const cacheKey = `intel-v9-${coords[0][0]}-${coords[coords.length - 1][0]}`;
   if (geminiCache.has(cacheKey)) return geminiCache.get(cacheKey);
 
@@ -106,8 +110,8 @@ const getRouteIntelligence = async (coords, sourceName = "Mission Sector", destN
       } catch (e) { console.error("News Harvest Failed:", e.message); }
     }
 
-    // 2. Extract Key Tactical Nodes (Max 6 to prevent 429)
-    const checkpoints = getCheckpoints(coords);
+    // 2. Extract Key Tactical Nodes (Adaptive Sampling - Max 10)
+    const checkpoints = getCheckpoints(coords, distanceMeters);
 
     // 3. Environment Telemetry & Strategic Geographic Resolution (Parallel)
     const waypointData = await Promise.all(checkpoints.map(async (p, i) => {
@@ -241,18 +245,33 @@ exports.getDirections = async (req, res) => {
 
     let paths = await fetchRoutesFromProvider([startLat, startLng], [endLat, endLng], profile);
 
-    // Artificial Discovery to guarantee 3 routes
+    // --- ARTIFICIAL MISSION CORRIDOR DISCOVERY ---
+    // Ground-Truth: If provider gives < 3 routes, synthesize tactical alternatives
     if (paths.length < 3 && paths.length > 0) {
       const primary = paths[0];
-      const mid = primary.geometry.coordinates[Math.floor(primary.geometry.coordinates.length * 0.45)];
-      const offsets = [0.015, -0.015];
-      for (const offset of offsets) {
+      const missionDistance = primary.distance || 50000;
+      const distanceKm = missionDistance / 1000;
+      const midIdx = Math.floor(primary.geometry.coordinates.length / 2);
+      const mid = primary.geometry.coordinates[midIdx];
+      
+      // tactical offsets (Large for 300km+ routes, small for urban)
+      const offsetScale = distanceKm > 100 ? 0.08 : 0.02;
+      const offsets = [
+        [offsetScale, -offsetScale], 
+        [-offsetScale, offsetScale]
+      ];
+
+      for (const [latOff, lngOff] of offsets) {
         if (paths.length >= 3) break;
-        const viaUrl = `https://router.project-osrm.org/route/v1/${profile}/${startLng},${startLat};${mid[0] + offset},${mid[1] + offset};${endLng},${endLat}?geometries=geojson&overview=full`;
+        const viaUrl = `https://router.project-osrm.org/route/v1/${profile}/${startLng},${startLat};${mid[0] + lngOff},${mid[1] + latOff};${endLng},${endLat}?geometries=geojson&overview=full`;
         try {
           const vRes = await axios.get(viaUrl);
-          if (vRes.data.routes?.length > 0 && isUniqueRoute(vRes.data.routes[0], paths)) {
-            paths.push(vRes.data.routes[0]);
+          if (vRes.data.routes?.length > 0) {
+            const newRoute = vRes.data.routes[0];
+            // Only add if it's geographically distinct (>15% difference)
+            if (isUniqueRoute(newRoute, paths)) {
+              paths.push(newRoute);
+            }
           }
         } catch (e) { }
       }
@@ -261,8 +280,8 @@ exports.getDirections = async (req, res) => {
     const processedRoutes = await Promise.all(paths.slice(0, 3).map(async (route, i) => {
       const correctedDuration = route.duration * scale;
       
-      // Pass names for optimized News/Geocoding
-      const intelligence = await getRouteIntelligence(route.geometry.coordinates, sourceName, destName);
+      // Pass names and total distance for adaptive Intelligence
+      const intelligence = await getRouteIntelligence(route.geometry.coordinates, sourceName, destName, route.distance);
       
       return {
         id: i,
@@ -295,15 +314,26 @@ exports.searchLocation = async (req, res) => {
         format: 'json',
         q: q,
         limit: limit,
-        addressdetails: 1
+        addressdetails: 1,
+        // Strategic Settlment Bias: Prioritize cities, towns, and hubs
+        featuretype: 'settlement',
+        accept_language: 'en'
       },
       headers: {
-        'User-Agent': 'RouteGuardian/1.0',
+        'User-Agent': 'RouteGuardian/1.1',
         'Referer': 'http://localhost:5000'
       }
     });
 
-    res.json(response.data);
+    // Sort to ensure 'city' and 'town' come first in the UI
+    const sorted = (response.data || []).sort((a, b) => {
+      const isCity = (type) => ['city', 'town', 'municipality'].includes(type);
+      if (isCity(a.type) && !isCity(b.type)) return -1;
+      if (!isCity(a.type) && isCity(b.type)) return 1;
+      return 0;
+    });
+
+    res.json(sorted);
   } catch (error) {
     console.error('Search Proxy Error:', error.message);
     res.status(500).json({ error: 'Search engine failed' });

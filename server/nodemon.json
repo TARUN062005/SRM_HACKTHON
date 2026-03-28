@@ -1,12 +1,6 @@
 {
-  "ignore": [
-    "node_modules",
-    "uploads/*",
-    "templates/*",
-    "知識",
-    "knowledge",
-    ".gemini"
-  ],
-  "watch": ["*"],
-  "ext": "js,json"
+  "watch": ["."],
+  "ext": "js,json",
+  "ignore": ["knowledge/*", "uploads/*", "node_modules/*", ".git/*", ".gemini/*", "brain/*", "artifacts/*"],
+  "delay": "1000"
 }
