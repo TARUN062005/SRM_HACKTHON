@@ -9,5 +9,6 @@ router.post('/shipment', aiRouteController.createShipment);
 router.get('/shipment/:id', aiRouteController.getShipment);
 router.get('/alerts', aiRouteController.getAlerts);
 router.get('/weather', aiRouteController.getWeather);
+router.get('/search', aiRouteController.searchLocation);
 
 module.exports = router;

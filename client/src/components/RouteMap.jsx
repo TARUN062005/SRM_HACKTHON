@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Polyline, Popup, Circle, useMap, useMa
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
-import { AlertTriangle, Navigation, ChevronRight, Play, X, Clock, Info, Activity, Wind, Zap, MapPin, ShieldAlert, Globe, ArrowRight, Shield, Sun, CloudRain, Footprints, Car, Bike, Bus, Truck } from 'lucide-react';
+import { AlertTriangle, Navigation, ChevronRight, Play, X, Clock, Info, Activity, Wind, Zap, MapPin, ShieldAlert, Globe, ArrowRight, Shield, Sun, CloudRain, Footprints, Car, Bike, Bus, Truck, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 // Force HMR Refresh: 2026-03-28T13:46:00Z
 
@@ -158,7 +158,9 @@ export const RouteMap = ({
         params: {
           startLat: parseFloat(start.lat), startLng: parseFloat(start.lng || start.lon),
           endLat: parseFloat(end.lat), endLng: parseFloat(end.lng || end.lon),
-          vehicle: mode
+          vehicle: mode,
+          sourceName: selectedSource?.display_name,
+          destName: selectedDestination?.display_name
         }
       });
       if (res.data.success && res.data.routes?.length > 0) {
@@ -500,7 +502,113 @@ const SidePanel = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-        {/* Secondary Intel Modules Removed Per Request */}
+        {showWeatherChain && intel && intel.waypointReports && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-500">
+            {/* Weather Chain Section (Already there) */}
+            <div className="flex items-center justify-between px-2">
+               <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Atmospheric Strip (35KM Sectors)</div>
+               <div className="px-2 py-1 bg-primary-600/10 text-primary-600 rounded-md text-[8px] font-black">ACTIVE TELEMETRY</div>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {intel.waypointReports.map((item, i) => {
+                const WeatherIcon = getWeatherIcon(item.weather);
+                const severityColor = 
+                  item.severity === 'CRITICAL' ? 'bg-red-500 shadow-red-500/20' : 
+                  item.severity === 'CAUTION' ? 'bg-amber-500 shadow-amber-500/20' : 
+                  'bg-blue-500 shadow-blue-500/20';
+
+                const parts = item.weather.split(" • ");
+
+                return (
+                  <div key={i} className="flex items-center gap-6 relative group">
+                    {/* Connection Line */}
+                    {i < intel.waypointReports.length - 1 && (
+                      <div className="absolute left-[23px] top-12 bottom-0 w-0.5 bg-slate-100 dark:bg-slate-800 z-0" />
+                    )}
+
+                    {/* Sequential Node Diagram */}
+                    <div className="flex flex-col items-center z-10 shrink-0">
+                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xl transition-all duration-300 group-hover:scale-110 ${severityColor}`}>
+                          <WeatherIcon size={20} strokeWidth={2.5} />
+                       </div>
+                       <div className="mt-2 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">
+                          {i * 35} KM
+                       </div>
+                    </div>
+
+                    {/* Sector Intelligence Detail */}
+                    <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-4 shadow-sm group-hover:border-primary-500/30 transition-all flex justify-between items-center pr-6">
+                       <div>
+                          <div className="text-xs font-black text-slate-900 dark:text-white uppercase leading-none mb-1">
+                             {item.place || `Sector ${i + 1}`}
+                          </div>
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                             {parts[2] || "Stable Atmos"}
+                          </div>
+                       </div>
+                       <div className="text-right">
+                          <div className="text-sm font-black text-slate-900 dark:text-white leading-none">
+                             {parts[0]}
+                          </div>
+                          <div className="text-[10px] font-bold text-primary-500 mt-1">
+                             {parts[1]}
+                          </div>
+                       </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Tactical Briefing (Logistics Risk Alerts) */}
+            {intel.newsFeed && intel.newsFeed.length > 0 && (
+              <div className="pt-8 space-y-6">
+                <div className="flex items-center justify-between px-2">
+                   <div className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em]">Tactical Briefing (Risk Alerts)</div>
+                   <div className="px-2 py-1 bg-red-600/10 text-red-600 rounded-md text-[8px] font-black">{intel.newsFeed.length} DISRUPTIONS</div>
+                </div>
+
+                <div className="grid gap-4">
+                   {intel.newsFeed.map((news, i) => (
+                      <div key={i} className="bg-slate-950/5 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-5 hover:border-red-500/30 transition-all space-y-4 group">
+                         <div className="flex justify-between items-start">
+                            <div className="flex flex-wrap gap-1.5">
+                               {news.categories?.map((cat, ci) => (
+                                  <span key={ci} className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${
+                                     cat === 'conflict' ? 'bg-red-600 text-white' :
+                                     cat === 'weather' ? 'bg-blue-600 text-white' :
+                                     'bg-amber-500 text-white'
+                                  }`}>
+                                     {cat}
+                                  </span>
+                               ))}
+                            </div>
+                            <div className="text-[9px] text-slate-500 font-bold uppercase">{new Date(news.date).toLocaleDateString()}</div>
+                         </div>
+                         
+                         <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug group-hover:text-red-500 transition-colors">
+                            {news.title}
+                         </h4>
+
+                         <div className="flex justify-between items-center">
+                            <div className="text-[9px] font-bold text-slate-400 uppercase">{news.source || 'Intel Link'}</div>
+                            <a 
+                              href={news.link} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="text-[10px] font-black text-primary-500 hover:text-primary-600 flex items-center gap-1 uppercase tracking-tighter"
+                            >
+                               Analyze Brief <ExternalLink size={12} />
+                            </a>
+                         </div>
+                      </div>
+                   ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

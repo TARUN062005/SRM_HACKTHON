@@ -67,6 +67,9 @@ const LocationInput = ({ label, query, setQuery, results, searching, type, selec
   </div>
 );
 
+const searchCache = new Map();
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
 export const ShipmentCreationFlow = ({ onLocationSelect, onClearRoute, vehicleMode, setVehicleMode }) => {
   const [sourceQuery, setSourceQuery] = useState('');
   const [destQuery, setDestQuery] = useState('');
@@ -78,18 +81,28 @@ export const ShipmentCreationFlow = ({ onLocationSelect, onClearRoute, vehicleMo
   const [selectedDest, setSelectedDest] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
 
-  // Optimized Search Logic
+  // Optimized Search Logic with Intelligent Backend Proxy
   const fetchLocations = async (query, setResults, setSearching) => {
-    if (!query || query.length < 3) {
+    if (!query || query.trim().length < 3) {
       setResults([]);
       return;
     }
+
+    const trimmedQuery = query.trim().toLowerCase();
+    if (searchCache.has(trimmedQuery)) {
+      setResults(searchCache.get(trimmedQuery));
+      return;
+    }
+
     setSearching(true);
     try {
-      const res = await axios.get(`https://nominatim.openstreetmap.org/search`, {
-        params: { format: 'json', q: query, limit: 6, addressdetails: 1 }
+      // PROXIED Search: Call backend to bypass CORS and centralize geocoding
+      const res = await axios.get(`${BASE_URL}/api/ai/search`, {
+        params: { q: query, limit: 6 },
+        timeout: 8000
       });
-      setResults(res.data);
+      searchCache.set(trimmedQuery, res.data || []);
+      setResults(res.data || []);
     } catch (e) {
       console.error("Search error:", e);
     } finally {

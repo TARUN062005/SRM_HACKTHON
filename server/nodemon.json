@@ -1,0 +1,12 @@
+{
+  "ignore": [
+    "node_modules",
+    "uploads/*",
+    "templates/*",
+    "知識",
+    "knowledge",
+    ".gemini"
+  ],
+  "watch": ["*"],
+  "ext": "js,json"
+}
