@@ -123,15 +123,30 @@ export const ShipmentCreationFlow = ({
 
     setSearching(true);
     try {
-      // PROXIED Search: Call backend to bypass CORS and centralize geocoding
+      // 🚀 PHASE 1: Try Local Proxy (Fastest for Regional Rules)
       const res = await axios.get(`${BASE_URL}/api/ai/search`, {
         params: { q: query, limit: 6 },
-        timeout: 8000
+        timeout: 2500 // ⚡ Aggressive timeout to trigger global fallback quickly
       });
-      searchCache.set(trimmedQuery, res.data || []);
-      setResults(res.data || []);
-    } catch (e) {
-      console.error("Search error:", e);
+      const data = res.data || [];
+      if (data.length > 0) {
+        searchCache.set(trimmedQuery, data);
+        setResults(data);
+        return;
+      }
+    } catch (e) { console.warn("[GEO-LOCAL] Proxy Latency Detection. Attempting Global Fallback..."); }
+
+    try {
+      // 🚀 PHASE 2: Global Fallback (Bypasses local server delays)
+      const gRes = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=6`, {
+        timeout: 5000
+      });
+      const data = gRes.data || [];
+      searchCache.set(trimmedQuery, data);
+      setResults(data);
+    } catch (ge) {
+      console.error("[GEO-GLOBAL] Direct Fallback Failure:", ge);
+      setResults([]);
     } finally {
       setSearching(false);
     }
@@ -143,7 +158,7 @@ export const ShipmentCreationFlow = ({
       if (activeDropdown === 'source' && !selectedSource) {
         fetchLocations(sourceQuery, setSourceResults, setSearchingSource);
       }
-    }, 300);
+    }, 600);
     return () => clearTimeout(timer);
   }, [sourceQuery, activeDropdown, selectedSource]);
 
@@ -152,7 +167,7 @@ export const ShipmentCreationFlow = ({
       if (activeDropdown === 'dest' && !selectedDest) {
         fetchLocations(destQuery, setDestResults, setSearchingDest);
       }
-    }, 300);
+    }, 600);
     return () => clearTimeout(timer);
   }, [destQuery, activeDropdown, selectedDest]);
 

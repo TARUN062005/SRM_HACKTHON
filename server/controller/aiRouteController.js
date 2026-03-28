@@ -367,13 +367,27 @@ exports.searchLocation = async (req, res) => {
 
     const response = await axios.get(`https://nominatim.openstreetmap.org/search`, {
       params: { format: 'json', q: q, limit: limit, addressdetails: 1, namedetails: 1, featuretype: 'settlement', accept_language: 'en' },
-      headers: { 'User-Agent': 'RouteGuardian/1.1', 'Referer': 'http://localhost:5000' }
+      headers: { 'User-Agent': 'RouteGuardian/1.1' }
     });
 
-    const sorted = (response.data || []).map(item => ({
-      ...item,
-      display_name: sanitizeEn(item.namedetails?.["name:en"] || item.display_name, item.display_name.split(',')[0])
-    })).sort((a, b) => {
+    if (!Array.isArray(response.data)) {
+      console.warn("[SEARCH PREVIEW] Non-array response received:", response.data);
+      return res.json([]);
+    }
+
+    const sorted = response.data.map((item, idx) => {
+      try {
+        const originalName = item.display_name || item.name || "Unknown Point";
+        const enName = item.namedetails?.["name:en"] || item.namedetails?.["name"] || originalName;
+        return {
+          ...item,
+          display_name: sanitizeEn(enName, originalName.split(',')[0])
+        };
+      } catch (err) {
+        console.error(`[SEARCH ERROR] Entry ${idx} Processing Failed:`, err.message);
+        return { ...item, display_name: "Mapping Error" };
+      }
+    }).sort((a, b) => {
       const isCity = (type) => ['city', 'town', 'municipality'].includes(type);
       if (isCity(a.type) && !isCity(b.type)) return -1;
       if (!isCity(a.type) && isCity(b.type)) return 1;
@@ -382,8 +396,12 @@ exports.searchLocation = async (req, res) => {
 
     res.json(sorted);
   } catch (error) {
-    console.error('Search Proxy Error:', error.message);
-    res.status(500).json({ error: 'Search engine failed' });
+    console.error('[SEARCH PROXY CRASH]:', {
+      query: req.query.q,
+      message: error.message,
+      stack: error.stack?.split('\n')[1]
+    });
+    res.status(500).json({ error: 'Search engine encountered a neural sync error.' });
   }
 };
 
