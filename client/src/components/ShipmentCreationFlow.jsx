@@ -1,204 +1,190 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Car, Bike, Bus, Truck, Footprints } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, MapPin, Loader2, Navigation, Check } from 'lucide-react';
 import axios from 'axios';
-import { Search, MapPin, Loader2, Navigation } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+/**
+ * INTERNAL COMPONENT: Specialized Location Input
+ * Defined outside to prevent re-remounting/focus-loss on parent re-render.
+ */
+const LocationInput = ({ label, query, setQuery, results, searching, type, selected, setSelected, activeDropdown, setActiveDropdown, onSelect }) => (
+  <div className="relative w-full">
+    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 block font-sans">
+      {label}
+    </label>
+    <div className={`relative flex items-center bg-slate-50 dark:bg-slate-950 border-2 transition-all rounded-2xl px-4 py-3.5 ${activeDropdown === type ? 'border-primary-500 ring-4 ring-primary-500/10' : 'border-slate-100 dark:border-slate-800'}`}>
+      <div className="mr-3 text-slate-400 shrink-0">
+        {searching ? <Loader2 size={18} className="animate-spin text-primary-500" /> : <Search size={18} />}
+      </div>
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          if (selected) setSelected(null);
+        }}
+        onFocus={() => setActiveDropdown(type)}
+        placeholder={`Enter ${label.toLowerCase()}...`}
+        className="w-full bg-transparent outline-none text-sm font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-700 font-sans"
+      />
+      {selected && (
+        <div className="ml-2 text-primary-500 animate-in zoom-in-50 duration-200">
+          <Check size={18} strokeWidth={3} />
+        </div>
+      )}
+    </div>
+
+    <AnimatePresence>
+      {activeDropdown === type && results.length > 0 && !selected && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] rounded-2xl overflow-hidden z-[2000] p-1.5"
+        >
+          {results.map((loc, i) => (
+            <button
+              key={i}
+              onClick={() => onSelect(loc, type)}
+              className="w-full text-left p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl flex items-start gap-3 transition-colors group"
+            >
+              <div className="mt-1 p-1 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-md group-hover:scale-110 transition-transform">
+                <MapPin size={12} strokeWidth={3} />
+              </div>
+              <div className="flex-1 min-w-0">
+                 <div className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate leading-tight font-sans">
+                   {loc.display_name.split(',')[0]}
+                 </div>
+                 <div className="text-[9px] font-medium text-slate-400 dark:text-slate-500 truncate mt-0.5 font-sans">
+                   {loc.display_name.split(',').slice(1).join(',')}
+                 </div>
+              </div>
+            </button>
+          ))}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+);
 
 export const ShipmentCreationFlow = ({ onLocationSelect, onClearRoute, vehicleMode, setVehicleMode }) => {
   const [sourceQuery, setSourceQuery] = useState('');
   const [destQuery, setDestQuery] = useState('');
   const [sourceResults, setSourceResults] = useState([]);
   const [destResults, setDestResults] = useState([]);
-  const [selectedSource, setSelectedSource] = useState(null);
-  const [selectedDest, setSelectedDest] = useState(null);
   const [searchingSource, setSearchingSource] = useState(false);
   const [searchingDest, setSearchingDest] = useState(false);
-  const [activeInput, setActiveInput] = useState(null);
-  const [sourceActiveIdx, setSourceActiveIdx] = useState(-1);
-  const [destActiveIdx, setDestActiveIdx] = useState(-1);
-  const vehicleOptions = [
-    { label: 'Car', value: 'car', icon: <Car size={16} /> },
-    { label: 'Bike', value: 'bike', icon: <Bike size={16} /> },
-    { label: 'Walk', value: 'foot', icon: <Footprints size={16} /> },
-    { label: 'Bus', value: 'bus', icon: <Bus size={16} /> },
-    { label: 'Truck', value: 'truck', icon: <Truck size={16} /> },
-  ];
+  const [selectedSource, setSelectedSource] = useState(null);
+  const [selectedDest, setSelectedDest] = useState(null);
+  const [activeDropdown, setActiveDropdown] = useState(null);
 
-  const searchLocation = async (query, setResults, setSearching) => {
+  // Optimized Search Logic
+  const fetchLocations = async (query, setResults, setSearching) => {
     if (!query || query.length < 3) {
       setResults([]);
       return;
     }
     setSearching(true);
     try {
-      const res = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
+      const res = await axios.get(`https://nominatim.openstreetmap.org/search`, {
+        params: { format: 'json', q: query, limit: 6, addressdetails: 1 }
+      });
       setResults(res.data);
     } catch (e) {
-      console.error(e);
+      console.error("Search error:", e);
     } finally {
       setSearching(false);
     }
   };
 
+  // Debounced Search Effects
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (activeInput === 'source') searchLocation(sourceQuery, setSourceResults, setSearchingSource);
+      if (activeDropdown === 'source' && !selectedSource) {
+        fetchLocations(sourceQuery, setSourceResults, setSearchingSource);
+      }
     }, 300);
     return () => clearTimeout(timer);
-  }, [sourceQuery, activeInput]);
+  }, [sourceQuery, activeDropdown, selectedSource]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (activeInput === 'dest') searchLocation(destQuery, setDestResults, setSearchingDest);
+      if (activeDropdown === 'dest' && !selectedDest) {
+        fetchLocations(destQuery, setDestResults, setSearchingDest);
+      }
     }, 300);
     return () => clearTimeout(timer);
-  }, [destQuery, activeInput]);
-  
+  }, [destQuery, activeDropdown, selectedDest]);
+
+  const handleSelect = (loc, type) => {
+    if (type === 'source') {
+      setSelectedSource(loc);
+      setSourceQuery(loc.display_name);
+      setSourceResults([]);
+    } else {
+      setSelectedDest(loc);
+      setDestQuery(loc.display_name);
+      setDestResults([]);
+    }
+    setActiveDropdown(null);
+  };
+
   const confirmSelection = () => {
-    if (selectedSource && selectedDest && onLocationSelect) {
+    if (selectedSource && selectedDest) {
       onLocationSelect(selectedSource, selectedDest);
     }
   };
 
-  const ResultDropdown = ({ results, onSelect, visible, activeIdx, setActiveIdx }) => {
-    if (!visible || results.length === 0) return null;
-    return (
-      <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 shadow-xl rounded-lg z-50 max-h-48 overflow-y-auto">
-        {results.map((loc, idx) => (
-          <div
-            key={idx}
-            className={`p-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 cursor-pointer flex items-start gap-2 text-sm ${activeIdx === idx ? 'bg-blue-50' : ''}`}
-            onMouseDown={() => onSelect(loc)}
-          >
-            <MapPin size={16} className="text-blue-500 shrink-0 mt-0.5" />
-            <span className="text-slate-700 leading-tight truncate block">{loc.display_name}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   return (
-    <div className="flex flex-col gap-4 w-full">
-      
-      {/* Search Start Point */}
-      <div className="relative">
+    <div className="flex flex-col gap-6 w-full">
+      <div className="space-y-6">
+        <LocationInput 
+          label="Origin Point" 
+          query={sourceQuery} 
+          setQuery={setSourceQuery} 
+          results={sourceResults} 
+          searching={searchingSource}
+          type="source"
+          selected={selectedSource}
+          setSelected={setSelectedSource}
+          activeDropdown={activeDropdown}
+          setActiveDropdown={setActiveDropdown}
+          onSelect={handleSelect}
+        />
 
-        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">
-          Origin Point
-        </label>
-        <div className="relative group">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-             {searchingSource ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-          </div>
-          <input
-            type="text"
-            placeholder="Choose starting point..."
-            value={sourceQuery}
-            onChange={(e) => {
-              setSourceQuery(e.target.value);
-              setSelectedSource(null);
-              setSourceActiveIdx(-1);
-            }}
-            onFocus={() => setActiveInput('source')}
-            onBlur={() => setTimeout(() => setActiveInput(null), 200)}
-            onKeyDown={e => {
-              if (sourceResults.length > 0 && activeInput === 'source') {
-                if (e.key === 'ArrowDown') {
-                  setSourceActiveIdx(idx => Math.min(idx + 1, sourceResults.length - 1));
-                  e.preventDefault();
-                } else if (e.key === 'ArrowUp') {
-                  setSourceActiveIdx(idx => Math.max(idx - 1, 0));
-                  e.preventDefault();
-                } else if (e.key === 'Enter' && sourceActiveIdx >= 0) {
-                  setSelectedSource(sourceResults[sourceActiveIdx]);
-                  setSourceQuery(sourceResults[sourceActiveIdx].display_name.split(',')[0]);
-                  setActiveInput(null);
-                  setSourceActiveIdx(-1);
-                  e.preventDefault();
-                }
-              }
-            }}
-            className="w-full pl-9 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium transition-all"
-          />
+        <div className="relative h-0 flex items-center justify-center">
+           <div className="absolute w-8 h-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-full flex items-center justify-center text-slate-300 dark:text-slate-700 z-10 shadow-sm">
+              <Navigation size={14} />
+           </div>
+           <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
         </div>
-        <ResultDropdown
-          results={sourceResults}
-          visible={activeInput === 'source' && !selectedSource}
-          onSelect={loc => {
-            setSelectedSource(loc);
-            setSourceQuery(loc.display_name.split(',')[0]);
-            setActiveInput(null);
-            setSourceActiveIdx(-1);
-          }}
-          activeIdx={sourceActiveIdx}
-          setActiveIdx={setSourceActiveIdx}
+
+        <LocationInput 
+          label="Destination Point" 
+          query={destQuery} 
+          setQuery={setDestQuery} 
+          results={destResults} 
+          searching={searchingDest}
+          type="dest"
+          selected={selectedDest}
+          setSelected={setSelectedDest}
+          activeDropdown={activeDropdown}
+          setActiveDropdown={setActiveDropdown}
+          onSelect={handleSelect}
         />
       </div>
 
-      {/* Search Destination Point */}
-      <div className="relative">
-        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">
-          Destination Point
-        </label>
-        <div className="relative group">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-             {searchingDest ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-          </div>
-          <input
-            type="text"
-            placeholder="Choose destination..."
-            value={destQuery}
-            onChange={(e) => {
-              setDestQuery(e.target.value);
-              setSelectedDest(null);
-              setDestActiveIdx(-1);
-            }}
-            onFocus={() => setActiveInput('dest')}
-            onBlur={() => setTimeout(() => setActiveInput(null), 200)}
-            onKeyDown={e => {
-              if (destResults.length > 0 && activeInput === 'dest') {
-                if (e.key === 'ArrowDown') {
-                  setDestActiveIdx(idx => Math.min(idx + 1, destResults.length - 1));
-                  e.preventDefault();
-                } else if (e.key === 'ArrowUp') {
-                  setDestActiveIdx(idx => Math.max(idx - 1, 0));
-                  e.preventDefault();
-                } else if (e.key === 'Enter' && destActiveIdx >= 0) {
-                  setSelectedDest(destResults[destActiveIdx]);
-                  setDestQuery(destResults[destActiveIdx].display_name.split(',')[0]);
-                  setActiveInput(null);
-                  setDestActiveIdx(-1);
-                  e.preventDefault();
-                }
-              }
-            }}
-            className="w-full pl-9 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium transition-all"
-          />
-        </div>
-        <ResultDropdown
-          results={destResults}
-          visible={activeInput === 'dest' && !selectedDest}
-          onSelect={loc => {
-            setSelectedDest(loc);
-            setDestQuery(loc.display_name.split(',')[0]);
-            setActiveInput(null);
-            setDestActiveIdx(-1);
-          }}
-          activeIdx={destActiveIdx}
-          setActiveIdx={setDestActiveIdx}
-        />
-      </div>
-
-
-
-      {/* Action Button */}
       <button
         onClick={confirmSelection}
         disabled={!selectedSource || !selectedDest}
-        className="mt-2 w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-200 flex justify-center items-center gap-2 transition-all"
+        className={`w-full py-4 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-2xl ${
+          selectedSource && selectedDest 
+          ? 'bg-primary-600 text-white shadow-primary-600/20 hover:scale-[1.02] active:scale-95' 
+          : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed shadow-none'
+        }`}
       >
-        <Navigation size={16} />
-        Calculate Route
+        <Navigation size={18} />
+        Initiate Mission
       </button>
     </div>
   );

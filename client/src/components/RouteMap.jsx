@@ -233,11 +233,13 @@ export const RouteMap = ({
     const sorted = [...allRoutes].sort((a, b) => a.id === activeRouteIndex ? 1 : -1);
     return sorted.map((route) => {
       const isActive = route.id === activeRouteIndex;
+      const pathColor = isActive ? '#2563eb' : '#94a3b8'; // Blue for active, Gray for inactive
+      
       return (
         <React.Fragment key={route.id}>
           <Polyline
             positions={route.coords}
-            color={route.color}
+            color={pathColor}
             weight={isActive ? 8 : 4}
             opacity={isActive ? 1 : 0.4}
             lineCap="round"
@@ -252,6 +254,7 @@ export const RouteMap = ({
               mousemove: (e) => {
                 const info = getEtaToPoint(route, e);
                 setHoveredInfo({ ...info, id: route.id });
+                e.target.setStyle({ weight: 10, opacity: 1 });
               },
               mouseout: (e) => {
                 setHoveredInfo(null);
@@ -282,7 +285,7 @@ export const RouteMap = ({
           </Polyline>
           <NavigationSimulator
             coords={route.coords} isActive={isActive}
-            color={route.color} isNavigating={isNavigating} speedMultiplier={simSpeed}
+            color={pathColor} isNavigating={isNavigating} speedMultiplier={simSpeed}
           />
           {isActive && route.intelligence?.waypointReports?.map((wp, idx) => (
             <Marker 
