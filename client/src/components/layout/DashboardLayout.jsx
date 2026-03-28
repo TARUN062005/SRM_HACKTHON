@@ -11,6 +11,7 @@ import {
   Menu,
   X,
   Shield,
+  Fingerprint,
   ChevronRight,
   Loader2,
   Mail,
@@ -366,14 +367,22 @@ const DashboardLayout = () => {
               navigate("/dashboard");
               setIsSidebarOpen(false);
             }}
-            className="flex items-center text-left"
+            className="flex items-center text-left group"
           >
-            <div className="bg-primary-600 p-2 rounded-xl shadow-lg shadow-primary-200/40 shrink-0">
-              <Shield className="text-white" size={24} />
+            <div className="relative">
+              <div className="bg-primary-600 p-2.5 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.3)] group-hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] transition-all shrink-0">
+                <Shield className="text-white" size={24} />
+              </div>
+              <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 rounded-lg p-0.5 border border-slate-100 dark:border-slate-800 shadow-sm">
+                 <Fingerprint size={12} className="text-primary-600" />
+              </div>
             </div>
-            <span className="ml-3 text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-              RouteGuardian
-            </span>
+            <div className="ml-3 flex flex-col">
+              <span className="text-lg font-black tracking-tighter text-slate-900 dark:text-white leading-none">
+                Route<span className="text-primary-600">Guardian</span>
+              </span>
+              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">Tactical Console</span>
+            </div>
           </button>
 
           <button
@@ -393,20 +402,23 @@ const DashboardLayout = () => {
 
           <Link
             to="/dashboard"
-            className="flex items-center justify-between px-4 py-3 rounded-2xl font-semibold text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+            className="flex items-center justify-between px-4 py-3 rounded-2xl font-semibold text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition group"
             onClick={() => setIsSidebarOpen(false)}
           >
-            <span>Dashboard</span>
+            <span className="flex items-center gap-2">
+              <Shield size={18} className="text-slate-400 group-hover:text-primary-600 transition-colors" />
+              Dashboard
+            </span>
             <ChevronRight size={16} className="text-slate-300 dark:text-slate-600" />
           </Link>
 
           <Link
             to="/notifications"
-            className="mt-2 flex items-center justify-between px-4 py-3 rounded-2xl font-semibold text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+            className="mt-2 flex items-center justify-between px-4 py-3 rounded-2xl font-semibold text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition group"
             onClick={() => setIsSidebarOpen(false)}
           >
             <span className="flex items-center gap-2">
-              <Bell size={18} />
+              <Bell size={18} className="text-slate-400 group-hover:text-primary-600 transition-colors" />
               Notifications
             </span>
 

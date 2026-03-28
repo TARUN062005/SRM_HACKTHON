@@ -3,7 +3,8 @@ import { MapContainer, TileLayer, Marker, Polyline, Popup, Circle, useMap, useMa
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
-import { AlertTriangle, Navigation, ChevronRight, Play, X, Clock, Info, Activity, Wind, Zap, MapPin, ShieldAlert, Globe, ArrowRight } from 'lucide-react';
+import { AlertTriangle, Navigation, ChevronRight, Play, X, Clock, Info, Activity, Wind, Zap, MapPin, ShieldAlert, Globe, ArrowRight, Shield } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // --- VISUAL THEME ---
 const THEME = {
@@ -94,7 +95,15 @@ export const RouteMap = ({
   const [loading, setLoading] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [simSpeed, setSimSpeed] = useState(2);
+  const [mapType, setMapType] = useState('voyager'); // 'voyager' | 'satellite' | 'dark'
+
   const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
+  const mapStyles = {
+    voyager: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    satellite: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+  };
 
   const fetchRoutes = async (start, end, mode) => {
     setLoading(true);
@@ -106,7 +115,6 @@ export const RouteMap = ({
            vehicle: mode 
         }
       });
-
       if (res.data.success && res.data.routes?.length > 0) {
         const processed = res.data.routes.map((r, i) => ({
           ...r,
@@ -126,7 +134,6 @@ export const RouteMap = ({
     } else {
       setAllRoutes([]);
       setIsNavigating(false);
-      // Feature 1 Fix: Explicitly notify parent that routes are gone
       if (onRouteData) onRouteData({ allRoutes: [], activeRouteIndex: 0 });
     }
   }, [selectedSource, selectedDestination, vehicleMode]);
@@ -156,40 +163,87 @@ export const RouteMap = ({
   }, [allRoutes, activeRouteIndex, isNavigating, simSpeed]);
 
   return (
-    <div className="w-full h-full relative bg-slate-100 overflow-hidden">
-      {allRoutes.length > 0 && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-3">
-           <div className="bg-white px-6 py-3 border border-slate-200 shadow-2xl rounded-2xl flex items-center gap-4">
-              <button 
-                onClick={() => setIsNavigating(!isNavigating)}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isNavigating ? 'bg-red-500 text-white animate-pulse' : 'bg-blue-600 text-white shadow-xl hover:scale-110'}`}
-              >
-                {isNavigating ? <X size={20} /> : <Play size={22} className="ml-1" />}
-              </button>
-              <div className="flex flex-col items-center">
-                 <span className="text-[10px] font-bold text-slate-400 uppercase">Sim Speed</span>
-                 <input type="range" min="1" max="10" value={simSpeed} onChange={(e) => setSimSpeed(Number(e.target.value))} className="w-24 accentuate-blue-600 cursor-pointer" />
+    <div className="w-full h-full relative bg-slate-900 overflow-hidden">
+      {/* Simulation Controls HUD */}
+      <AnimatePresence>
+        {allRoutes.length > 0 && (
+          <motion.div 
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            className="absolute top-6 left-1/2 -translate-x-1/2 z-[1100] w-full max-w-sm flex items-center justify-center pointer-events-none"
+          >
+             <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl px-6 py-4 border border-white dark:border-slate-800 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] rounded-[2.5rem] flex items-center gap-6 pointer-events-auto">
+                <button 
+                  onClick={() => setIsNavigating(!isNavigating)}
+                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isNavigating ? 'bg-red-500 text-white shadow-xl shadow-red-500/30' : 'bg-primary-600 text-white shadow-xl shadow-primary-600/30 hover:scale-110 active:scale-90'}`}
+                >
+                  {isNavigating ? <X size={24} /> : <Play size={28} className="translate-x-0.5" />}
+                </button>
+
+                <div className="flex flex-col gap-1.5 flex-1 min-w-[120px]">
+                   <div className="flex justify-between items-center text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                      <span>Sim Velocity</span>
+                      <span className="text-primary-600">x{simSpeed}</span>
+                   </div>
+                   <input 
+                      type="range" min="1" max="10" step="1" 
+                      value={simSpeed} onChange={(e) => setSimSpeed(Number(e.target.value))} 
+                      className="w-full accentuate-primary-600 cursor-pointer opacity-80 hover:opacity-100 transition-opacity" 
+                   />
+                </div>
+             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Map Content Notification */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm z-[2000] flex flex-col items-center justify-center"
+          >
+             <div className="relative">
+                <div className="w-24 h-24 border-2 border-primary-600/20 rounded-full animate-ping" />
+                <div className="absolute inset-0 w-24 h-24 border-t-2 border-primary-600 rounded-full animate-spin" />
+                <Shield className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary-600 animate-pulse" size={32} />
+             </div>
+             <p className="mt-8 font-black text-[10px] uppercase tracking-[0.4em] text-white">Synthesizing Tactical Mesh...</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Layer Control Switcher (Bottom Left) */}
+      <div className="absolute bottom-10 left-6 z-[1050] flex flex-col gap-3">
+         {[
+           { id: 'voyager', label: 'Roads', icon: <Navigation size={14} />, img: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=200' },
+           { id: 'satellite', label: 'Tactical', icon: <Globe size={14} />, img: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=200' },
+           { id: 'dark', label: 'Dark Ops', icon: <Zap size={14} />, img: 'https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?auto=format&fit=crop&q=80&w=200' }
+         ].map((t) => (
+           <button
+             key={t.id}
+             onClick={() => setMapType(t.id)}
+             className={`group relative w-16 h-16 rounded-2xl overflow-hidden border-2 transition-all shadow-xl active:scale-90 ${mapType === t.id ? 'border-primary-600 ring-4 ring-primary-600/10' : 'border-white dark:border-slate-800'}`}
+           >
+              <img src={t.img} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={t.label} />
+              <div className={`absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors`} />
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-white pointer-events-none drop-shadow-lg">
+                 {t.icon}
               </div>
-              <div className="text-xs font-black text-slate-700">{simSpeed}x</div>
-           </div>
-        </div>
-      )}
+              <div className="absolute bottom-0 left-0 right-0 bg-slate-900/60 backdrop-blur-sm text-[8px] font-black uppercase tracking-widest text-white py-0.5 text-center transition-all opacity-0 group-hover:opacity-100">
+                 {t.label}
+              </div>
+           </button>
+         ))}
+      </div>
 
-      {loading && (
-        <div className="absolute inset-0 bg-white/70 backdrop-blur-md z-[2000] flex flex-col items-center justify-center">
-           <div className="w-16 h-16 border-4 border-t-blue-600 border-blue-100 rounded-full animate-spin mb-4" />
-           <p className="font-black text-[10px] uppercase tracking-[0.2em] text-slate-800">Processing Tactical Intelligence</p>
-        </div>
-      )}
-
-      <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }} zoomControl={false}>
+      <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }} zoomControl={false} dragging={true}>
         <MapInteractionHandler allRoutes={allRoutes} />
         <ZoomControl position="bottomright" />
-        <LayersControl position="bottomright">
-          <LayersControl.BaseLayer checked name="Voyager Navigation">
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
-          </LayersControl.BaseLayer>
-        </LayersControl>
+        <TileLayer url={mapStyles[mapType]} attribution='&copy; CARTO' />
         {mapLayers}
       </MapContainer>
     </div>

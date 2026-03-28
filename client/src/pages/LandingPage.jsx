@@ -19,6 +19,13 @@ const LandingPage = () => {
     }
   }, [user, loading, navigate]);
 
+  const scrollToSection = (id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   if (loading || user) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-[#020617]">
@@ -35,7 +42,7 @@ const LandingPage = () => {
   return (
     <div className="bg-[#020617] min-h-screen font-sans text-slate-200 overflow-x-hidden selection:bg-blue-500/30">
       {/* Cinematic Background */}
-      <div className="fixed inset-0 z-0">
+      <div className="fixed inset-0 z-0 text-white">
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/10 blur-[120px] rounded-full animate-pulse" />
         <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-indigo-600/10 blur-[120px] rounded-full" />
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
@@ -44,7 +51,7 @@ const LandingPage = () => {
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-[100] border-b border-white/5 bg-[#020617]/80 backdrop-blur-md px-6 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-3 group cursor-pointer">
+          <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <div className="bg-blue-600 p-2 rounded-lg group-hover:rotate-12 transition-transform duration-300">
               <Shield size={20} className="text-white" />
             </div>
@@ -52,8 +59,8 @@ const LandingPage = () => {
           </div>
 
           <div className="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-400">
-            <a href="#features" className="hover:text-blue-400 transition-colors">Features</a>
-            <a href="#stats" className="hover:text-blue-400 transition-colors">Network</a>
+            <button onClick={() => scrollToSection('features')} className="hover:text-blue-400 transition-colors">Features</button>
+            <button onClick={() => scrollToSection('network')} className="hover:text-blue-400 transition-colors">Network</button>
             <Link to="/auth" className="text-white bg-white/5 border border-white/10 px-5 py-2 rounded-full hover:bg-white/10 transition-all">
               Sign In
             </Link>
@@ -106,7 +113,10 @@ const LandingPage = () => {
               <Link to="/auth" className="flex items-center justify-center gap-2 bg-white text-[#020617] px-8 py-4 rounded-xl font-bold text-lg hover:bg-blue-50 transition-all active:scale-95">
                 Launch Console <ArrowRight size={20} />
               </Link>
-              <button className="flex items-center justify-center gap-2 bg-slate-800/50 border border-white/10 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-800 transition-all">
+              <button 
+                onClick={() => scrollToSection('features')}
+                className="flex items-center justify-center gap-2 bg-slate-800/50 border border-white/10 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-800 transition-all"
+              >
                 <Play size={20} fill="currentColor" /> System Demo
               </button>
             </motion.div>
