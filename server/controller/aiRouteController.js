@@ -7,13 +7,17 @@ const axios = require('axios');
 const NodeCache = require('node-cache');
 const routeCache = new NodeCache({ stdTTL: 300 }); // 5 minute caching layer
 
-// Initialize Gemini for high-level safety analysis (Feature 3 & 4)
+// HELPER: Strict Latin Script Enforcer (Protocol v17)
+function sanitizeEn(text, fallback = "Sector") {
+  if (!text) return fallback;
+  // Strip all non-latin characters and extra punctuation
+  const latinOnly = text.replace(/[^\x00-\x7F]/g, "").replace(/[\(\)\[\]\+\*]/g, "").replace(/,/g, "").trim();
+  // If we have a decent latin string, use it. Otherwise, use fallback.
+  return latinOnly.length >= 2 ? latinOnly : fallback;
+}
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyCF-jKDV0TrY4sMQA3BueNZWAE04QgdoYA');
 const geminiCache = new NodeCache({ stdTTL: 1800 }); // Longer cache for analysis
 
-/**
- * HELPER: Haversine Distance between two [lng, lat] points
- */
 function getDistance(p1, p2) {
   const R = 6371e3; // meters
   const φ1 = (p1[1] * Math.PI) / 180;
@@ -29,10 +33,6 @@ function getDistance(p1, p2) {
   return R * c;
 }
 
-/**
- * Adaptive Mission Sampling: Distribute tactical nodes across the corridor
- * Based on 'Production Standard' Adaptive Fixed-Cap Sampling (Max 10)
- */
 function getCheckpoints(coords, distanceMeters = 50000) {
   const distanceKm = distanceMeters / 1000;
   // Adaptive Count: 100km=3, 600km=4, 1500km=10 (MAX CAP to avoid 429)
@@ -61,120 +61,165 @@ function getWeatherCondition(code) {
 }
 
 /**
- * Harvest News Intelligence: SAFE / RISK / UNKNOWN classification
- * Implements 'Adaptive Risk Response' for missing or empty API results.
+ * Logistics Risk Intelligence Engine: Multi-Category Event Detection
+ * Following Strict Step 1-8 Operational Protocols
  */
-const harvestNews = async (query) => {
+const harvestNews = async (queryFull, locations = []) => {
   if (!process.env.NEWSDATA_API_KEY) {
-    return { status: "UNKNOWN", message: "Intelligence keys missing.", alerts: [] };
+    return { status: "SAFE", summary: "Intelligence protocol offline (Missing Keys)", affected_regions: [], events: [] };
   }
 
   try {
+    // STEP 2: Context Expansion (Search City OR Country OR Region)
+    const contextQuery = `(${queryFull}) OR "logistics disruption" OR "transport risk"`;
+
     const res = await axios.get("https://newsdata.io/api/1/news", {
       params: { 
         apikey: process.env.NEWSDATA_API_KEY, 
-        q: query, 
+        q: contextQuery, 
         language: "en" 
       },
-      timeout: 5000
+      timeout: 6000
     });
 
     const articles = res.data.results || [];
-    if (articles.length === 0) {
-      return { status: "SAFE", message: "No major disruptions reported", alerts: [] };
-    }
+    console.log(`[INTELLIGENCE ENGINE] Signals detected for "${queryFull}": ${articles.length}`);
 
-    const riskKeywords = ["war", "protest", "riot", "strike", "accident", "flood", "storm", "closure", "highway"];
-    const risky = articles.filter(a => 
-      riskKeywords.some(k => (a.title || "").toLowerCase().includes(k))
-    );
+    // STEP 3 & 4: Detection & Filtering (Multi-Category Classifier)
+    const categories = {
+        conflict: ["war", "conflict", "missile", "airstrike", "military", "explosion", "bomb", "shelling"],
+        protest: ["protest", "riot", "violence", "clashes", "curfew", "demonstration", "strike", "march"],
+        transport: ["accident", "roadblock", "closure", "traffic", "highway", "port", "train", "delay", "collision"],
+        weather: ["storm", "cyclone", "flood", "rain", "heatwave", "blizzard", "typhoon"],
+        political: ["sanction", "policy", "border", "restriction", "customs", "checkpoint"]
+    };
 
-    if (risky.length === 0) {
-      return { status: "SAFE", message: "No major disruptions detected", alerts: [] };
+    const detectedEvents = [];
+    articles.forEach(art => {
+        const text = ((art.title || "") + " " + (art.description || "")).toLowerCase();
+        
+        let type = null;
+        for (const [cat, keywords] of Object.entries(categories)) {
+            if (keywords.some(k => text.includes(k))) {
+                type = cat;
+                break;
+            }
+        }
+
+        if (type) {
+            detectedEvents.push({
+                type: type,
+                title: art.title,
+                severity: type === "conflict" ? "high" : type === "protest" ? "medium" : "low",
+                impact: `Active ${type} activity identified in mission corridor.`,
+                link: art.link,
+                date: art.pubDate || new Date().toISOString()
+            });
+        }
+    });
+
+    // STEP 5: Risk Classification
+    const hasHighRisk = detectedEvents.some(e => e.severity === "high" || e.type === "conflict");
+    const hasMedRisk = detectedEvents.some(e => e.severity === "medium" || e.type === "protest" || e.type === "political");
+
+    const status = hasHighRisk ? "HIGH" : hasMedRisk ? "MODERATE" : "SAFE";
+    
+    // STEP 6 & 7: Strict Output Format & Fallback
+    if (detectedEvents.length === 0) {
+        return {
+            status: "SAFE",
+            summary: "No major disruptions detected in the route region",
+            affected_regions: locations,
+            events: []
+        };
     }
 
     return {
-      status: "RISK",
-      message: `${risky.length} potential issues detected`,
-      alerts: risky.slice(0, 4).map(item => ({
-        title: item.title,
-        source: item.source_id,
-        link: item.link,
-        date: item.pubDate
-      }))
+        status: status,
+        summary: `Identified ${detectedEvents.length} mission-relevant signals in territory.`,
+        affected_regions: locations,
+        events: detectedEvents.slice(0, 6)
     };
+
   } catch (err) {
-    console.error("News Harvest Error:", err.message);
-    return { status: "UNKNOWN", message: "Unable to fetch intelligence feed", alerts: [] };
+    console.error("[INTELLIGENCE ERROR]:", err.message);
+    return { status: "SAFE", summary: "Mission Protocol Degraded: Link to newsData.io interrupted.", affected_regions: [], events: [] };
   }
 };
 
-/**
- * Tactical Intelligence Synthesizer: Merges Weather + News into a Single Risk Pulse
- */
 const getRouteIntelligence = async (coords, sourceName = "Mission Sector", destName = "Target Point", distanceMeters = 50000) => {
-  const cacheKey = `intel-v11-${coords[0][0]}-${coords[coords.length - 1][0]}`;
+  const cacheKey = `intel-v17-${coords[0][0]}-${coords[coords.length - 1][0]}`;
   if (geminiCache.has(cacheKey)) return geminiCache.get(cacheKey);
 
   try {
-    // 1. Mission Corridor Harvest
-    const locations = [sourceName, destName].filter(Boolean).map(l => l.split(',')[0]);
-    const query = locations.length > 0 ? locations.join(" OR ") : "logistics risk";
-    const newsStatus = await harvestNews(query);
+    // 1. Mission Corridor Harvest (Step 1: Normalization)
+    const locNames = [sourceName, destName].filter(Boolean);
+    const query = locNames.join(" OR ");
+    const newsStatus = await harvestNews(query, locNames);
 
     // 2. Extract Key Tactical Nodes (Adaptive Sampling)
     const checkpoints = getCheckpoints(coords, distanceMeters);
 
-    // 3. Telemetry & Strategic Geographic Resolution (Parallel)
-    const waypointData = await Promise.all(checkpoints.map(async (p, i) => {
-      try {
-        const [wRes, gRes] = await Promise.all([
-          axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${p[1]}&longitude=${p[0]}&current_weather=true`, { timeout: 3000 }),
-          axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p[1]}&lon=${p[0]}&zoom=14`, {
-            headers: { 'User-Agent': 'RouteGuardian/1.1' }, timeout: 3000
-          })
-        ]);
+    // 3. Telemetry & Strategic Geographic Resolution (Sequential with Delay to avoid rate-limit)
+    const waypointData = [];
+    for (let i = 0; i < checkpoints.length; i++) {
+        const p = checkpoints[i];
+        if (i > 0) await new Promise(r => setTimeout(r, 150)); // Essential stagger for Nominatim
+        
+        try {
+            const [wRes, gRes] = await Promise.all([
+                axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${p[1]}&longitude=${p[0]}&current_weather=true`, { timeout: 3000 }),
+                axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p[1]}&lon=${p[0]}&zoom=14&accept-language=en&namedetails=1`, {
+                    headers: { 'User-Agent': 'RouteGuardian/1.1' }, timeout: 4000
+                })
+            ]);
 
-        const addr = gRes.data?.address;
-        const placeName = addr?.city || addr?.town || addr?.suburb || addr?.village || addr?.county || addr?.state_district || `Strategic Nexus ${i + 1}`;
-        const current = wRes.data.current_weather;
+            const addr = gRes.data?.address;
+            const details = gRes.data?.namedetails || {};
+            
+            // PRIORITY: name:en -> city -> town -> subtitle -> country -> fallback
+            let placeNameFallback = details["name:en"] || addr?.city || addr?.town || addr?.suburb || addr?.state || addr?.country || sourceName;
+            let placeName = sanitizeEn(placeNameFallback, `Sector ${i + 1}`);
+            
+            const current = wRes.data.current_weather;
 
-        return {
-          id: `A${i}`,
-          place: placeName,
-          condition: getWeatherCondition(current.weathercode),
-          weather: `${getWeatherCondition(current.weathercode)} • ${current.temperature}°C`,
-          temp: current.temperature,
-          wind: current.windspeed,
-          code: current.weathercode,
-          coords: [p[1], p[0]],
-          severity: current.weathercode >= 61 ? 'CAUTION' : 'STABLE'
-        };
-      } catch (e) { 
-        return {
-          id: `A${i}`,
-          place: `Tactical Nexus ${i + 1}`,
-          weather: "Clear • 25°C",
-          condition: "Clear",
-          temp: 25,
-          wind: 5,
-          code: 0,
-          coords: [p[1], p[0]],
-          severity: 'STABLE'
-        }; 
-      }
-    }));
+            waypointData.push({
+                id: `A${i}`,
+                place: placeName,
+                condition: getWeatherCondition(current.weathercode),
+                weather: `${getWeatherCondition(current.weathercode)} • ${current.temperature}°C`,
+                temp: current.temperature,
+                wind: current.windspeed,
+                code: current.weathercode,
+                coords: [p[1], p[0]],
+                severity: current.weathercode >= 61 ? 'CAUTION' : 'STABLE'
+            });
+        } catch (e) {
+            waypointData.push({
+                id: `A${i}`,
+                place: `Tactical Nexus ${i + 1}`,
+                weather: "Clear • 25°C",
+                condition: "Clear",
+                temp: 25,
+                wind: 5,
+                code: 0,
+                coords: [p[1], p[0]],
+                severity: 'STABLE'
+            });
+        }
+    }
 
     const validWaypoints = waypointData.filter(Boolean);
 
-    // 4. Final Assessment Bundle
+    // 4. Final Assessment Bundle (Step 6 Schema)
     const finalIntel = {
-      summary: newsStatus.message,
+      summary: newsStatus.summary,
       newsStatus: newsStatus.status,
-      newsFeed: newsStatus.alerts, // Map to newsFeed for Frontend
+      newsFeed: newsStatus.events, // Map events to newsFeed for Frontend
+      affected_regions: newsStatus.affected_regions,
       waypointReports: validWaypoints,
-      riskScore: newsStatus.status === "RISK" ? 85 : newsStatus.status === "SAFE" ? 15 : 50,
-      severity: newsStatus.status === "RISK" || validWaypoints.some(v => v.condition === "Storm") ? "CRITICAL" : "STABLE",
+      riskScore: newsStatus.status === "HIGH" ? 95 : newsStatus.status === "MODERATE" ? 55 : 15,
+      severity: newsStatus.status === "HIGH" || validWaypoints.some(v => v.condition === "Storm") ? "CRITICAL" : (newsStatus.status === "MODERATE" ? "CAUTION" : "STABLE"),
       lastScanned: new Date().toISOString()
     };
 
@@ -229,7 +274,7 @@ exports.getDirections = async (req, res) => {
     const { startLat, startLng, endLat, endLng, vehicle = 'driving', sourceName, destName } = req.query;
     if (!startLat || !startLng || !endLat || !endLng) return res.status(400).json({ error: 'Missing coords' });
 
-    const cacheKey = `v11-${startLat}-${startLng}-${endLat}-${endLng}-${vehicle}`;
+    const cacheKey = `v17-${startLat}-${startLng}-${endLat}-${endLng}-${vehicle}`;
     if (routeCache.has(cacheKey)) return res.json({ success: true, routes: routeCache.get(cacheKey) });
 
     const vehicleProfileMap = { 'car': 'driving', 'bike': 'cycling', 'foot': 'walking', 'bus': 'driving', 'truck': 'driving' };
@@ -239,6 +284,34 @@ exports.getDirections = async (req, res) => {
     const scale = speedScaleMap[vehicle] || 1;
 
     let paths = await fetchRoutesFromProvider([startLat, startLng], [endLat, endLng], profile);
+
+    // --- GEOGRAPHICAL ANCHORING FOR INTELLIGENCE (GLOBAL-READY) ---
+    let sourceEn = sourceName || "Mission Alpha";
+    let destEn = destName || "Mission Beta";
+
+    // Auto-Resolve names in English (Essential for NewsData.io)
+    try {
+        const [sRes, dRes] = await Promise.all([
+            axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${startLat}&lon=${startLng}&zoom=14&accept-language=en&namedetails=1`, { 
+                headers: { 'User-Agent': 'RouteGuardian/1.1' } 
+            }),
+            axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${endLat}&lon=${endLng}&zoom=14&accept-language=en&namedetails=1`, { 
+                headers: { 'User-Agent': 'RouteGuardian/1.1' } 
+            })
+        ]);
+        const sAddr = sRes.data?.address;
+        const dAddr = dRes.data?.address;
+        const sDetails = sRes.data?.namedetails || {};
+        const dDetails = dRes.data?.namedetails || {};
+        
+        // Use name:en or specific address components
+        sourceEn = sanitizeEn(sDetails["name:en"] || sAddr?.city || sAddr?.town || sAddr?.suburb || sAddr?.state || sAddr?.country, "Origin Node");
+        destEn = sanitizeEn(dDetails["name:en"] || dAddr?.city || dAddr?.town || dAddr?.suburb || dAddr?.state || dAddr?.country, "Target Point");
+        
+        console.log(`[GEO-ANCHOR] Global Reset (EN): ${sourceEn} -> ${destEn}`);
+    } catch (e) {
+        console.warn("[GEO-ANCHOR] Fallback to legacy names.");
+    }
 
     // --- ARTIFICIAL MISSION CORRIDOR DISCOVERY ---
     if (paths.length < 3 && paths.length > 0) {
@@ -264,7 +337,7 @@ exports.getDirections = async (req, res) => {
 
     const processedRoutes = await Promise.all(paths.slice(0, 3).map(async (route, i) => {
       const correctedDuration = route.duration * scale;
-      const intelligence = await getRouteIntelligence(route.geometry.coordinates, sourceName, destName, route.distance);
+      const intelligence = await getRouteIntelligence(route.geometry.coordinates, sourceEn, destEn, route.distance);
       
       return {
         id: i,
@@ -293,11 +366,14 @@ exports.searchLocation = async (req, res) => {
     if (!q) return res.status(400).json({ error: 'Search query required' });
 
     const response = await axios.get(`https://nominatim.openstreetmap.org/search`, {
-      params: { format: 'json', q: q, limit: limit, addressdetails: 1, featuretype: 'settlement', accept_language: 'en' },
+      params: { format: 'json', q: q, limit: limit, addressdetails: 1, namedetails: 1, featuretype: 'settlement', accept_language: 'en' },
       headers: { 'User-Agent': 'RouteGuardian/1.1', 'Referer': 'http://localhost:5000' }
     });
 
-    const sorted = (response.data || []).sort((a, b) => {
+    const sorted = (response.data || []).map(item => ({
+      ...item,
+      display_name: sanitizeEn(item.namedetails?.["name:en"] || item.display_name, item.display_name.split(',')[0])
+    })).sort((a, b) => {
       const isCity = (type) => ['city', 'town', 'municipality'].includes(type);
       if (isCity(a.type) && !isCity(b.type)) return -1;
       if (!isCity(a.type) && isCity(b.type)) return 1;

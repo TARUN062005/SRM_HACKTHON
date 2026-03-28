@@ -27,6 +27,9 @@ const getWeatherIcon = (condition) => {
   return Wind;
 };
 
+// HELPER: Coordinate Integrity Check
+const isValidCoord = (c) => Array.isArray(c) && c.length === 2 && !isNaN(c[0]) && !isNaN(c[1]);
+
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 // Fix typical leaflet marker icon issues
@@ -100,7 +103,7 @@ const NavigationSimulator = ({ coords, isActive, color, speedMultiplier = 1, isN
     };
   }, [isActive, coords, isNavigating, speedMultiplier, map]);
 
-  if (!isActive || !position) return null;
+  if (!isActive || !position || !isValidCoord(position)) return null;
 
   const arrowIcon = L.divIcon({
     html: `
@@ -325,24 +328,29 @@ export const RouteMap = ({
             coords={route.coords} isActive={isActive}
             color={pathColor} isNavigating={isNavigating} speedMultiplier={simSpeed}
           />
-          {isActive && route.intelligence?.waypointReports?.map((wp, idx) => (
-            <Marker 
-              key={`wp-${idx}`} 
-              position={wp.raw?.coords || route.coords[Math.floor(idx * route.coords.length / 5)]}
-              icon={L.divIcon({
-                className: 'custom-wp-icon',
-                html: `<div class="w-6 h-6 rounded-lg bg-white dark:bg-slate-900 border-2 ${wp.severity === 'CRITICAL' ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'border-primary-500'} flex items-center justify-center text-[10px] font-black shadow-lg">${idx + 1}</div>`,
-                iconSize: [24, 24]
-              })}
-            >
-              <Popup>
-                <div className="p-1 font-sans">
-                   <div className="text-[10px] font-black text-primary-600 uppercase mb-0.5">{wp.place}</div>
-                   <div className="text-xs font-bold text-slate-800">{wp.weather}</div>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          {isActive && route.intelligence?.waypointReports?.map((wp, idx) => {
+            const wpPos = wp.coords || (route.coords && route.coords.length > 0 ? route.coords[Math.floor(idx * (route.coords.length - 1) / (route.intelligence.waypointReports.length - 1))] : null);
+            if (!isValidCoord(wpPos)) return null;
+
+            return (
+              <Marker 
+                key={`wp-${idx}`} 
+                position={wpPos}
+                icon={L.divIcon({
+                  className: 'custom-wp-icon',
+                  html: `<div class="w-6 h-6 rounded-lg bg-white dark:bg-slate-900 border-2 ${wp.severity === 'CRITICAL' ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'border-primary-500'} flex items-center justify-center text-[10px] font-black shadow-lg">${idx + 1}</div>`,
+                  iconSize: [24, 24]
+                })}
+              >
+                <Popup>
+                  <div className="p-1 font-sans">
+                     <div className="text-[10px] font-black text-primary-600 uppercase mb-0.5">{wp.place}</div>
+                     <div className="text-xs font-bold text-slate-800">{wp.weather}</div>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
         </React.Fragment>
       );
     });
