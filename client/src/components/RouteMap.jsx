@@ -133,7 +133,7 @@ const MapInteractionHandler = ({ allRoutes }) => {
     if (allRoutes && allRoutes.length > 0) {
       // Filter for valid coordinates to avoid NaN/Invalid bounds
       const allCoords = allRoutes.flatMap(r => r.coords).filter(c => isValidCoord(c));
-      
+
       if (allCoords.length > 0) {
         try {
           const bounds = L.polyline(allCoords).getBounds();
@@ -486,7 +486,7 @@ export const RouteMap = ({
           // trigger the manual fetchRoutes() logic (weather, news, etc).
           setSelectedSource(data.source);
           setSelectedDestination(data.destination);
-          
+
           if (setShowSearchPanel) setShowSearchPanel(false);
           setShowAIHUD(false);
         }}
@@ -596,8 +596,8 @@ const SidePanel = ({
                   key={idx}
                   onClick={() => setActiveRouteIndex(idx)}
                   className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-1.5 ${isActive
-                      ? 'border-primary-600 bg-primary-600/10 shadow-lg shadow-primary-600/5'
-                      : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
+                    ? 'border-primary-600 bg-primary-600/10 shadow-lg shadow-primary-600/5'
+                    : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
                     }`}
                 >
                   <div className={`text-[8px] font-black uppercase tracking-tighter ${isActive ? 'text-primary-600' : 'text-slate-400'}`}>
@@ -687,8 +687,8 @@ const SidePanel = ({
                         <div className="flex flex-wrap gap-1.5">
                           {news.categories?.map((cat, ci) => (
                             <span key={ci} className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${cat === 'conflict' ? 'bg-red-600 text-white' :
-                                cat === 'weather' ? 'bg-blue-600 text-white' :
-                                  'bg-amber-500 text-white'
+                              cat === 'weather' ? 'bg-blue-600 text-white' :
+                                'bg-amber-500 text-white'
                               }`}>
                               {cat}
                             </span>
@@ -732,7 +732,23 @@ const RouteAIHUD = ({ isOpen, onClose, onRouteResolved }) => {
   const [isListening, setIsListening] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [statusText, setStatusText] = useState("INITIATE MISSION");
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState([
+    { type: 'ai', summary: "MISSION COMMAND SYNC", voice_text: "I am Routy, your Tactical Logistics Operational Assistant. I help optimize hazardous routes and analyze predictive mission risks. State your targets or select a protocol below." }
+  ]);
+
+  const chatEndRef = useRef(null);
+
+  // Auto-scroll to latest neural insight
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [history]);
+
+  const SUGGESTIONS = [
+    "What is RouteGuardian?",
+    "How does it help people?",
+    "How does it help customers?",
+    "What can you help with?"
+  ];
 
   const speak = (text) => {
     if (!text) return;
@@ -760,12 +776,19 @@ const RouteAIHUD = ({ isOpen, onClose, onRouteResolved }) => {
     speak("Planning neural route.");
     try {
       const res = await axios.post(`${BASE_URL}/api/ai/intent`, { command: text }, { timeout: 60000 });
-      if (res.data.success && res.data.analysis) {
-        setHistory(prev => [...prev, { type: 'ai', ...res.data.analysis }]);
-        speak(res.data.analysis.voice_text || res.data.analysis.summary);
-        setStatusText("INITIATING MISSION");
-        if (res.data.source && res.data.destination) {
-          setTimeout(() => onRouteResolved(res.data), 800);
+      if (res.data.success) {
+        if (res.data.type === 'MISSION') {
+          setHistory(prev => [...prev, { type: 'ai', ...res.data.analysis }]);
+          speak(res.data.analysis.voice_text || res.data.analysis.summary);
+          setStatusText("INITIATING MISSION");
+          if (res.data.source && res.data.destination) {
+            setTimeout(() => onRouteResolved(res.data), 1200);
+          }
+        } else {
+          // CHAT MODE
+          setHistory(prev => [...prev, { type: 'ai', summary: "Routy Insight.", voice_text: res.data.reply }]);
+          speak(res.data.reply);
+          setStatusText("INITIATE MISSION");
         }
       } else {
         const errorMsg = res.data.error || "Neural Desync: Targets unclear.";
@@ -788,50 +811,62 @@ const RouteAIHUD = ({ isOpen, onClose, onRouteResolved }) => {
       {isOpen && (
         <motion.div
           initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -100, opacity: 0 }}
-          className="fixed left-6 bottom-32 z-[1200] w-full max-w-[320px] bg-white border border-slate-200 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.1)] flex flex-col h-[400px]"
+          className="fixed left-6 bottom-32 z-[1200] w-full max-w-[320px] bg-white border border-slate-200 shadow-[20px_40px_80px_-15px_rgba(0,0,0,0.2)] flex flex-col h-[380px] rounded-[32px] overflow-hidden"
         >
           {/* HUD Header */}
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${isThinking ? 'bg-primary-500 animate-ping' : isListening ? 'bg-red-500' : 'bg-emerald-500'}`} />
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">Neural Decision Hub</span>
+          <div className="p-5 border-b border-slate-50 flex items-center justify-between bg-slate-950">
+            <div className="flex items-center gap-3">
+              <div className={`w-2.5 h-2.5 rounded-full ${isThinking ? 'bg-primary-400 animate-ping' : isListening ? 'bg-rose-500' : 'bg-emerald-400'}`} />
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white font-sans">ROUTY | Tactical Optimizer</span>
             </div>
             <button onClick={onClose} className="p-1 hover:bg-slate-50 rounded-md transition-colors"><X size={14} className="text-slate-400" /></button>
           </div>
 
           {/* Chat History Area */}
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar flex flex-col gap-4">
+          <div className="flex-1 overflow-y-auto p-5 space-y-5 no-scrollbar bg-white">
             {history.map((msg, i) => (
-              <motion.div
-                key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                className={`flex flex-col gap-1 ${msg.type === 'user' ? 'items-end' : 'items-start'}`}
-              >
-                <div className={`px-4 py-2 rounded-xl text-[11px] max-w-[85%] ${msg.type === 'user' ? 'bg-primary-600 text-white rounded-tr-none shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-tl-none font-bold shadow-sm border border-slate-200 dark:border-slate-700'}`}>
-                  {msg.type === 'user' ? msg.text : msg.summary}
-                </div>
-                {msg.reasons && (
-                   <div className="flex flex-wrap gap-1 mt-1">
-                      {msg.reasons.map((r, ri) => (
-                        <span key={ri} className="px-1.5 py-0.5 bg-slate-50 text-slate-400 text-[8px] uppercase font-bold rounded">{r}</span>
-                      ))}
-                   </div>
-                )}
-              </motion.div>
-            ))}
+              <div key={i} className={`flex flex-col ${msg.type === 'user' ? 'items-end' : 'items-start'}`}>
+                <div className={`max-w-[90%] rounded-[24px] px-5 py-4 shadow-sm text-[12px] leading-relaxed font-sans ${msg.type === 'user' ? 'bg-primary-600 text-white rounded-tr-none font-black' : msg.type === 'error' ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-slate-50 text-slate-800 border border-slate-100 rounded-tl-none font-bold'}`}>
+                  {msg.voice_text || msg.summary || msg.text}
 
+                  {msg.type === 'ai' && msg.reasons && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {msg.reasons.map((r, ri) => (
+                        <span key={ri} className="px-2 py-0.5 bg-white border border-slate-200 text-slate-400 text-[8px] uppercase font-black rounded-lg">{r}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
             {isThinking && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-1.5 p-2 items-center">
-                 {[0, 1, 2].map(i => (
-                    <motion.div key={i} animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }} transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }} className="w-1 h-1 bg-primary-600 rounded-full" />
-                 ))}
-                 <span className="text-[9px] uppercase font-black text-slate-400 ml-2">Neural Processing...</span>
-              </motion.div>
+              <div className="flex justify-start animate-in fade-in slide-in-from-left-2 duration-300 ml-2">
+                <div className="bg-slate-50 p-3 rounded-2xl rounded-tl-none flex gap-1.5 items-center">
+                  <div className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                  <div className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                  <div className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce" />
+                </div>
+              </div>
             )}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Suggestions Layer */}
+          <div className="px-5 py-4 flex gap-2 overflow-x-auto no-scrollbar scroll-smooth border-t border-slate-50 bg-white">
+            {SUGGESTIONS.map((s, si) => (
+              <button
+                key={si}
+                onClick={() => handleAI(s)}
+                className="whitespace-nowrap px-4 py-2 bg-slate-50 border border-slate-100 text-[9px] font-black text-slate-500 uppercase tracking-widest rounded-full hover:border-primary-500 hover:text-primary-600 transition-all hover:shadow-sm active:scale-95"
+              >
+                {s}
+              </button>
+            ))}
           </div>
 
           {/* Input Area */}
-          <div className="p-4 border-t border-slate-50 bg-slate-50/50">
-            <div className="flex items-center gap-2">
+          <div className="p-5 border-t border-slate-100 bg-white">
+            <div className={`relative flex items-center bg-slate-50 border-2 rounded-[24px] transition-all px-4 py-3 ${isListening ? 'border-primary-500 ring-4 ring-primary-500/10' : 'border-slate-100'}`}>
               <input
                 value={inputText} onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAI(inputText)}
