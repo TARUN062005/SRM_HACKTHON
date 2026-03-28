@@ -29,131 +29,88 @@ exports.getDirections = async (req, res) => {
       return res.status(400).json({ error: 'Missing coordinate parameters' });
     }
 
-    const cacheKey = `${startLat},${startLng}-${endLat},${endLng}-${vehicle}`;
+    const cacheKey = `v2-${startLat},${startLng}-${endLat},${endLng}-${vehicle}`;
     if (routeCache.has(cacheKey)) {
       return res.json({ success: true, routes: routeCache.get(cacheKey) });
     }
 
-    // Safely map generic logistcs modes to OSRM supported engine profiles publicly (driving, bike, foot)
     let osrmProfile = 'driving';
-    if (vehicle === 'bike') osrmProfile = 'bike';
-    else if (vehicle === 'foot' || vehicle === 'walk') osrmProfile = 'foot';
-    else osrmProfile = 'driving'; // Default to driving geometry for Car, Truck, Bus
+    if (vehicle === 'bike') osrmProfile = 'cycling';
+    else if (vehicle === 'foot' || vehicle === 'walk') osrmProfile = 'walking';
 
-    // Rely on Project OSRM or existing router as the generic mapping engine ("or similar to GraphHopper")
-    // Rely on Project OSRM or existing router as the generic mapping engine ("or similar to GraphHopper")
-    const osrmUrl = `https://router.project-osrm.org/route/v1/${osrmProfile}/${startLng},${startLat};${endLng},${endLat}?geometries=geojson&alternatives=3&steps=true`;
+    // 1. Primary Request with Alternatives
+    const osrmUrl = `https://router.project-osrm.org/route/v1/${osrmProfile}/${startLng},${startLat};${endLng},${endLat}?geometries=geojson&alternatives=true&steps=true`;
     const response = await axios.get(osrmUrl);
     
-    let paths = response.data.routes;
-    if (!paths || paths.length === 0) {
-      return res.status(404).json({ error: 'No routes found' });
+    let paths = response.data.routes || [];
+    
+    // 2. Artificial Discovery Fallback
+    // If OSRM is stingy (common on public API), we force alternatives by routing through offset waypoints
+    if (paths.length < 3 && paths.length > 0) {
+      try {
+        const primary = paths[0];
+        const coords = primary.geometry.coordinates;
+        const midIdx = Math.floor(coords.length / 2);
+        const midPoint = coords[midIdx];
+        
+        // Calculate two offsets perpendicular-ish to the path
+        const offsets = [0.008, -0.008]; // ~800m offset
+        
+        for (const offset of offsets) {
+          if (paths.length >= 3) break;
+          
+          const viaPoint = [midPoint[0] + offset, midPoint[1] + offset];
+          const viaUrl = `https://router.project-osrm.org/route/v1/${osrmProfile}/${startLng},${startLat};${viaPoint[0]},${viaPoint[1]};${endLng},${endLat}?geometries=geojson&steps=true`;
+          const viaRes = await axios.get(viaUrl);
+          
+          if (viaRes.data.routes && viaRes.data.routes.length > 0) {
+            const newPath = viaRes.data.routes[0];
+            // Check if this new path is actually distinct (>20% different)
+            const isDuplicate = paths.some(p => {
+               const overlap = checkOverlap(newPath.geometry.coordinates, p.geometry.coordinates);
+               return overlap > 0.80;
+            });
+            if (!isDuplicate) paths.push(newPath);
+          }
+        }
+      } catch (err) {
+        console.warn("Artificial discovery failed", err.message);
+      }
     }
 
-    // 1. Dynamic Filter Thresholds (Distance/Time scaling based on total trip length)
-    const primaryRoute = paths[0];
-    const isLongDistance = primaryRoute.distance >= 50000; // 50km
-    
-    const distanceCapConst = isLongDistance ? 1.35 : 1.25;
-    const timeCapConst = isLongDistance ? 1.25 : 1.20;
+    // 3. Validation and Deduplication
+    const processedRoutes = paths.slice(0, 3).map((route, i) => {
+       route.id = i;
+       route.type = i === 0 ? 'Optimal' : i === 1 ? 'Balanced' : 'Alternative';
+       return route;
+    });
 
-    const maxAllowedDistance = primaryRoute.distance * distanceCapConst;
-    const maxAllowedTime = primaryRoute.duration * timeCapConst;
-
-    // 2. Score and Filter Routes
-    const processedRoutes = [];
-
-    for (let i = 0; i < paths.length; i++) {
-       const route = paths[i];
-
-       // Calculate turn density (steps / distance in km)
-       let stepCount = 0;
-       if (route.legs && route.legs[0] && route.legs[0].steps) {
-         stepCount = route.legs[0].steps.length;
-       }
-       // Pass stepCount back down via custom parameter for Frontend UI
-       route.stepCount = stepCount; 
-       
-       const distanceKm = route.distance / 1000;
-       const turnDensity = distanceKm > 0 ? (stepCount / distanceKm) : 0;
-       
-       // Reject ridiculous zig-zaging routes if they aren't the primary only viable route
-       // Empirically tuned: discard heavily zigzagging routes.
-       if (i !== 0 && turnDensity > 0.02) continue; 
-
-       // A. Always keep PRIMARY route to avoid completely empty returns
-       if (i !== 0) {
-         // B. Reject macro structural detours (using dynamic consts)
-         if (route.distance > maxAllowedDistance || route.duration > maxAllowedTime) continue;
-         
-         // C. Reject micro-variations (absolute diff checks)
-         const timeDiffMin = Math.abs(route.duration - primaryRoute.duration) / 60;
-         const distDiffPct = Math.abs(route.distance - primaryRoute.distance) / primaryRoute.distance;
-         if (timeDiffMin < 2.0 && distDiffPct < 0.03) continue; // Too similar structurally
-
-         const routeCoords = route.geometry.coordinates;
-
-         // E. Remove Loop / Rejoin Routes 
-         // Heuristic: If route diverges briefly then rejoins same road, the start and end segments typically precisely match the primary route
-         const primaryCoords = primaryRoute.geometry.coordinates;
-         if (routeCoords.length > 20 && primaryCoords.length > 20) {
-            const startMatches = Math.abs(routeCoords[5][0] - primaryCoords[5][0]) < 0.0005 && Math.abs(routeCoords[5][1] - primaryCoords[5][1]) < 0.0005;
-            const endIdx = routeCoords.length - 5;
-            const pEndIdx = primaryCoords.length - 5;
-            const endMatches = Math.abs(routeCoords[endIdx][0] - primaryCoords[pEndIdx][0]) < 0.0005 && Math.abs(routeCoords[endIdx][1] - primaryCoords[pEndIdx][1]) < 0.0005;
-            if (startMatches && endMatches) continue; // Loop detour detected
-         }
-
-         // D. Advanced Geometry Overlap Checking (>= 80% overlap)
-         // Sample every 10th coordinate to save exact node matching CPU cost
-         if (routeCoords.length > 20) {
-             const isDuplicateGeometry = processedRoutes.some(prev => {
-                const prevCoords = prev.geometry.coordinates;
-                let matches = 0;
-                let sampleDrops = 0;
-                
-                // Compare down-sampled coords
-                for (let k = 0; k < routeCoords.length; k += 10) {
-                   sampleDrops++;
-                   // Fast radial bounds check roughly ~50 meters
-                   const p1 = routeCoords[k];
-                   const collision = prevCoords.find(p2 => 
-                      Math.abs(p1[0] - p2[0]) < 0.0005 && 
-                      Math.abs(p1[1] - p2[1]) < 0.0005
-                   );
-                   if (collision) matches++;
-                }
-                const overlapPercentage = matches / sampleDrops;
-                return overlapPercentage > 0.80; // 80% overlap = delete
-             });
-             
-             if (isDuplicateGeometry) continue; // Failed exact overlap check
-         }
-       }
-
-       // Calculate final normalized "Route Health Score" 
-       // Lower SCORE = Better Route
-       const normalizedTime = route.duration / primaryRoute.duration; // 1.0 for primary, >1 for alt
-       const normalizedDist = route.distance / primaryRoute.distance; // 1.0 for primary, >1 for alt
-       const normalizedDensity = Math.min(turnDensity / 0.5, 2.0); // Bound density impact
-       
-       route.healthScore = (normalizedTime * 0.6) + (normalizedDist * 0.2) + (normalizedDensity * 0.2);
-       processedRoutes.push(route);
-    }
-
-    // 3. Sort by computed health score (lower is functionally better/smoother)
-    processedRoutes.sort((a, b) => a.healthScore - b.healthScore);
-    
-    // 4. Maximum rendering caps to prevent map clutter and save VRAM limit
-    const finalRoutes = processedRoutes.slice(0, 3);
-    
-    routeCache.set(cacheKey, finalRoutes);
-    res.json({ success: true, routes: finalRoutes });
+    routeCache.set(cacheKey, processedRoutes);
+    res.json({ success: true, routes: processedRoutes });
   } catch (error) {
     console.error('Directions API error:', error.message);
     res.status(500).json({ error: 'Routing mapping failed downstream' });
   }
 };
+
+// Helper: Calculate geometric overlap between two coordinate arrays
+function checkOverlap(coords1, coords2) {
+  if (!coords1 || !coords2) return 1;
+  let matches = 0;
+  const sampleSize = Math.min(coords1.length, 20);
+  const step = Math.max(1, Math.floor(coords1.length / sampleSize));
+  
+  let checked = 0;
+  for (let i = 0; i < coords1.length; i += step) {
+    checked++;
+    const p1 = coords1[i];
+    const hasMatch = coords2.some(p2 => 
+      Math.abs(p1[0] - p2[0]) < 0.0005 && Math.abs(p1[1] - p2[1]) < 0.0005
+    );
+    if (hasMatch) matches++;
+  }
+  return matches / checked;
+}
 
 exports.createShipment = async (req, res) => {
   try {

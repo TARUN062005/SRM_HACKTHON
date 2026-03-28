@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, Circle, useMap, useMapEvents, ZoomControl, LayersControl, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
-import { AlertTriangle, CloudRain, Wind, AlertCircle } from 'lucide-react';
+import { AlertTriangle, CloudRain, Wind, AlertCircle, Navigation, ChevronRight, Play } from 'lucide-react';
 
 // Fix typical leaflet marker icon issues in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -13,17 +13,59 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
+const RouteAnimator = ({ coords, isActive, color }) => {
+  const [position, setPosition] = useState(coords[0]);
+  const [rot, setRot] = useState(0);
+  const indexRef = useRef(0);
+  const frameRef = useRef();
+
+  useEffect(() => {
+    if (!isActive || !coords || coords.length < 2) {
+       setPosition(coords ? coords[0] : null);
+       return;
+    }
+
+    const animate = () => {
+      indexRef.current = (indexRef.current + 1) % coords.length;
+      const cur = coords[indexRef.current];
+      const next = coords[(indexRef.current + 1) % coords.length];
+      
+      if (cur && next) {
+        const angle = Math.atan2(next[1] - cur[1], next[0] - cur[0]) * (180 / Math.PI);
+        setRot(angle + 90);
+        setPosition(cur);
+      }
+      frameRef.current = setTimeout(() => {
+        requestAnimationFrame(animate);
+      }, 50); // Speed of animation
+    };
+
+    animate();
+    return () => clearTimeout(frameRef.current);
+  }, [isActive, coords]);
+
+  if (!isActive || !position) return null;
+
+  const arrowIcon = L.divIcon({
+    html: `<div style="transform: rotate(${rot}deg); color: ${color};"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"/></svg></div>`,
+    className: '',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+  });
+
+  return <Marker position={position} icon={arrowIcon} zIndexOffset={5000} />;
+};
+
 // A component to handle map bounds and user clicks securely
 const MapInteractionHandler = ({ allRoutes, activeRouteIndex, activeCheckpoint, onMapClick }) => {
   const map = useMap();
 
-  // Auto zoom to fit route when actively selected
   useEffect(() => {
-    if (allRoutes && allRoutes.length > 0 && allRoutes[activeRouteIndex]) {
-      const coords = allRoutes[activeRouteIndex].coords;
-      if (coords && coords.length > 0) {
-        const bounds = L.polyline(coords).getBounds();
-        map.fitBounds(bounds, { padding: [50, 50], duration: 0.8, maxZoom: 18, setZoom: 5 });
+    if (allRoutes && allRoutes.length > 0) {
+      const allCoords = allRoutes.flatMap(r => r.coords);
+      if (allCoords.length > 0) {
+        const bounds = L.polyline(allCoords).getBounds();
+        map.fitBounds(bounds, { padding: [100, 100], duration: 1.0 });
       }
     }
   }, [allRoutes, activeRouteIndex, map]);
@@ -345,36 +387,42 @@ export const RouteMap = ({ selectedSource, selectedDestination, onManualReset, s
   // Memoize the deeply nested Polyline layers to prevent 60FPS UI flickering when hovering map controls
   const memoizedRoutePolylines = useMemo(() => {
     if (allRoutes.length === 0) return null;
-    return allRoutes.slice().sort((a, b) => (a.id === activeRouteIndex ? 1 : b.id === activeRouteIndex ? -1 : 0)).map((route) => (
-      <Polyline
-        key={route.id}
-        positions={route.coords}
-        color={route.id === activeRouteIndex ? '#3b82f6' : '#64748b'} // Blue vs Gray
-        weight={route.id === activeRouteIndex ? 6 : 3}
-        opacity={route.id === activeRouteIndex ? 1 : 0.6}
-        dashArray={route.id !== activeRouteIndex && route.type === 'Avoid Tolls' ? '10, 10' : null}
-        lineCap="round"
-        lineJoin="round"
-        eventHandlers={{ click: () => setActiveRouteIndex(route.id) }}
-        className={`cursor-pointer transition-all duration-300 ${route.id === activeRouteIndex ? 'z-50' : 'z-10 hover:opacity-100 hover:weight-[5px]'}`}
-      >
-        {route.id !== activeRouteIndex && (
-          <Tooltip permanent direction="center" className="bg-white/90 border border-slate-200 shadow-sm font-bold text-[11px] p-1.5 rounded-lg cursor-pointer" interactive opacity={0.9}>
-            <span className="text-slate-600 hover:text-blue-600 block px-1" onClick={() => setActiveRouteIndex(route.id)}>
-              Select: {route.duration.toFixed(0)} min
-            </span>
-          </Tooltip>
-        )}
-        {route.id === activeRouteIndex && (
-          <Tooltip permanent direction="center" className="bg-blue-600 border-0 shadow-lg font-bold text-xs p-1.5 rounded-lg z-[1000] text-white">
-            <div className="px-1 text-center leading-tight">
-              <div className="text-blue-100 text-[10px] uppercase tracking-wider mb-0.5.">{route.type} (Low Traffic)</div>
-              {route.duration.toFixed(0)} min <span className="opacity-50 mx-1">•</span> {route.distance.toFixed(1)} km
-            </div>
-          </Tooltip>
-        )}
-      </Polyline>
-    ));
+    
+    // Sort to ensure active is on top
+    const sorted = [...allRoutes].sort((a, b) => a.id === activeRouteIndex ? 1 : -1);
+
+    return sorted.map((route) => {
+      const isActive = route.id === activeRouteIndex;
+      const color = isActive ? '#3b82f6' : route.id === 1 ? '#8b5cf6' : '#64748b';
+      
+      return (
+        <React.Fragment key={route.id}>
+          <Polyline
+            positions={route.coords}
+            color={color}
+            weight={isActive ? 7 : 4}
+            opacity={isActive ? 1 : 0.4}
+            lineCap="round"
+            lineJoin="round"
+            eventHandlers={{ click: () => setActiveRouteIndex(route.id) }}
+            className={`cursor-pointer transition-all duration-300 ${isActive ? 'z-[1000]' : 'z-10 hover:opacity-100 hover:weight-[5px]'}`}
+          >
+            <Tooltip sticky>
+              <div className="px-1 text-center leading-tight">
+                <div className="text-[10px] uppercase tracking-wider mb-0.5">{route.type}</div>
+                {route.duration.toFixed(0)} min <span className="opacity-50 mx-1">•</span> {route.distance.toFixed(1)} km
+              </div>
+            </Tooltip>
+          </Polyline>
+          
+          <RouteAnimator 
+            coords={route.coords} 
+            isActive={isActive} 
+            color={color} 
+          />
+        </React.Fragment>
+      );
+    });
   }, [allRoutes, activeRouteIndex]);
 
   return (
