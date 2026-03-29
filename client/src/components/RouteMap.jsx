@@ -578,7 +578,7 @@ const SidePanel = ({
           >
             <div className="text-[10px] font-black uppercase opacity-60 mb-1">{(activeRoute.distance / 1000).toFixed(0)} KM</div>
             <div className="text-xl font-black leading-none flex items-center gap-2">
-              Chain <CloudRain size={16} className={showWeatherChain ? 'text-primary-500' : ''} />
+              Weather <CloudRain size={16} className={showWeatherChain ? 'text-primary-500' : ''} />
             </div>
           </button>
         </div>
@@ -676,7 +676,7 @@ const SidePanel = ({
             {intel.newsFeed && intel.newsFeed.length > 0 && (
               <div className="pt-8 space-y-6">
                 <div className="flex items-center justify-between px-2">
-                  <div className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em]">Tactical Briefing (Risk Alerts)</div>
+                  <div className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em]">Geopolitical Briefing (Risk Alerts)</div>
                   <div className="px-2 py-1 bg-red-600/10 text-red-600 rounded-md text-[8px] font-black">{intel.newsFeed.length} DISRUPTIONS</div>
                 </div>
 
