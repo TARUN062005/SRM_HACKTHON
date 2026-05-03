@@ -224,17 +224,38 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
             usa: ['Port of New York and New Jersey, USA', 'Port of Los Angeles, USA', 'Port of Long Beach, USA', 'Port of Savannah, USA'],
             america: ['Port of New York and New Jersey, USA', 'Port of Los Angeles, USA', 'Port of Long Beach, USA', 'Port of Savannah, USA'],
             china: ['Shanghai Port, China', 'Shenzhen Port, China', 'Ningbo-Zhoushan Port, China', 'Qingdao Port, China'],
+            dubai: ['Jebel Ali Port, UAE', 'Port Rashid, UAE', 'Dubai Creek, UAE'],
+            uae: ['Jebel Ali Port, UAE', 'Port Rashid, UAE', 'Dubai Creek, UAE'],
         };
 
-        const countryMatch = Object.keys(COUNTRY_PORT_HINTS).find(k => msg === k || msg.includes(` ${k} `) || msg.startsWith(`${k} `) || msg.endsWith(` ${k}`));
+        const normalize = (text) => String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+        const normalizedMsg = normalize(msg);
+        const countryMatch = Object.keys(COUNTRY_PORT_HINTS).find(k => normalizedMsg === k || normalizedMsg.includes(` ${k} `) || normalizedMsg.startsWith(`${k} `) || normalizedMsg.endsWith(` ${k}`));
+        const matchedPort = Object.values(COUNTRY_PORT_HINTS).flat().find(p => normalize(p) === normalizedMsg);
 
-        if (countryMatch && !currentState.origin) {
+        if (matchedPort && !currentState.origin) {
+            parsed = {
+                type: 'ASK',
+                message: `Great — ${matchedPort}. And where is it going?`,
+                extracted: { origin: matchedPort, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
+                clarifyField: null,
+                options: [],
+            };
+        } else if (countryMatch && !currentState.origin) {
             parsed = {
                 type: 'CLARIFY',
                 message: `I found "${countryMatch}" as a country. Please choose a specific port to continue.`,
                 extracted: { origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
                 clarifyField: 'origin',
                 options: COUNTRY_PORT_HINTS[countryMatch],
+            };
+        } else if (matchedPort && currentState.origin && !currentState.destination) {
+            parsed = {
+                type: 'ASK',
+                message: `Great — ${matchedPort}. Which transport mode would you like to use? Sea, Air, Rail, or Road?`,
+                extracted: { origin: null, destination: matchedPort, mode: null, date: null, time: null, cargo: null, priority: null },
+                clarifyField: null,
+                options: [],
             };
         } else if (detectedMode && !currentState.mode) {
             // User answered a "which mode?" question
