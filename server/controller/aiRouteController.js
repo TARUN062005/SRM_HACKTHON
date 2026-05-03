@@ -926,3 +926,53 @@ exports.getWeather = async (req, res) => {
     res.status(500).json({ error: "Atmospheric Telemetry Offline." });
   }
 };
+
+exports.compareRoutes = async (req, res) => {
+  try {
+    const { routes } = req.body;
+    if (!routes || routes.length === 0) {
+      return res.status(400).json({ success: false, error: 'No routes provided' });
+    }
+
+    const cacheKey = `cmp_${routes.map(r => `${(r.intelligence?.riskScore || 0)}_${r.summary || ''}`).join('|')}`;
+    const cached = geminiCache.get(cacheKey);
+    if (cached) return res.json({ success: true, recommendation: cached });
+
+    const summaries = routes.map((r, i) => {
+      const distKm   = Math.round((r.distance || 0) / 1000);
+      const durDays  = ((r.duration || 0) / 86400).toFixed(1);
+      const durHrs   = ((r.duration || 0) / 3600).toFixed(1);
+      const score    = r.intelligence?.riskScore || 0;
+      const sev      = r.intelligence?.severity || 'STABLE';
+      const zones    = r.intelligence?.riskZones?.map(z => z.name).join(', ') || 'none';
+      const dur      = distKm > 2000 ? `${durDays} days` : `${durHrs} hrs`;
+      return `Route ${i + 1} "${r.summary || `Option ${i + 1}`}": ${distKm} km, ${dur} transit, Risk ${score}/100 (${sev}), Threat zones: ${zones}`;
+    }).join('\n');
+
+    const prompt = `You are a senior maritime logistics AI analyst. A freight operator needs to choose between these shipping routes:\n\n${summaries}\n\nAnalyze risk vs time tradeoffs and recommend the best route for a commercial operator.\n\nRespond ONLY with this exact JSON (no markdown, no extra text):\n{"recommendedIndex":0,"label":"exact route name from above","reasoning":"2-3 sentences on why this route is best considering risk, time, and geopolitical stability","tradeoff":"one concise sentence on the main compromise accepted"}`;
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(prompt);
+    const raw = result.response.text().trim().replace(/```json|```/g, '').trim();
+
+    let json;
+    try {
+      json = JSON.parse(raw);
+    } catch {
+      const match = raw.match(/\{[\s\S]*?\}/);
+      json = match ? JSON.parse(match[0]) : {
+        recommendedIndex: 0,
+        label: routes[0]?.summary || 'Route 1',
+        reasoning: 'Route 1 selected based on available data.',
+        tradeoff: 'No detailed comparison available.',
+      };
+    }
+
+    json.recommendedIndex = Math.max(0, Math.min(Number(json.recommendedIndex) || 0, routes.length - 1));
+    geminiCache.set(cacheKey, json);
+    res.json({ success: true, recommendation: json });
+  } catch (error) {
+    console.error('compareRoutes error:', error.message);
+    res.status(500).json({ success: false, error: 'AI comparison unavailable' });
+  }
+};

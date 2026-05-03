@@ -14,5 +14,6 @@ router.get('/shipment/:id', aiRouteController.getShipment);
 router.get('/alerts', aiRouteController.getAlerts);
 router.get('/weather', aiRouteController.getWeather);
 router.get('/search', aiRouteController.searchLocation);
+router.post('/routes/compare', aiRouteController.compareRoutes);
 
 module.exports = router;

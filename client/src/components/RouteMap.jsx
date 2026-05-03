@@ -160,6 +160,7 @@ export const RouteMap = ({
   onClearRoute, onRouteData,
   activeRouteIndex = 0, onSetActiveRoute,
   isNavigating = false, simSpeed = 2,
+  aiRecommendation = null,
 }) => {
   const [allRoutes, setAllRoutes]           = useState([]);
   const [loading, setLoading]               = useState(false);
@@ -265,9 +266,13 @@ export const RouteMap = ({
         if (!route.coords?.length) return null;
         const isActive = route.id === activeRouteIndex;
         const isHov    = hoveredRoute === route.id && !isActive;
-        const color    = isActive ? modeStyle.activeColor : (isHov ? modeStyle.altColor : '#94a3b8');
+        const riskSev  = route.intelligence?.severity || 'STABLE';
+        const riskLineColor = riskSev === 'CRITICAL' ? '#EF4444'
+          : (riskSev === 'HIGH' || riskSev === 'CAUTION') ? '#F59E0B'
+          : '#22C55E';
+        const color    = isActive ? modeStyle.activeColor : riskLineColor;
         const weight   = isActive ? modeStyle.weight : (isHov ? modeStyle.altWeight + 1 : modeStyle.altWeight);
-        const opacity  = isActive ? 1 : (isHov ? 0.72 : 0.42);
+        const opacity  = isActive ? 1 : (isHov ? 0.82 : 0.55);
         const dash     = !isActive && (freightMode === 'air' || freightMode === 'rail') ? modeStyle.dashArray : (isActive ? null : modeStyle.dashArray);
 
         // Duration label
@@ -317,10 +322,18 @@ export const RouteMap = ({
               <Tooltip sticky direction="top" opacity={1} className="!border-0 !shadow-none !p-0 !bg-transparent">
                 <div
                   className="text-white px-3 py-2 rounded-xl text-xs font-bold shadow-xl pointer-events-none whitespace-nowrap"
-                  style={{ background: modeStyle.activeColor }}
+                  style={{ background: isActive ? modeStyle.activeColor : riskLineColor }}
                 >
                   {durLabel}
                   {route.summary && <span className="ml-2 opacity-70 font-normal">· {route.summary}</span>}
+                  {!isActive && (
+                    <span
+                      className="ml-2 text-[8px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded"
+                      style={{ background: 'rgba(0,0,0,0.25)' }}
+                    >
+                      {riskSev}
+                    </span>
+                  )}
                 </div>
               </Tooltip>
             </Polyline>
@@ -560,6 +573,7 @@ export const RouteMap = ({
         activeRouteIndex={activeRouteIndex}
         onSwitchRoute={onSetActiveRoute}
         freightMode={freightMode}
+        aiRecommendation={aiRecommendation}
       />
     </div>
   );

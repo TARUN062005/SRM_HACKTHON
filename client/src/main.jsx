@@ -6,19 +6,28 @@ import { AuthProvider } from "./lib/auth/hooks/useAuth";
 import "./index.css";
 
 import { registerFCMServiceWorker } from "./lib/push/registerServiceWorker";
-
 registerFCMServiceWorker();
 
+const applyTheme = (themeId) => {
+  const html = document.documentElement;
+  if (themeId === "system") {
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    html.classList.toggle("dark", prefersDark);
+    html.classList.toggle("light", !prefersDark);
+  } else if (themeId === "light") {
+    html.classList.remove("dark");
+    html.classList.add("light");
+  } else {
+    html.classList.remove("light");
+    html.classList.add("dark");
+  }
+};
+
 const savedTheme = localStorage.getItem("theme") || "dark";
-if (
-  savedTheme === "dark" ||
-  (savedTheme === "system" &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches)
-) {
-  document.documentElement.classList.add("dark");
-} else {
-  document.documentElement.classList.remove("dark");
-}
+applyTheme(savedTheme);
+
+// Expose globally so Settings can use same function
+window.__applyTheme = applyTheme;
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

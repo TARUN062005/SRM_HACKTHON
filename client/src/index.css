@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 @theme {
-  /* --- Brand Colors --- */
   --color-primary-50: #eff6ff;
   --color-primary-100: #dbeafe;
   --color-primary-200: #bfdbfe;
@@ -9,10 +8,8 @@
   --color-primary-700: #1d4ed8;
   --color-primary-800: #1e40af;
   --color-primary-900: #1e3a8a;
-
-  /* --- Slate Palette (Used for Dashboard/Settings) --- */
   --color-slate-50: #f8fafc;
-  --color-slate-100: #f1f7fed;
+  --color-slate-100: #f1f5f9;
   --color-slate-200: #e2e8f0;
   --color-slate-300: #cbd5e1;
   --color-slate-400: #94a3b8;
@@ -24,41 +21,78 @@
   --color-slate-950: #020617;
 }
 
+/* ── Design Tokens ─────────────────────────────────────────────── */
+:root {
+  /* Dark theme (default) */
+  --bg:             #0B1220;
+  --surface:        #111827;
+  --card:           #1F2937;
+  --card-hover:     #252f3f;
+  --border:         #374151;
+  --border-subtle:  rgba(55,65,81,0.5);
+  --text-primary:   #F9FAFB;
+  --text-secondary: #9CA3AF;
+  --text-muted:     #6B7280;
+  --accent:         #3B82F6;
+  --accent-hover:   #2563EB;
+  --accent-glow:    rgba(59,130,246,0.15);
+  --danger:         #EF4444;
+  --success:        #22C55E;
+  --warning:        #F59E0B;
+
+  /* Legacy compat */
+  --background: #0B1220;
+  --foreground: #F9FAFB;
+}
+
+html.light {
+  --bg:             #F8FAFC;
+  --surface:        #FFFFFF;
+  --card:           #F3F4F6;
+  --card-hover:     #E9ECEF;
+  --border:         #E5E7EB;
+  --border-subtle:  rgba(229,231,235,0.8);
+  --text-primary:   #111827;
+  --text-secondary: #6B7280;
+  --text-muted:     #9CA3AF;
+  --accent:         #2563EB;
+  --accent-hover:   #1D4ED8;
+  --accent-glow:    rgba(37,99,235,0.12);
+  --background:     #F8FAFC;
+  --foreground:     #111827;
+}
+
 @layer base {
-  :root {
-    --background: #f8fafc;
-    --foreground: #0f172a;
-  }
   .dark {
-    --background: #020617;
-    --foreground: #f8fafc;
     --color-slate-900: #f8fafc;
     --color-slate-800: #f1f5f9;
-    --color-slate-50: #0f172a;
+    --color-slate-50:  #0f172a;
     --color-slate-100: #1e293b;
     --color-slate-200: #334155;
   }
+
   html, body, #root {
     min-height: 100%;
     margin: 0;
     padding: 0;
-    background: var(--background);
-    color: var(--foreground);
+    background: var(--bg);
+    color: var(--text-primary);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
+
   body {
     overflow-x: hidden;
-    @apply antialiased transition-colors duration-300 selection:bg-primary-100 selection:text-primary-900;
+    @apply antialiased transition-colors duration-200 selection:bg-blue-600/20 selection:text-blue-200;
   }
 }
 
-/* Dashboard layout fixes */
+/* ── Dashboard layout ───────────────────────────────────────────── */
 .dashboard-root {
   height: 100vh;
   width: 100vw;
   display: flex;
   flex-direction: column;
-  background: var(--background);
+  background: var(--bg);
   overflow: hidden;
 }
 .dashboard-map-area {
@@ -69,23 +103,121 @@
   overflow: hidden;
 }
 
+/* ── Input placeholder styling ──────────────────────────────────── */
+.rg-input::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+.rg-input {
+  color: var(--text-primary);
+  background: transparent;
+  outline: none;
+}
+
+/* ── Scrollbar styling ──────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ── Reusable component tokens ──────────────────────────────────── */
 @layer components {
-  /* Dynamic Glassmorphism (Adapts to Dark Mode) */
   .glass-card {
-    @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/20 dark:border-slate-800/50 shadow-xl;
+    @apply backdrop-blur-md border shadow-xl;
+    background: rgba(17,24,39,0.8);
+    border-color: var(--border);
   }
 
-  /* Interactive Elements */
+  html.light .glass-card {
+    background: rgba(255,255,255,0.8);
+  }
+
+  .rg-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+  }
+
+  .rg-btn-primary {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+    border-radius: 12px;
+    transition: background 0.15s ease;
+  }
+  .rg-btn-primary:hover {
+    background: var(--accent-hover);
+  }
+
   .input-field {
-    @apply w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-primary-600 transition-all;
+    @apply w-full px-4 py-3 rounded-xl outline-none transition-all;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
   }
-
-  .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-primary-200 dark:shadow-none transition-all active:scale-95;
+  .input-field:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
   }
 }
 
-/* Smooth Scrolling */
-html {
-  scroll-behavior: smooth;
+/* ── Smooth scrolling ────────────────────────────────────────────── */
+html { scroll-behavior: smooth; }
+
+/* ── Range input ────────────────────────────────────────────────── */
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  background: var(--border);
+  border-radius: 99px;
+  height: 4px;
+}
+
+/* ── Leaflet overrides ─────────────────────────────────────────── */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: #1F2937 !important;
+  color: #F9FAFB !important;
+  border: 1px solid #374151 !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+  border-radius: 12px !important;
+}
+.leaflet-popup-content {
+  margin: 0 !important;
+}
+.leaflet-popup-close-button {
+  color: #6B7280 !important;
+}
+.leaflet-popup-close-button:hover {
+  color: #F9FAFB !important;
+}
+html.light .leaflet-popup-content-wrapper,
+html.light .leaflet-popup-tip {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: #E5E7EB !important;
+}
+
+/* ── Tooltip (Leaflet) ──────────────────────────────────────────── */
+.leaflet-tooltip {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }

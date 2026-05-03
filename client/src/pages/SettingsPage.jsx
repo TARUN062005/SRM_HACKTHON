@@ -26,13 +26,20 @@ const THEMES = [
 ];
 
 const applyTheme = (themeId) => {
+  const html = document.documentElement;
   if (themeId === 'system') {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.classList.toggle('dark', prefersDark);
+    html.classList.toggle('dark', prefersDark);
+    html.classList.toggle('light', !prefersDark);
+  } else if (themeId === 'light') {
+    html.classList.remove('dark');
+    html.classList.add('light');
   } else {
-    document.documentElement.classList.toggle('dark', themeId === 'dark');
+    html.classList.remove('light');
+    html.classList.add('dark');
   }
   localStorage.setItem('theme', themeId);
+  if (window.__applyTheme) window.__applyTheme(themeId);
 };
 
 const SECTIONS = [

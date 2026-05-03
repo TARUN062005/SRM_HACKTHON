@@ -53,11 +53,28 @@ This is a fullstack web application with a React frontend and an Express.js back
 
 - **Layout**: Google Maps style — fixed 380px left sidebar + full-width map panel
 - **Map tiles**: CartoDB Voyager (closest free alternative to Google Maps look)
-- **Route rendering**: white-border + blue-fill polylines (exact Google Maps style); inactive routes in gray
+- **Route rendering**: white-border + mode-colored polylines; inactive routes colored by risk severity (green=STABLE, amber=CAUTION/HIGH, red=CRITICAL)
 - **Markers**: custom SVG labeled pins (green A = origin, red B = destination)
-- **Route intelligence**: collapsible sidebar section with weather waypoints + risk news alerts
+- **Route intelligence**: RiskIntelPanel slides in from right — full dark theme, AI recommendation banner, safer-route switcher
 - **Simulation**: route animation controls embedded in sidebar (play/stop, speed slider)
 - **AI assistant**: Routy chat HUD (bottom-left of map) for voice/text route planning
+- **AI comparison**: POST `/api/ai/routes/compare` — Gemini 1.5 Flash compares all available routes; result shown in Dashboard sidebar and RiskIntelPanel
+
+## Theme System
+
+- **CSS variables**: defined in `client/src/index.css` under `:root` (dark default) and `html.light` (light override)
+- **Key tokens**: `--bg`, `--surface`, `--card`, `--border`, `--text-primary`, `--text-secondary`, `--text-muted`, `--accent`, `--accent-glow`, `--danger`, `--success`, `--warning`
+- **Theme init**: `client/src/main.jsx` reads `localStorage.theme` and applies classes on `html`; exposes `window.__applyTheme()`
+- **Theme toggle**: `client/src/pages/SettingsPage.jsx` calls `applyTheme()` which toggles `html.dark` / `html.light` and updates localStorage
+- **Components**: `ShipmentCreationFlow.jsx` and `RiskIntelPanel.jsx` use CSS variables via inline `var(--token)` syntax for full theme compliance
+
+## Key Backend Routes
+
+- `GET /api/ai/directions` — multi-modal route calculation (OSRM + maritime + air great-circle)
+- `GET /api/ai/search` — location geocoding
+- `POST /api/ai/routes/compare` — Gemini AI route comparison & recommendation (NEW)
+- `GET /api/ai/alerts` — global risk zone threat feed
+- `GET /api/ai/weather` — Open-Meteo weather at coordinates
 - **Layer picker**: top-right map control for Road / Satellite / Dark tiles
 - **Locate me**: Leaflet control for GPS-centering
 

@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import axios from 'axios';
 import { useAuth } from '../lib/auth/hooks/useAuth';
 import { ShipmentCreationFlow } from '../components/ShipmentCreationFlow';
 import { RouteMap } from '../components/RouteMap';
@@ -160,6 +161,8 @@ const Dashboard = () => {
   const [showRouty, setShowRouty]               = useState(false);
   const [savedRoutes, setSavedRoutes]           = useState([]);
   const [showMyRoutes, setShowMyRoutes]         = useState(true);
+  const [aiRec, setAiRec]                       = useState(null);
+  const [aiRecLoading, setAiRecLoading]         = useState(false);
 
   // Load route history from localStorage
   useEffect(() => {
@@ -168,9 +171,10 @@ const Dashboard = () => {
 
   const vehicleMode = FREIGHT_MODES.find(m => m.value === freightMode)?.vehicle || 'truck';
 
-  const handleRouteData = useCallback(({ allRoutes: routes, activeRouteIndex: idx }) => {
+  const handleRouteData = useCallback(async ({ allRoutes: routes, activeRouteIndex: idx }) => {
     setAllRoutes(routes || []);
     setActiveRouteIndex(idx ?? 0);
+    setAiRec(null);
     // Save to history when route data arrives
     if (routes?.length > 0 && selectedSource && selectedDest) {
       const activeR = routes[0];
@@ -186,6 +190,25 @@ const Dashboard = () => {
         severity: activeR?.intelligence?.severity ?? null,
       });
       if (entry) setSavedRoutes(loadRouteHistory());
+    }
+    // AI route comparison (only when 2+ routes available)
+    if (routes?.length >= 2) {
+      try {
+        setAiRecLoading(true);
+        const res = await axios.post('/api/ai/routes/compare', {
+          routes: routes.map(r => ({
+            summary:      r.summary,
+            distance:     r.distance,
+            duration:     r.duration,
+            intelligence: r.intelligence,
+          })),
+        });
+        if (res.data?.success) setAiRec(res.data.recommendation);
+      } catch (_) {
+        // silently fail
+      } finally {
+        setAiRecLoading(false);
+      }
     }
   }, [selectedSource, selectedDest, freightMode]);
 
@@ -337,6 +360,45 @@ const Dashboard = () => {
                     <X size={13} />
                   </button>
                 </div>
+
+                {/* AI Recommendation card */}
+                <AnimatePresence>
+                  {(aiRec || aiRecLoading) && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      className="mx-3 mb-1 p-3 rounded-xl"
+                      style={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.22)' }}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                          style={{ background: 'rgba(59,130,246,0.18)' }}>
+                          <Bot size={10} style={{ color: '#3B82F6' }} className={aiRecLoading ? 'animate-pulse' : ''} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: '#3B82F6' }}>
+                            AI Route Analysis
+                          </p>
+                          {aiRecLoading ? (
+                            <p className="text-[10px]" style={{ color: '#6B7280' }}>Analyzing routes with Gemini…</p>
+                          ) : aiRec ? (
+                            <>
+                              <p className="text-[11px] font-semibold leading-snug" style={{ color: '#E2E8F0' }}>
+                                {aiRec.reasoning}
+                              </p>
+                              {aiRec.tradeoff && (
+                                <p className="text-[10px] mt-1 italic" style={{ color: '#6B7280' }}>
+                                  {aiRec.tradeoff}
+                                </p>
+                              )}
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Route cards */}
                 <div className="p-3 space-y-2">
@@ -565,6 +627,7 @@ const Dashboard = () => {
           onSetActiveRoute={setActiveRouteIndex}
           isNavigating={isNavigating}
           simSpeed={simSpeed}
+          aiRecommendation={aiRec}
         />
 
         {/* Routy chat panel — slides over the map */}

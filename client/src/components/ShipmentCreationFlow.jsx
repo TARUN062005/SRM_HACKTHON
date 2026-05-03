@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Loader2, X, ArrowUpDown } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,37 +6,52 @@ import { motion, AnimatePresence } from 'framer-motion';
 const searchCache = new Map();
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 
-// Labels based on freight mode
 const LABELS = {
-  ship:  { from: 'Port of origin',      to: 'Destination port'       },
-  air:   { from: 'Departure airport',   to: 'Arrival airport'        },
-  rail:  { from: 'Origin terminal',     to: 'Destination terminal'   },
-  truck: { from: 'Pickup location',     to: 'Delivery location'      },
+  ship:  { from: 'Port of origin',     to: 'Destination port'     },
+  air:   { from: 'Departure airport',  to: 'Arrival airport'      },
+  rail:  { from: 'Origin terminal',    to: 'Destination terminal' },
+  truck: { from: 'Pickup location',    to: 'Delivery location'    },
 };
 
-const LocationInput = ({ placeholder, dot, dotColor, query, setQuery, results, searching, type, selected, setSelected, activeDropdown, setActiveDropdown, onSelect, onClear }) => {
+const LocationInput = ({
+  placeholder, dotColor, query, setQuery,
+  results, searching, type, selected, setSelected,
+  activeDropdown, setActiveDropdown, onSelect, onClear,
+}) => {
   const isFocused = activeDropdown === type;
+
   return (
     <div className="relative">
-      <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all ${
-        isFocused ? 'border-blue-400 bg-white shadow-sm ring-2 ring-blue-100' : 'border-slate-200 bg-slate-50 hover:border-slate-300'
-      }`}>
-        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${dotColor}`} />
+      <div
+        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all"
+        style={{
+          background: isFocused ? 'var(--card)' : 'var(--bg)',
+          border: `1px solid ${isFocused ? 'var(--accent)' : 'var(--border)'}`,
+          boxShadow: isFocused ? '0 0 0 2px var(--accent-glow)' : 'none',
+        }}
+      >
+        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: dotColor }} />
         <input
           type="text"
           value={query}
           placeholder={placeholder}
           onChange={e => { setQuery(e.target.value); if (selected) setSelected(null); }}
           onFocus={() => setActiveDropdown(type)}
-          className="flex-1 bg-transparent outline-none text-sm font-medium text-slate-800 placeholder:text-slate-400 min-w-0"
+          className="rg-input flex-1 text-sm font-medium min-w-0"
         />
         {searching
-          ? <Loader2 size={13} className="animate-spin text-blue-500 flex-shrink-0" />
-          : (query.length > 0 && (
-            <button onClick={onClear} className="text-slate-300 hover:text-slate-500 transition-colors flex-shrink-0">
+          ? <Loader2 size={13} className="animate-spin flex-shrink-0" style={{ color: 'var(--accent)' }} />
+          : query.length > 0 && (
+            <button
+              onClick={onClear}
+              className="flex-shrink-0 transition-colors"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+            >
               <X size={13} />
             </button>
-          ))
+          )
         }
       </div>
 
@@ -47,21 +62,34 @@ const LocationInput = ({ placeholder, dot, dotColor, query, setQuery, results, s
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.97 }}
             transition={{ duration: 0.13 }}
-            className="absolute top-[calc(100%+5px)] left-0 right-0 bg-white border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.12)] rounded-2xl overflow-hidden z-[2000]"
+            className="absolute top-[calc(100%+5px)] left-0 right-0 rounded-2xl overflow-hidden z-[2000]"
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+            }}
           >
             {results.map((loc, i) => (
-              <button key={i}
+              <button
+                key={i}
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => onSelect(loc, type)}
-                className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-start gap-3 transition-colors border-b border-slate-50 last:border-0">
-                <div className="mt-0.5 w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                  <MapPin size={12} className="text-blue-500" strokeWidth={2.5} />
+                className="w-full text-left px-4 py-2.5 flex items-start gap-3 transition-colors"
+                style={{ borderBottom: '1px solid var(--border-subtle)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--card-hover)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <div
+                  className="mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'var(--accent-glow)' }}
+                >
+                  <MapPin size={12} style={{ color: 'var(--accent)' }} strokeWidth={2.5} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-slate-900 truncate leading-tight">
+                  <p className="text-xs font-bold truncate leading-tight" style={{ color: 'var(--text-primary)' }}>
                     {loc.display_name.split(',')[0]}
                   </p>
-                  <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                  <p className="text-[10px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
                     {loc.display_name.split(',').slice(1, 3).join(',')}
                   </p>
                 </div>
@@ -83,17 +111,16 @@ export const ShipmentCreationFlow = ({
 }) => {
   const labels = LABELS[freightMode] || LABELS.truck;
 
-  const [sourceQuery, setSourceQuery] = useState('');
-  const [destQuery,   setDestQuery]   = useState('');
-  const [sourceResults, setSourceResults] = useState([]);
-  const [destResults,   setDestResults]   = useState([]);
+  const [sourceQuery,     setSourceQuery]     = useState('');
+  const [destQuery,       setDestQuery]       = useState('');
+  const [sourceResults,   setSourceResults]   = useState([]);
+  const [destResults,     setDestResults]     = useState([]);
   const [searchingSource, setSearchingSource] = useState(false);
   const [searchingDest,   setSearchingDest]   = useState(false);
   const [selectedSource,  setSelectedSource]  = useState(null);
   const [selectedDest,    setSelectedDest]    = useState(null);
   const [activeDropdown,  setActiveDropdown]  = useState(null);
 
-  // Sync external state
   useEffect(() => {
     if (initialSource) { setSelectedSource(initialSource); setSourceQuery(initialSource.display_name?.split(',')[0] || ''); }
     else { setSelectedSource(null); setSourceQuery(''); }
@@ -104,14 +131,12 @@ export const ShipmentCreationFlow = ({
     else { setSelectedDest(null); setDestQuery(''); }
   }, [initialDest]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const h = () => setActiveDropdown(null);
     document.addEventListener('click', h);
     return () => document.removeEventListener('click', h);
   }, []);
 
-  // Auto-trigger when both selected
   useEffect(() => {
     if (selectedSource && selectedDest) onLocationSelect(selectedSource, selectedDest);
   }, [selectedSource, selectedDest]);
@@ -122,11 +147,14 @@ export const ShipmentCreationFlow = ({
     if (searchCache.has(key)) { setResults(searchCache.get(key)); return; }
     setSearching(true);
     try {
-      const res = await axios.get(`${BASE_URL}/api/ai/search`, { params: { q: query, limit: 6 }, timeout: 5000 });
+      const res = await axios.get(`${BASE_URL}/api/ai/search`, { params: { q: query, limit: 6 }, timeout: 6000 });
       const data = res.data || [];
       if (data.length > 0) { searchCache.set(key, data); setResults(data); }
-    } catch { setResults([]); }
-    finally { setSearching(false); }
+    } catch {
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
   };
 
   useEffect(() => {
@@ -146,7 +174,7 @@ export const ShipmentCreationFlow = ({
   const handleSelect = (loc, type) => {
     const short = loc.display_name?.split(',')[0] || loc.display_name;
     if (type === 'source') { setSelectedSource(loc); setSourceQuery(short); setSourceResults([]); }
-    else                   { setSelectedDest(loc);   setDestQuery(short);   setDestResults([]); }
+    else                   { setSelectedDest(loc);   setDestQuery(short);   setDestResults([]);   }
     setActiveDropdown(null);
   };
 
@@ -160,7 +188,7 @@ export const ShipmentCreationFlow = ({
     <div className="space-y-1.5" onClick={e => e.stopPropagation()}>
       <LocationInput
         placeholder={labels.from}
-        dotColor="bg-emerald-500"
+        dotColor="#22C55E"
         query={sourceQuery} setQuery={setSourceQuery}
         results={sourceResults} searching={searchingSource}
         type="source"
@@ -170,19 +198,25 @@ export const ShipmentCreationFlow = ({
         onClear={() => { setSelectedSource(null); setSourceQuery(''); setSourceResults([]); }}
       />
 
-      {/* Swap button */}
       <div className="flex items-center gap-2">
-        <div className="flex-1 h-px bg-slate-100" />
-        <button onClick={handleSwap} disabled={!selectedSource && !selectedDest}
-          className="w-6 h-6 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-300 transition-all disabled:opacity-30">
+        <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+        <button
+          onClick={handleSwap}
+          disabled={!selectedSource && !selectedDest}
+          className="w-6 h-6 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+          title="Swap origin and destination"
+        >
           <ArrowUpDown size={11} />
         </button>
-        <div className="flex-1 h-px bg-slate-100" />
+        <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
       </div>
 
       <LocationInput
         placeholder={labels.to}
-        dotColor="bg-red-500"
+        dotColor="#EF4444"
         query={destQuery} setQuery={setDestQuery}
         results={destResults} searching={searchingDest}
         type="dest"

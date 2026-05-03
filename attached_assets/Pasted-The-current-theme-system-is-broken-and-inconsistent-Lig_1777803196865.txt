@@ -1,0 +1,192 @@
+The current theme system is broken and inconsistent. Light/Dark mode does not apply correctly across all pages, and UI quality is not production-grade.
+
+You must perform a **full system-level refactor** covering:
+
+1. Theme architecture
+2. UI consistency
+3. Performance
+4. Security audit
+
+This is NOT a patch. Fix it properly.
+
+---
+
+# 1. THEME SYSTEM (CRITICAL FIX)
+
+## Problem
+
+Theme switching is inconsistent and not applied globally.
+
+## Solution (MANDATORY)
+
+### Create a global theme system using:
+
+* CSS variables (design tokens)
+* OR Tailwind theme config
+
+---
+
+## Define tokens:
+
+### Dark Theme
+
+--bg: #0B1220
+--surface: #111827
+--card: #1F2937
+--border: #374151
+--text-primary: #F9FAFB
+--text-secondary: #9CA3AF
+
+---
+
+### Light Theme
+
+--bg: #F9FAFB
+--surface: #FFFFFF
+--card: #F3F4F6
+--border: #E5E7EB
+--text-primary: #111827
+--text-secondary: #6B7280
+
+---
+
+## Apply globally:
+
+* Use `<html data-theme="dark">` or similar
+* All components MUST use variables (no hardcoded colors)
+
+---
+
+## Theme Toggle
+
+* Located in Settings → Appearance
+* Switching must:
+
+  * Instantly update ALL pages
+  * Persist using localStorage
+  * Apply on reload
+
+---
+
+# 2. FIX ALL PAGES (MANDATORY)
+
+Audit and fix:
+
+* Dashboard
+* Map page
+* Notifications
+* Settings (all tabs)
+
+---
+
+## Requirements:
+
+* Consistent spacing (8px grid)
+* Same card styles everywhere
+* Same typography everywhere
+* No visual mismatch between pages
+
+---
+
+# 3. MAP THEME INTEGRATION
+
+* Map style must change with theme:
+
+  * Dark theme → dark map
+  * Light theme → light map
+
+---
+
+# 4. REMOVE UI ISSUES
+
+Fix:
+
+* Misaligned elements
+* Uneven padding
+* Inconsistent button styles
+* Broken dropdowns
+* Non-responsive layouts
+
+---
+
+# 5. PERFORMANCE OPTIMIZATION
+
+* Avoid unnecessary re-renders
+* Memoize components
+* Lazy load heavy components (map, charts)
+
+---
+
+# 6. SECURITY AUDIT (VERY IMPORTANT)
+
+Audit full codebase for:
+
+## Input Handling
+
+* Sanitize all user inputs
+* Prevent injection attacks
+
+## Authentication
+
+* Secure JWT handling
+* No tokens in localStorage if avoidable (use httpOnly cookies if backend exists)
+
+## API Calls
+
+* Validate all responses
+* Handle errors safely
+
+## XSS Prevention
+
+* No dangerouslySetInnerHTML unless sanitized
+* Escape all dynamic content
+
+## Dependencies
+
+* Remove unused packages
+* Check for vulnerabilities
+
+---
+
+# 7. ERROR HANDLING
+
+* No crashes
+* Show user-friendly messages
+* Add fallback UI
+
+---
+
+# 8. CODE QUALITY
+
+* Remove:
+
+  * Duplicate components
+  * Dead code
+  * Inline styles
+
+* Enforce:
+
+  * Reusable components
+  * Clean folder structure
+
+---
+
+# 9. FINAL VALIDATION
+
+Ensure:
+
+* Theme works across ALL pages
+* UI looks modern and consistent
+* No console errors
+* No security warnings
+* App runs smoothly
+
+---
+
+# FINAL GOAL
+
+Transform the app into:
+
+"A secure, consistent, production-grade AI logistics platform with a fully functional global theme system"
+
+NOT a broken prototype.
