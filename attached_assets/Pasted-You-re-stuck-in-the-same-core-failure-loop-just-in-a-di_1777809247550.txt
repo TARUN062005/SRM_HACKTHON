@@ -1,0 +1,272 @@
+You’re stuck in the **same core failure loop**, just in a different form. Let’s be blunt:
+
+> Your system is still **AI-driven**, not **state-machine-driven**.
+
+That’s why:
+
+* It forgets “india”
+* It re-asks origin
+* It never shows port options
+* It jumps backward in flow
+
+---
+
+# 🔴 EXACT FAILURES IN YOUR CURRENT FLOW
+
+From your latest interaction:
+
+### ❌ 1. Resolver is NOT triggered
+
+```
+india → should show ports ❌
+```
+
+### ❌ 2. State is getting overwritten/reset
+
+```
+after time → "I couldn't find india"
+```
+
+### ❌ 3. Agent ignores previous context
+
+```
+mumbai → "Where would you like to ship from?"
+```
+
+### ❌ 4. No confirmation layer
+
+You are using:
+
+```
+origin = "india"
+```
+
+Instead of:
+
+```
+originInput = "india"
+confirmedOrigin = null ❌
+```
+
+---
+
+# 🧠 ROOT CAUSE (VERY CLEAR)
+
+You currently have:
+
+```txt
+AI → extracts → directly updates state → continues
+```
+
+You NEED:
+
+```txt
+AI → extracts → VALIDATE → RESOLVE → CONFIRM → THEN update state
+```
+
+---
+
+# 🚨 FINAL FIX (THIS WILL ACTUALLY SOLVE IT)
+
+## You MUST implement this EXACT architecture
+
+---
+
+## 1. 🔒 Separate RAW vs CONFIRMED values
+
+### Replace your state with:
+
+```js
+const state = {
+  originInput: null,
+  destinationInput: null,
+
+  confirmedOrigin: null,
+  confirmedDestination: null,
+
+  mode: null,
+  date: null,
+  time: null
+}
+```
+
+---
+
+## 2. 🧱 HARD RULE (NON-NEGOTIABLE)
+
+```js
+origin is NOT complete until confirmedOrigin exists
+destination is NOT complete until confirmedDestination exists
+```
+
+---
+
+## 3. 🚨 FORCE RESOLVER (THIS IS YOUR MAIN BUG)
+
+### When user enters:
+
+```
+india
+```
+
+Backend MUST:
+
+```js
+if (!state.confirmedOrigin && state.originInput) {
+  return {
+    type: "RESOLVE_ORIGIN",
+    options: nearestPorts(state.originInput)
+  }
+}
+```
+
+---
+
+## 4. 🚫 BLOCK FLOW AFTER RESOLVE
+
+After:
+
+```
+india → sea → date → time
+```
+
+You MUST NOT continue unless ports are resolved.
+
+### Add this guard:
+
+```js
+if (mode === "sea" && !state.confirmedOrigin) {
+  return askPortSelection()
+}
+```
+
+---
+
+## 5. ❌ REMOVE THIS WRONG BEHAVIOR
+
+You currently do:
+
+```
+"india" → treated as final location
+```
+
+You MUST:
+
+```
+"india" → trigger resolver → show ports
+```
+
+---
+
+## 6. 🧠 STRICT FLOW CONTROLLER (NOT AI)
+
+Replace your flow logic with:
+
+```js
+const steps = [
+  () => !state.originInput && askOrigin(),
+  () => !state.destinationInput && askDestination(),
+  () => !state.mode && askMode(),
+  () => needsResolveOrigin() && resolveOrigin(),
+  () => needsResolveDestination() && resolveDestination(),
+  () => !state.date && askDate(),
+  () => !state.time && askTime(),
+  () => generateRoute()
+];
+
+return steps.find(step => step());
+```
+
+---
+
+## 7. 🚨 STOP USING AI FOR FLOW
+
+AI should ONLY:
+
+* extract entities
+* not control conversation
+
+---
+
+## 8. 🧪 EXPECTED BEHAVIOR (AFTER FIX)
+
+### Input:
+
+```
+india to usa
+```
+
+### Output:
+
+```
+Select origin port:
+- Mumbai
+- Chennai
+- Vizag
+
+Select destination port:
+- New York
+- LA
+```
+
+---
+
+### THEN:
+
+```
+→ ask date
+→ ask time
+→ generate route
+```
+
+---
+
+## 9. 🔥 CRITICAL GUARD (THIS WILL FIX YOUR RESET)
+
+Add:
+
+```js
+if (state.originInput && !state.confirmedOrigin) {
+  return resolveOrigin()
+}
+```
+
+BEFORE anything else.
+
+---
+
+# ⚠️ WHY YOUR CURRENT SYSTEM FAILS
+
+Because you are doing:
+
+> AI decides next step
+
+Instead of:
+
+> System decides next step
+
+---
+
+# ✅ FINAL RESULT AFTER THIS
+
+* No reset loops
+* No “where from?” again
+* Ports always shown
+* No lost state
+* No invalid routing
+
+---
+
+# 🚀 If you want the REAL FINAL STEP
+
+Say:
+
+**“give me exact backend code (controller + resolver + state machine)”**
+
+I’ll give you:
+
+* complete working controller
+* resolver logic
+* frontend integration
+
+No more prompts. Just working code.

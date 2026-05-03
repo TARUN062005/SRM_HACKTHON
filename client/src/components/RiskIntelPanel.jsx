@@ -82,6 +82,7 @@ export const RiskIntelPanel = ({
   allRoutes = [],
   activeRouteIndex = 0,
   onSwitchRoute,
+  selectedRoutes = [],
   freightMode = 'ship',
   aiRecommendation = null,
 }) => {
@@ -95,6 +96,8 @@ export const RiskIntelPanel = ({
   const waypoints  = intel.waypointReports ?? [];
   const weatherBad = waypoints.filter(w => w.code >= 61);
   const cfg        = SEV[severity] || SEV.STABLE;
+  const routeAlerts = riskZones.length > 0 ? riskZones : allRoutes.flatMap(r => r.intelligence?.riskZones || []);
+  const visibleRoutes = selectedRoutes.length > 0 ? selectedRoutes : allRoutes.slice(0, 3);
 
   const saferRouteIndex = allRoutes.findIndex((r, i) =>
     i !== activeRouteIndex && (r.intelligence?.riskScore ?? 999) < riskScore
@@ -102,7 +105,7 @@ export const RiskIntelPanel = ({
   const saferRoute = saferRouteIndex !== -1 ? allRoutes[saferRouteIndex] : null;
 
   const tabs = [
-    { id: 'zones',   label: `Threats${riskZones.length > 0 ? ` (${riskZones.length})` : ''}` },
+    { id: 'zones',   label: `Threats${routeAlerts.length > 0 ? ` (${routeAlerts.length})` : ''}` },
     { id: 'news',    label: `Intel${newsFeed.length > 0 ? ` (${newsFeed.length})` : ''}` },
     { id: 'weather', label: `Weather${weatherBad.length > 0 ? ' ⚠' : ''}` },
   ];
@@ -181,11 +184,14 @@ export const RiskIntelPanel = ({
                 <div className="flex items-center gap-1.5 mt-2">
                   <Radio size={9} className="animate-pulse flex-shrink-0" style={{ color: cfg.color }} />
                   <span className="text-[9px] font-black uppercase tracking-wider" style={{ color: cfg.color }}>
-                    {riskZones.length > 0
-                      ? `${riskZones.length} threat zone${riskZones.length !== 1 ? 's' : ''} on corridor`
+                    {routeAlerts.length > 0
+                      ? `${routeAlerts.length} threat zone${routeAlerts.length !== 1 ? 's' : ''} on corridor`
                       : 'No active threat zones detected'}
                   </span>
                 </div>
+                <p className="mt-2 text-[9px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                  For clear risk analysis, open the Risk Alert page.
+                </p>
               </div>
             </div>
           </div>
@@ -209,8 +215,8 @@ export const RiskIntelPanel = ({
             {/* ZONES */}
             {tab === 'zones' && (
               <div className="p-3 space-y-2">
-                {riskZones.length > 0 ? (
-                  riskZones.map((zone, i) => <ThreatZoneRow key={i} zone={zone} />)
+                {routeAlerts.length > 0 ? (
+                  routeAlerts.map((zone, i) => <ThreatZoneRow key={i} zone={zone} />)
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center px-4">
                     <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
@@ -221,6 +227,28 @@ export const RiskIntelPanel = ({
                     <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                       No known active threat zones were detected along this route corridor.
                     </p>
+                  </div>
+                )}
+                {visibleRoutes.length > 0 && (
+                  <div className="mt-3 pt-3 border-t" style={{ borderTopColor: 'var(--border)' }}>
+                    <p className="text-[9px] font-black uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+                      Selected Routes
+                    </p>
+                    <div className="space-y-2">
+                      {visibleRoutes.map((route, idx) => (
+                        <div key={route.id ?? idx} className="p-2.5 rounded-xl" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+                          <p className="text-[10px] font-bold" style={{ color: 'var(--text-primary)' }}>
+                            {route.summary || `Route ${idx + 1}`}
+                          </p>
+                          <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                            {route.origin || 'Origin'} → {route.destination || 'Destination'}
+                          </p>
+                          <p className="text-[9px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                            {route.intelligence?.riskZones?.length || 0} risk zone{(route.intelligence?.riskZones?.length || 0) !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -281,6 +309,14 @@ export const RiskIntelPanel = ({
                     </p>
                   </div>
                 )}
+                <div className="mt-3 px-1">
+                  <p className="text-[9px] font-black uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+                    Risk Alert Page
+                  </p>
+                  <p className="text-[10px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                    Use the risk alert page for clear risk analysis and route-by-route breakdowns.
+                  </p>
+                </div>
               </div>
             )}
 
