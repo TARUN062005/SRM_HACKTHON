@@ -1,13 +1,15 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../lib/auth/hooks/useAuth';
 import { ShipmentCreationFlow } from '../components/ShipmentCreationFlow';
 import { RouteMap } from '../components/RouteMap';
+import RoutyChatPanel, { loadRouteHistory, saveRouteToHistory } from '../components/RoutyChatPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Anchor, Plane, Train, Truck, Ship,
   CloudRain, Wind, Sun, Zap, AlertTriangle,
   CheckCircle, ChevronDown, ChevronUp, ExternalLink, X,
   Play, Square, Clock, Activity, Globe, Shield, Radio,
+  Bot, History, MapPin, Trash2, ChevronRight,
 } from 'lucide-react';
 
 const GLOBAL_THREAT_PREVIEW = [
@@ -32,6 +34,9 @@ const FREIGHT_MODES = [
 
 const ROUTE_LABELS = ['Optimal Route', 'Alternate 1', 'Alternate 2'];
 
+const MODE_ICONS = { sea: Anchor, ship: Anchor, air: Plane, rail: Train, truck: Truck, road: Truck };
+const MODE_COLORS = { sea: '#0d47a1', ship: '#0d47a1', air: '#0288d1', rail: '#6d28d9', truck: '#c2410c', road: '#c2410c' };
+
 const getWeatherIcon = (condition) => {
   if (!condition) return Wind;
   if (condition.includes('Storm')) return Zap;
@@ -53,6 +58,112 @@ const SEV_STYLES = {
   MODERATE: { card: 'rgba(56,189,248,0.06)', border: '#38BDF8', dot: '#38BDF8', badge: 'rgba(56,189,248,0.15)', badgeText: '#38BDF8', text: '#7DD3FC' },
 };
 
+const timeAgo = (ts) => {
+  if (!ts) return '';
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+};
+
+// ── My Routes panel ────────────────────────────────────────────────────────────
+const MyRoutesSection = ({ routes, onLoad, onClear, isExpanded, onToggle }) => {
+  if (routes.length === 0) return null;
+
+  return (
+    <div className="px-3 pb-3" style={{ borderBottom: '1px solid #374151' }}>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-1 py-2 transition-all"
+        onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+      >
+        <div className="flex items-center gap-2">
+          <History size={12} style={{ color: '#A78BFA' }} />
+          <span className="text-xs font-bold" style={{ color: '#F9FAFB' }}>My Routes</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black" style={{ background: 'rgba(167,139,250,0.15)', color: '#A78BFA' }}>
+            {routes.length}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={e => { e.stopPropagation(); onClear(); }}
+            className="p-1 rounded transition-all" title="Clear history"
+            style={{ color: '#6B7280' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#EF4444'}
+            onMouseLeave={e => e.currentTarget.style.color = '#6B7280'}>
+            <Trash2 size={10} />
+          </button>
+          {isExpanded
+            ? <ChevronUp size={12} style={{ color: '#6B7280' }} />
+            : <ChevronDown size={12} style={{ color: '#6B7280' }} />}
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-1.5 mt-1">
+              {routes.slice(0, 8).map(r => {
+                const ModeIcon = MODE_ICONS[r.mode] || Anchor;
+                const modeColor = MODE_COLORS[r.mode] || '#3B82F6';
+                const sev = r.severity;
+                const sevColor = sev === 'CRITICAL' ? '#EF4444' : sev === 'CAUTION' ? '#F59E0B' : '#22C55E';
+                return (
+                  <motion.button
+                    key={r.id}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => onLoad(r)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
+                    style={{ background: '#1F2937', border: '1px solid #374151' }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = '#4B5563'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = '#374151'}
+                  >
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${modeColor}18` }}>
+                      <ModeIcon size={12} style={{ color: modeColor }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <span className="text-[10px] font-bold truncate" style={{ color: '#F9FAFB' }}>
+                          {r.origin?.split(',')[0]}
+                        </span>
+                        <ChevronRight size={8} style={{ color: '#6B7280', flexShrink: 0 }} />
+                        <span className="text-[10px] font-bold truncate" style={{ color: '#F9FAFB' }}>
+                          {r.destination?.split(',')[0]}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px]" style={{ color: '#6B7280' }}>{timeAgo(r.timestamp)}</span>
+                        {r.severity && (
+                          <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded"
+                            style={{ background: `${sevColor}18`, color: sevColor }}>
+                            {r.severity}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight size={11} style={{ color: '#374151', flexShrink: 0 }} />
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
 const Dashboard = () => {
   const { user } = useAuth();
 
@@ -64,13 +175,37 @@ const Dashboard = () => {
   const [isNavigating, setIsNavigating]         = useState(false);
   const [simSpeed, setSimSpeed]                 = useState(2);
   const [showIntel, setShowIntel]               = useState(true);
+  const [showRouty, setShowRouty]               = useState(false);
+  const [savedRoutes, setSavedRoutes]           = useState([]);
+  const [showMyRoutes, setShowMyRoutes]         = useState(true);
+
+  // Load route history from localStorage
+  useEffect(() => {
+    setSavedRoutes(loadRouteHistory());
+  }, []);
 
   const vehicleMode = FREIGHT_MODES.find(m => m.value === freightMode)?.vehicle || 'truck';
 
   const handleRouteData = useCallback(({ allRoutes: routes, activeRouteIndex: idx }) => {
     setAllRoutes(routes || []);
     setActiveRouteIndex(idx ?? 0);
-  }, []);
+    // Save to history when route data arrives
+    if (routes?.length > 0 && selectedSource && selectedDest) {
+      const activeR = routes[0];
+      const entry = saveRouteToHistory({
+        state: {
+          origin: selectedSource.display_name?.split(',')[0] || 'Origin',
+          destination: selectedDest.display_name?.split(',')[0] || 'Destination',
+          mode: freightMode === 'ship' ? 'sea' : freightMode,
+        },
+        source: selectedSource,
+        destination: selectedDest,
+        riskScore: activeR?.intelligence?.riskScore ?? null,
+        severity: activeR?.intelligence?.severity ?? null,
+      });
+      if (entry) setSavedRoutes(loadRouteHistory());
+    }
+  }, [selectedSource, selectedDest, freightMode]);
 
   const handleClearRoute = useCallback(() => {
     setSelectedSource(null);
@@ -78,6 +213,36 @@ const Dashboard = () => {
     setAllRoutes([]);
     setActiveRouteIndex(0);
     setIsNavigating(false);
+  }, []);
+
+  // Called when Routy chat generates a route
+  const handleRoutyRoute = useCallback(({ source, destination, mode }) => {
+    setSelectedSource(source);
+    setSelectedDest(destination);
+    // Map agent mode to freight mode
+    const modeMap = { sea: 'ship', air: 'air', rail: 'rail', truck: 'truck', road: 'truck' };
+    setFreightMode(modeMap[mode] || freightMode);
+    setShowRouty(false);
+  }, [freightMode]);
+
+  // Called when Routy saves a route
+  const handleRoutySaved = useCallback(() => {
+    setSavedRoutes(loadRouteHistory());
+  }, []);
+
+  // Load a saved route from My Routes
+  const handleLoadSavedRoute = useCallback((r) => {
+    if (r.source && r.dest) {
+      setSelectedSource(r.source);
+      setSelectedDest(r.dest);
+      const modeMap = { sea: 'ship', air: 'air', rail: 'rail', truck: 'truck', road: 'truck' };
+      setFreightMode(modeMap[r.mode] || 'ship');
+    }
+  }, []);
+
+  const handleClearHistory = useCallback(() => {
+    localStorage.removeItem('routeguardian_routes');
+    setSavedRoutes([]);
   }, []);
 
   const activeRoute    = allRoutes[activeRouteIndex] || allRoutes[0];
@@ -100,15 +265,24 @@ const Dashboard = () => {
         className="h-full flex flex-col flex-shrink-0 overflow-hidden"
         style={{ width: 380, background: '#111827', borderRight: '1px solid #374151' }}
       >
-        {/* Mode selector */}
+        {/* Mode selector + Routy button */}
         <div className="px-4 pt-4 pb-3 flex-shrink-0" style={{ borderBottom: '1px solid #374151' }}>
-          <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: '#6B7280' }}>
-            Freight Mode
-          </p>
-          <div
-            className="flex gap-1 p-1 rounded-xl"
-            style={{ background: '#0B1220' }}
-          >
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#6B7280' }}>
+              Freight Mode
+            </p>
+            <button
+              onClick={() => setShowRouty(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all text-[10px] font-bold"
+              style={{ background: 'rgba(59,130,246,0.12)', color: '#3B82F6', border: '1px solid rgba(59,130,246,0.25)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.2)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.12)'; }}
+            >
+              <Bot size={11} className="animate-pulse" />
+              Ask Routy
+            </button>
+          </div>
+          <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#0B1220' }}>
             {FREIGHT_MODES.map(({ label, value, Icon }) => (
               <button
                 key={value}
@@ -140,8 +314,17 @@ const Dashboard = () => {
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
-          <AnimatePresence mode="wait">
 
+          {/* My Routes section (always visible when routes exist) */}
+          <MyRoutesSection
+            routes={savedRoutes}
+            onLoad={handleLoadSavedRoute}
+            onClear={handleClearHistory}
+            isExpanded={showMyRoutes}
+            onToggle={() => setShowMyRoutes(v => !v)}
+          />
+
+          <AnimatePresence mode="wait">
             {allRoutes.length > 0 ? (
               <motion.div key="results" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
 
@@ -189,15 +372,9 @@ const Dashboard = () => {
                           background: isActive ? 'rgba(59,130,246,0.1)' : '#1F2937',
                         }}
                       >
-                        <div
-                          className="w-1 h-10 rounded-full flex-shrink-0"
-                          style={{ background: isActive ? '#3B82F6' : '#374151' }}
-                        />
+                        <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: isActive ? '#3B82F6' : '#374151' }} />
                         <div className="flex-1 min-w-0">
-                          <p
-                            className="text-[10px] font-black uppercase tracking-wider mb-0.5"
-                            style={{ color: isActive ? '#3B82F6' : '#6B7280' }}
-                          >
+                          <p className="text-[10px] font-black uppercase tracking-wider mb-0.5" style={{ color: isActive ? '#3B82F6' : '#6B7280' }}>
                             {route.summary || ROUTE_LABELS[idx] || `Route ${idx + 1}`}
                           </p>
                           <div className="flex items-baseline gap-2">
@@ -277,10 +454,7 @@ const Dashboard = () => {
                       <div className="flex items-center gap-2">
                         <Activity size={13} style={{ color: '#3B82F6' }} />
                         <span className="text-xs font-bold" style={{ color: '#F9FAFB' }}>Route Intelligence</span>
-                        <span
-                          className="px-2 py-0.5 rounded-full text-[9px] font-black"
-                          style={sevBadgeStyle}
-                        >
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black" style={sevBadgeStyle}>
                           {globalSeverity}
                         </span>
                       </div>
@@ -331,18 +505,16 @@ const Dashboard = () => {
                                 </span>
                               </div>
                               {intel.newsFeed.slice(0, 3).map((news, i) => (
-                                <div
-                                  key={i}
-                                  className="p-3 rounded-xl border"
-                                  style={{ background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)' }}
-                                >
+                                <div key={i} className="p-3 rounded-xl border"
+                                  style={{ background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)' }}>
                                   <p className="text-[11px] font-semibold leading-snug mb-2 line-clamp-2" style={{ color: '#FCA5A5' }}>
                                     {news.title}
                                   </p>
                                   <div className="flex items-center justify-between">
                                     <div className="flex gap-1">
                                       {news.categories?.slice(0, 2).map((cat, ci) => (
-                                        <span key={ci} className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase" style={{ background: 'rgba(239,68,68,0.2)', color: '#EF4444' }}>
+                                        <span key={ci} className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase"
+                                          style={{ background: 'rgba(239,68,68,0.2)', color: '#EF4444' }}>
                                           {cat}
                                         </span>
                                       ))}
@@ -376,11 +548,7 @@ const Dashboard = () => {
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     {LIVE_STATS.map(({ label, value, delta, Icon, color, bg }) => (
-                      <div
-                        key={label}
-                        className="rounded-2xl p-3"
-                        style={{ background: bg, border: `1px solid ${color}22` }}
-                      >
+                      <div key={label} className="rounded-2xl p-3" style={{ background: bg, border: `1px solid ${color}22` }}>
                         <div className="flex items-center justify-between mb-2">
                           <Icon size={14} style={{ color }} />
                           <span className="text-[8px] font-bold" style={{ color: '#6B7280' }}>{delta}</span>
@@ -404,11 +572,7 @@ const Dashboard = () => {
                     {GLOBAL_THREAT_PREVIEW.slice(0, 3).map((threat, i) => {
                       const s = SEV_STYLES[threat.severity] || SEV_STYLES.MODERATE;
                       return (
-                        <div
-                          key={i}
-                          className="p-2.5 rounded-xl"
-                          style={{ background: s.card, border: `1px solid ${s.border}33` }}
-                        >
+                        <div key={i} className="p-2.5 rounded-xl" style={{ background: s.card, border: `1px solid ${s.border}33` }}>
                           <div className="flex items-center gap-1.5 mb-0.5">
                             <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.dot }} />
                             <span className="text-[9px] font-black uppercase tracking-wider flex-1 truncate" style={{ color: s.text }}>
@@ -418,13 +582,35 @@ const Dashboard = () => {
                               {threat.severity}
                             </span>
                           </div>
-                          <p className="text-[10px] leading-relaxed" style={{ color: s.text, opacity: 0.85 }}>
-                            {threat.shortDesc}
-                          </p>
+                          <p className="text-[10px] leading-relaxed" style={{ color: s.text, opacity: 0.85 }}>{threat.shortDesc}</p>
                         </div>
                       );
                     })}
                   </div>
+                </div>
+
+                {/* Routy CTA */}
+                <div className="px-4 pb-3">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowRouty(true)}
+                    className="w-full flex items-center gap-3 p-4 rounded-2xl transition-all"
+                    style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,0.12)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(59,130,246,0.08)'}
+                  >
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(59,130,246,0.15)' }}>
+                      <Bot size={18} style={{ color: '#3B82F6' }} className="animate-pulse" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-black" style={{ color: '#F9FAFB' }}>Chat with Routy AI</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: '#6B7280' }}>
+                        Describe your shipment in plain English or by voice
+                      </p>
+                    </div>
+                    <ChevronRight size={14} style={{ color: '#3B82F6', flexShrink: 0 }} />
+                  </motion.button>
                 </div>
 
                 {/* Getting started */}
@@ -435,14 +621,12 @@ const Dashboard = () => {
                   <div className="space-y-2.5">
                     {[
                       { step: '1', Icon: Globe,  text: 'Select freight mode — Sea, Air, Rail or Road' },
-                      { step: '2', Icon: Anchor, text: 'Enter origin & destination ports or speak to the AI' },
+                      { step: '2', Icon: Bot,    text: 'Chat with Routy AI or enter ports manually' },
                       { step: '3', Icon: Shield, text: 'Get AI-optimized routes with real-time risk intelligence' },
                     ].map(({ step, Icon, text }) => (
                       <div key={step} className="flex items-start gap-3">
-                        <div
-                          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5"
-                          style={{ background: 'rgba(59,130,246,0.15)', color: '#3B82F6' }}
-                        >
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5"
+                          style={{ background: 'rgba(59,130,246,0.15)', color: '#3B82F6' }}>
                           {step}
                         </div>
                         <div className="flex items-start gap-2 flex-1">
@@ -459,7 +643,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* ══ MAP ══ */}
+      {/* ══ MAP + ROUTY PANEL ══ */}
       <div className="flex-1 h-full relative">
         <RouteMap
           selectedSource={selectedSource}
@@ -474,6 +658,15 @@ const Dashboard = () => {
           onSetActiveRoute={setActiveRouteIndex}
           isNavigating={isNavigating}
           simSpeed={simSpeed}
+        />
+
+        {/* Routy chat panel — slides over the map */}
+        <RoutyChatPanel
+          isOpen={showRouty}
+          onClose={() => setShowRouty(false)}
+          onRouteGenerated={handleRoutyRoute}
+          freightMode={freightMode}
+          onRouteSaved={handleRoutySaved}
         />
       </div>
     </div>

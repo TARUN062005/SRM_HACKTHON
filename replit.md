@@ -83,6 +83,47 @@ This is a fullstack web application with a React frontend and an Express.js back
   - `client/src/components/RiskIntelPanel.jsx` — NEW: explainable risk panel component
   - `server/controller/aiRouteController.js` — GLOBAL_RISK_ZONES, routePassesNear, enhanced getRouteIntelligence, getAlerts
 
+## Routy AI Agent System (v2)
+
+### Architecture
+- **`server/controller/aiAgentController.js`** — Dual-mode controller:
+  - `agentChat` (POST `/api/ai/agent/chat`) — new multi-turn agentic endpoint. Receives `{ message, state, history }`, returns `{ type, message, state, source?, destination?, options? }`. Types: ASK / CLARIFY / COMPLETE / CHAT
+  - `processAIIntent` (POST `/api/ai/intent`) — legacy single-turn kept for backward compat
+- **`server/routes/ai.routes.js`** — Added `POST /api/ai/agent/chat` route
+- **`client/src/components/RoutyChatPanel.jsx`** — Full agentic chat panel component:
+  - Slides in from right edge of map at 360px wide
+  - Multi-turn conversation with `{ message, state, history }` sent each turn
+  - Conversation state progress bar: shows which fields collected (origin / destination / mode / date / cargo / priority)
+  - Mode selection chips when agent asks for transport mode
+  - Port/city clarification buttons when agent needs to narrow down location
+  - Voice input via Web Speech API with waveform animation + live transcript
+  - Thinking dots animation during API call
+  - Auto-closes and triggers route generation on `COMPLETE` response
+  - Quick suggestion chips for first turn only
+  - Reset button clears state and restarts conversation
+  - Exports `saveRouteToHistory()` and `loadRouteHistory()` for localStorage-based history
+- **`client/src/pages/Dashboard.jsx`** — Major updates:
+  - "Ask Routy" button in mode selector header (blue, with pulsing bot icon)
+  - "Routy AI" CTA card in empty state
+  - `MyRoutesSection` component: collapsible list of up to 8 saved routes with mode icons, severity badges, time-ago timestamps, clear button
+  - `handleRoutyRoute` — called when Routy generates COMPLETE: sets selectedSource/Dest, maps agent mode → freightMode
+  - `handleRoutySaved` — reloads route history from localStorage
+  - `handleLoadSavedRoute` — reloads source/dest/mode from a saved route card click
+  - Auto-saves route to history whenever `handleRouteData` fires with a valid route
+- **`client/src/components/RouteMap.jsx`** — Removed old `RouteAIHUD` component (~250 lines) and its trigger button; removed `showAIHUD` state; removed `Bot/Mic/MicOff/Send` imports that are no longer needed
+
+### Route History Storage
+- Key: `routeguardian_routes` in localStorage
+- Each entry: `{ id, origin, destination, mode, date, cargo, riskScore, severity, timestamp, source, dest }`
+- Max 20 entries (oldest dropped)
+- Saved on: Routy COMPLETE + any manual route fetch via ShipmentCreationFlow
+
+### Conversation State Machine
+Fields collected step-by-step: `origin → destination → mode → (date / cargo / priority optional)`
+- REQUIRED for route generation: origin, destination, mode
+- Gemini parses each user message and extracts mentioned fields, merges with running state
+- Backend geocodes both locations on COMPLETE before returning source/destination coords
+
 ## Design System (v2 — Dark Control Tower)
 
 Dark-first design language across the entire app shell and all pages.
