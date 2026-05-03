@@ -1,0 +1,220 @@
+The system still has critical issues in state management, location resolution, and agent flow. You must refactor the AI interaction into a strict, deterministic system.
+
+---
+
+# 1. FIX STATE LOSS (CRITICAL)
+
+## Problem:
+
+Previously collected values (e.g., "Shanghai") are lost after next steps.
+
+---
+
+## Fix:
+
+In backend:
+
+```js
+const newState = {
+  ...currentState,
+  ...extractedFields
+}
+```
+
+---
+
+## RULE:
+
+* NEVER overwrite existing valid fields with null/undefined
+* Only update fields when new valid value exists
+
+---
+
+# 2. ADD INTENT CLASSIFICATION
+
+## Problem:
+
+System resets conversation when user gives new input
+
+---
+
+## Fix:
+
+Detect input type:
+
+```js
+if (input contains "to") → route input  
+if (input is single word and origin missing → treat as origin  
+if (input is single word and origin exists → treat as destination or update  
+```
+
+---
+
+## DO NOT:
+
+* reset conversation unless user explicitly says "start over"
+
+---
+
+# 3. ENFORCE STRICT STATE MACHINE
+
+## Required order:
+
+```js
+origin → destination → mode → date → time
+```
+
+---
+
+## Implementation:
+
+```js
+const missingField = REQUIRED_ORDER.find(f => !state[f]);
+```
+
+---
+
+## ALWAYS:
+
+Ask only next missing field
+NEVER ask previous fields again
+
+---
+
+# 4. FIX LOCATION RESOLUTION (CRITICAL)
+
+## Problem:
+
+"Shanghai" fails later
+
+---
+
+## Fix:
+
+* Resolve ONCE
+* Store BOTH:
+
+  * name
+  * coordinates
+  * resolved entity (port/airport)
+
+---
+
+## Example state:
+
+```js
+origin: {
+  name: "Shanghai",
+  resolved: "Port of Shanghai",
+  coords: [lat, lon]
+}
+```
+
+---
+
+## DO NOT:
+
+* Re-run resolver unnecessarily
+* Replace resolved values with raw input
+
+---
+
+# 5. FORCE RESOLVER UI (MANDATORY)
+
+When input is:
+
+### Country:
+
+"India"
+
+→ Show:
+
+"Select a port:"
+
+* Mumbai Port
+* Chennai Port
+* Vizag Port
+
+---
+
+### City:
+
+"Shanghai"
+
+→ Show:
+
+"Select port:"
+
+* Port of Shanghai
+* Ningbo Port
+
+---
+
+# 6. BLOCK GENERIC RESPONSES
+
+❌ DO NOT:
+"Where would you like to ship from?"
+
+If origin already exists
+
+---
+
+# 7. FIX DATE/TIME FLOW
+
+After collecting date:
+
+→ MUST ask time
+→ MUST NOT go back to location
+
+---
+
+# 8. FINAL ROUTE CONDITION
+
+Route ONLY when:
+
+```js
+origin && destination && mode && date && time
+```
+
+---
+
+# 9. ADD DEBUG LOGS
+
+```js
+console.log("STATE BEFORE:", currentState)
+console.log("STATE AFTER:", newState)
+console.log("MISSING FIELD:", missingField)
+```
+
+---
+
+# 10. EXPECTED BEHAVIOR
+
+User:
+"Shanghai to Rotterdam by sea"
+
+→ ask date
+→ ask time
+→ show port selection (if needed)
+→ generate route
+
+---
+
+User:
+"india"
+
+→ show port options
+NOT reset
+
+---
+
+# FINAL GOAL
+
+Transform system into:
+
+A deterministic, state-driven logistics assistant that:
+
+* never loses data
+* never resets unexpectedly
+* always guides user with options
+* resolves locations correctly

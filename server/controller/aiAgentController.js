@@ -379,14 +379,33 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
         });
     }
 
-    // ── HANDLE ASK / CHAT ─────────────────────────────────────────
+    // ── DETERMINISTIC FLOW: always ask for the NEXT missing required field ────
+    const REQUIRED_ORDER = ['origin', 'destination', 'mode', 'date', 'time'];
+    const missingField   = REQUIRED_ORDER.find(f => !newState[f]);
+
+    console.log('[AGENT] MISSING FIELD:', missingField || 'none (all filled)');
+
+    const ASK_MESSAGES = {
+        origin:      'Where would you like to ship from?',
+        destination: 'And where is it going to?',
+        mode:        'Which transport mode — Sea, Air, Rail, or Road?',
+        date:        'What date would you like to ship? (e.g. June 15, next Monday, or ASAP)',
+        time:        "What's the preferred departure time? (e.g. 09:00, morning, any time)",
+    };
+
+    // Prefer the LLM's message when it returned ASK (friendly phrasing), but never
+    // use a generic CHAT response when there are still required fields to collect.
+    const responseMsg = (parsed.type === 'ASK' && parsed.message)
+        ? parsed.message
+        : missingField
+        ? ASK_MESSAGES[missingField]
+        : parsed.message || 'Almost done! Let me calculate your route.';
+
     return res.json({
         success: true,
-        type: parsed.type || 'ASK',
-        message: parsed.message,
+        type: missingField ? 'ASK' : (parsed.type || 'CHAT'),
+        message: responseMsg,
         state: newState,
-        clarifyField: parsed.clarifyField || null,
-        options: parsed.options || [],
     });
 };
 

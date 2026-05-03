@@ -322,6 +322,31 @@ const getRouteIntelligence = async (coords, sourceName = "Mission Sector", destN
       lastScanned: new Date().toISOString()
     };
 
+    // 7. Static geopolitical news fallback — always provide links even without NEWSDATA_API_KEY
+    // Uses Google News search links scoped to each detected risk zone on the route
+    if (finalIntel.newsFeed.length === 0 && routeRiskZones.length > 0) {
+      const ZONE_NEWS_LINKS = {
+        'red-sea':       'https://news.google.com/search?q=Red+Sea+Houthi+shipping+attack',
+        'hormuz':        'https://news.google.com/search?q=Strait+of+Hormuz+Iran+shipping+security',
+        'black-sea':     'https://news.google.com/search?q=Black+Sea+Ukraine+Russia+shipping',
+        'gulf-aden':     'https://news.google.com/search?q=Gulf+of+Aden+piracy+Somalia+shipping',
+        'south-china':   'https://news.google.com/search?q=South+China+Sea+dispute+shipping+security',
+        'e-med':         'https://news.google.com/search?q=Eastern+Mediterranean+conflict+shipping',
+        'taiwan-strait': 'https://news.google.com/search?q=Taiwan+Strait+military+tension+shipping',
+        'kerch':         'https://news.google.com/search?q=Kerch+Strait+Russia+Ukraine+Black+Sea',
+      };
+      finalIntel.newsFeed = routeRiskZones.slice(0, 5).map(zone => ({
+        type: zone.type,
+        title: `${zone.name} — Active ${zone.baselineSeverity.charAt(0) + zone.baselineSeverity.slice(1).toLowerCase()} Risk Zone`,
+        severity: zone.baselineSeverity === 'CRITICAL' ? 'high' : zone.baselineSeverity === 'HIGH' ? 'medium' : 'low',
+        impact: zone.reason,
+        link: ZONE_NEWS_LINKS[zone.id] || `https://news.google.com/search?q=${encodeURIComponent(zone.name + ' shipping security')}`,
+        date: new Date().toISOString(),
+        newsConfirmed: zone.newsConfirmed,
+      }));
+      finalIntel.summary = finalIntel.summary || `${routeRiskZones.length} active threat corridor${routeRiskZones.length !== 1 ? 's' : ''} detected on route. Review intel tab for details.`;
+    }
+
     geminiCache.set(cacheKey, finalIntel);
     return finalIntel;
   } catch (err) {
@@ -1155,7 +1180,7 @@ exports.searchLocation = async (req, res) => {
     let response;
     try {
       response = await axios.get(`https://nominatim.openstreetmap.org/search`, {
-        params: { format: 'json', q: q, limit: limit, addressdetails: 1, namedetails: 1, featuretype: 'settlement', accept_language: 'en' },
+        params: { format: 'json', q: q, limit: limit, addressdetails: 1, namedetails: 1, accept_language: 'en' },
         headers: { 'User-Agent': 'RouteGuardian-Orchestrator-Production/3.0' },
         timeout: 5000
       });

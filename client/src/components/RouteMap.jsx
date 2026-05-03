@@ -182,8 +182,11 @@ export const RouteMap = ({
 
   const tileUrls = {
     voyager:   'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    osm:       'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    terrain:   'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
     dark:      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    light:     'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   };
 
   const fetchRoutes = useCallback(async (start, end, mode) => {
@@ -399,9 +402,12 @@ export const RouteMap = ({
   const dstIcon = isMaritime ? portDestIcon   : endPin;
 
   const layerOptions = [
-    { id: 'voyager',   label: 'Map',       img: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=80&q=60' },
-    { id: 'satellite', label: 'Satellite', img: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=80&q=60' },
-    { id: 'dark',      label: 'Dark',      img: 'https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?w=80&q=60' },
+    { id: 'voyager',   label: 'Map',       emoji: '🗺️' },
+    { id: 'satellite', label: 'Satellite', emoji: '🛰️' },
+    { id: 'terrain',   label: 'Terrain',   emoji: '⛰️' },
+    { id: 'dark',      label: 'Dark',      emoji: '🌑' },
+    { id: 'light',     label: 'Light',     emoji: '☀️' },
+    { id: 'osm',       label: 'Street',    emoji: '🏙️' },
   ];
 
   return (
@@ -447,14 +453,14 @@ export const RouteMap = ({
           {showLayerPicker && (
             <motion.div initial={{ opacity: 0, y: -6, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.96 }}
-              className="flex flex-col gap-2 p-2 bg-white rounded-2xl shadow-lg border border-slate-100">
-              <div className="flex gap-2">
+              className="flex flex-col gap-2 p-2.5 bg-white rounded-2xl shadow-lg border border-slate-100" style={{ minWidth: 204 }}>
+              <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 px-0.5">Map Style</p>
+              <div className="grid grid-cols-3 gap-1.5">
                 {layerOptions.map(t => (
                   <button key={t.id} onClick={() => { setMapType(t.id); setShowLayerPicker(false); }}
-                    className={`relative w-[62px] h-[62px] rounded-xl overflow-hidden border-2 transition-all ${mapType === t.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200 hover:border-slate-400'}`}>
-                    <img src={t.img} className="w-full h-full object-cover" alt={t.label} />
-                    <div className="absolute inset-0 bg-black/25" />
-                    <span className="absolute bottom-0.5 left-0 right-0 text-center text-white text-[8px] font-black uppercase drop-shadow">{t.label}</span>
+                    className={`flex flex-col items-center justify-center gap-1 h-[54px] rounded-xl border-2 transition-all ${mapType === t.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-white'}`}>
+                    <span className="text-lg leading-none">{t.emoji}</span>
+                    <span className={`text-[8px] font-black uppercase tracking-wide ${mapType === t.id ? 'text-blue-600' : 'text-slate-500'}`}>{t.label}</span>
                   </button>
                 ))}
               </div>
