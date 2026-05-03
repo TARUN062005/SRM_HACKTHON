@@ -169,6 +169,11 @@ export const RouteMap = ({
   const [showLayerPicker, setShowLayerPicker] = useState(false);
   const [hoveredRoute, setHoveredRoute]     = useState(null);
   const [showRiskPanel, setShowRiskPanel]   = useState(false);
+  // Port-snapped coordinates (sea mode only) — these are the actual port locations
+  const [portOriginCoord, setPortOriginCoord] = useState(null);
+  const [portDestCoord,   setPortDestCoord]   = useState(null);
+  const [portOriginName,  setPortOriginName]  = useState(null);
+  const [portDestName,    setPortDestName]    = useState(null);
 
   useEffect(() => { setShowSeamarks(freightMode === 'ship'); }, [freightMode]);
 
@@ -200,6 +205,20 @@ export const RouteMap = ({
           baseDuration: r.duration / scale,
         }));
         setAllRoutes(processed);
+
+        // Extract port coordinates for sea mode — use actual snapped port locations for markers
+        const firstRoute = processed[0];
+        if (mode === 'ship' && firstRoute?.originPort && firstRoute?.destPort) {
+          setPortOriginCoord([firstRoute.originPort.lat, firstRoute.originPort.lon]);
+          setPortDestCoord([firstRoute.destPort.lat,   firstRoute.destPort.lon]);
+          setPortOriginName(`${firstRoute.originPort.name} Port`);
+          setPortDestName(`${firstRoute.destPort.name} Port`);
+          console.log(`[MAP] Port markers: ${firstRoute.originPort.name} → ${firstRoute.destPort.name}`);
+        } else {
+          setPortOriginCoord(null); setPortDestCoord(null);
+          setPortOriginName(null);  setPortDestName(null);
+        }
+
         onRouteDataRef.current?.({ allRoutes: processed, activeRouteIndex: 0 });
       }
     } catch (err) {
@@ -215,6 +234,8 @@ export const RouteMap = ({
       return () => clearTimeout(t);
     } else {
       setAllRoutes([]);
+      setPortOriginCoord(null); setPortDestCoord(null);
+      setPortOriginName(null);  setPortDestName(null);
       onRouteDataRef.current?.({ allRoutes: [], activeRouteIndex: 0 });
     }
   }, [selectedSource, selectedDestination, vehicleMode, fetchRoutes]);
@@ -546,19 +567,47 @@ export const RouteMap = ({
         })}
 
         {mapLayers}
-        {sourceCoord && (
-          <Marker position={sourceCoord} icon={srcIcon} zIndexOffset={1000}>
+        {/* Origin marker — use snapped port position for sea mode */}
+        {(isMaritime ? portOriginCoord : sourceCoord) && (
+          <Marker
+            position={isMaritime && portOriginCoord ? portOriginCoord : sourceCoord}
+            icon={srcIcon}
+            zIndexOffset={1000}
+          >
             <Popup><div className="p-1 text-xs">
-              <p className="text-[10px] text-green-600 font-black uppercase mb-0.5">{isMaritime ? 'Origin Port' : 'Origin'}</p>
-              <p className="font-bold text-slate-800">{selectedSource?.display_name?.split(',')[0]}</p>
+              <p className="text-[10px] text-green-600 font-black uppercase mb-0.5">
+                {isMaritime ? 'Origin Port' : 'Origin'}
+              </p>
+              <p className="font-bold text-slate-800">
+                {isMaritime && portOriginName ? portOriginName : selectedSource?.display_name?.split(',')[0]}
+              </p>
+              {isMaritime && portOriginName && (
+                <p className="text-[9px] text-slate-400 mt-0.5 truncate">
+                  Nearest port to {selectedSource?.display_name?.split(',')[0]}
+                </p>
+              )}
             </div></Popup>
           </Marker>
         )}
-        {destCoord && (
-          <Marker position={destCoord} icon={dstIcon} zIndexOffset={1000}>
+        {/* Destination marker — use snapped port position for sea mode */}
+        {(isMaritime ? portDestCoord : destCoord) && (
+          <Marker
+            position={isMaritime && portDestCoord ? portDestCoord : destCoord}
+            icon={dstIcon}
+            zIndexOffset={1000}
+          >
             <Popup><div className="p-1 text-xs">
-              <p className="text-[10px] text-red-500 font-black uppercase mb-0.5">{isMaritime ? 'Destination Port' : 'Destination'}</p>
-              <p className="font-bold text-slate-800">{selectedDestination?.display_name?.split(',')[0]}</p>
+              <p className="text-[10px] text-red-500 font-black uppercase mb-0.5">
+                {isMaritime ? 'Destination Port' : 'Destination'}
+              </p>
+              <p className="font-bold text-slate-800">
+                {isMaritime && portDestName ? portDestName : selectedDestination?.display_name?.split(',')[0]}
+              </p>
+              {isMaritime && portDestName && (
+                <p className="text-[9px] text-slate-400 mt-0.5 truncate">
+                  Nearest port to {selectedDestination?.display_name?.split(',')[0]}
+                </p>
+              )}
             </div></Popup>
           </Marker>
         )}

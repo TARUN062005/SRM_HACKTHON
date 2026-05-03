@@ -449,6 +449,136 @@ const OW = {
   wAfrica:  [5.0, -12.0],   eAfrica:  [47.0, -8.0],
 };
 
+// ── Major world ports database for port-snapping ─────────────────────────────
+// Every maritime route must start and end at an actual port, not an inland centroid.
+const MAJOR_PORTS = [
+  // East Asia
+  { name: 'Shanghai',           lat:  31.22, lon: 121.63, country: 'China'        },
+  { name: 'Ningbo',             lat:  29.87, lon: 121.70, country: 'China'        },
+  { name: 'Hong Kong',          lat:  22.35, lon: 114.18, country: 'China'        },
+  { name: 'Shenzhen',           lat:  22.54, lon: 113.90, country: 'China'        },
+  { name: 'Guangzhou',          lat:  23.10, lon: 113.60, country: 'China'        },
+  { name: 'Busan',              lat:  35.10, lon: 129.04, country: 'South Korea'  },
+  { name: 'Incheon',            lat:  37.45, lon: 126.60, country: 'South Korea'  },
+  { name: 'Yokohama',           lat:  35.45, lon: 139.65, country: 'Japan'        },
+  { name: 'Osaka',              lat:  34.65, lon: 135.43, country: 'Japan'        },
+  { name: 'Nagoya',             lat:  35.07, lon: 136.88, country: 'Japan'        },
+  // Southeast Asia
+  { name: 'Singapore',          lat:   1.26, lon: 103.82, country: 'Singapore'    },
+  { name: 'Port Klang',         lat:   2.99, lon: 101.38, country: 'Malaysia'     },
+  { name: 'Tanjung Pelepas',    lat:   1.36, lon: 103.56, country: 'Malaysia'     },
+  { name: 'Laem Chabang',       lat:  13.09, lon: 100.89, country: 'Thailand'     },
+  { name: 'Manila',             lat:  14.59, lon: 120.97, country: 'Philippines'  },
+  { name: 'Ho Chi Minh City',   lat:  10.69, lon: 106.72, country: 'Vietnam'      },
+  { name: 'Haiphong',           lat:  20.86, lon: 106.68, country: 'Vietnam'      },
+  { name: 'Jakarta',            lat:  -6.10, lon: 106.88, country: 'Indonesia'    },
+  { name: 'Surabaya',           lat:  -7.20, lon: 112.73, country: 'Indonesia'    },
+  { name: 'Colombo',            lat:   6.93, lon:  79.85, country: 'Sri Lanka'    },
+  // South Asia
+  { name: 'Mumbai',             lat:  18.93, lon:  72.84, country: 'India'        },
+  { name: 'Nhava Sheva (JNPT)', lat:  18.95, lon:  72.95, country: 'India'        },
+  { name: 'Chennai',            lat:  13.08, lon:  80.30, country: 'India'        },
+  { name: 'Kolkata',            lat:  22.56, lon:  88.34, country: 'India'        },
+  { name: 'Kochi',              lat:   9.96, lon:  76.27, country: 'India'        },
+  { name: 'Visakhapatnam',      lat:  17.69, lon:  83.29, country: 'India'        },
+  { name: 'Mundra',             lat:  22.84, lon:  69.72, country: 'India'        },
+  { name: 'Karachi',            lat:  24.86, lon:  67.01, country: 'Pakistan'     },
+  { name: 'Chittagong',         lat:  22.34, lon:  91.82, country: 'Bangladesh'   },
+  // Middle East / Persian Gulf
+  { name: 'Jebel Ali',          lat:  24.99, lon:  55.06, country: 'UAE'          },
+  { name: 'Abu Dhabi',          lat:  24.47, lon:  54.37, country: 'UAE'          },
+  { name: 'Bandar Abbas',       lat:  27.19, lon:  56.28, country: 'Iran'         },
+  { name: 'Dammam',             lat:  26.43, lon:  50.10, country: 'Saudi Arabia' },
+  { name: 'Jeddah',             lat:  21.48, lon:  39.15, country: 'Saudi Arabia' },
+  { name: 'Aqaba',              lat:  29.52, lon:  35.01, country: 'Jordan'       },
+  { name: 'Kuwait City',        lat:  29.37, lon:  47.98, country: 'Kuwait'       },
+  // East Africa / Red Sea
+  { name: 'Port Said',          lat:  31.26, lon:  32.31, country: 'Egypt'        },
+  { name: 'Alexandria',         lat:  31.18, lon:  29.90, country: 'Egypt'        },
+  { name: 'Suez',               lat:  29.97, lon:  32.56, country: 'Egypt'        },
+  { name: 'Djibouti',           lat:  11.59, lon:  43.15, country: 'Djibouti'     },
+  { name: 'Mombasa',            lat:  -4.06, lon:  39.67, country: 'Kenya'        },
+  { name: 'Dar es Salaam',      lat:  -6.82, lon:  39.29, country: 'Tanzania'     },
+  // Southern Africa / West Africa
+  { name: 'Durban',             lat: -29.87, lon:  31.03, country: 'South Africa' },
+  { name: 'Cape Town',          lat: -33.90, lon:  18.43, country: 'South Africa' },
+  { name: 'Port Elizabeth',     lat: -33.98, lon:  25.62, country: 'South Africa' },
+  { name: 'Lagos (Apapa)',      lat:   6.44, lon:   3.42, country: 'Nigeria'      },
+  { name: 'Dakar',              lat:  14.69, lon: -17.44, country: 'Senegal'      },
+  { name: 'Abidjan',            lat:   5.35, lon:  -4.03, country: 'Ivory Coast'  },
+  // Northern Europe
+  { name: 'Rotterdam',          lat:  51.90, lon:   4.48, country: 'Netherlands'  },
+  { name: 'Antwerp',            lat:  51.23, lon:   4.42, country: 'Belgium'      },
+  { name: 'Hamburg',            lat:  53.54, lon:   9.99, country: 'Germany'      },
+  { name: 'Bremerhaven',        lat:  53.55, lon:   8.58, country: 'Germany'      },
+  { name: 'Felixstowe',         lat:  51.96, lon:   1.35, country: 'UK'           },
+  { name: 'Southampton',        lat:  50.90, lon:  -1.40, country: 'UK'           },
+  { name: 'Le Havre',           lat:  49.49, lon:   0.11, country: 'France'       },
+  { name: 'Gdansk',             lat:  54.41, lon:  18.66, country: 'Poland'       },
+  { name: 'Gothenburg',         lat:  57.71, lon:  11.97, country: 'Sweden'       },
+  { name: 'Copenhagen',         lat:  55.68, lon:  12.57, country: 'Denmark'      },
+  // Southern Europe / Mediterranean
+  { name: 'Marseille',          lat:  43.30, lon:   5.38, country: 'France'       },
+  { name: 'Barcelona',          lat:  41.34, lon:   2.17, country: 'Spain'        },
+  { name: 'Valencia',           lat:  39.46, lon:  -0.31, country: 'Spain'        },
+  { name: 'Algeciras',          lat:  36.13, lon:  -5.45, country: 'Spain'        },
+  { name: 'Genoa',              lat:  44.41, lon:   8.93, country: 'Italy'        },
+  { name: 'Gioia Tauro',        lat:  38.43, lon:  15.89, country: 'Italy'        },
+  { name: 'Trieste',            lat:  45.65, lon:  13.78, country: 'Italy'        },
+  { name: 'Piraeus',            lat:  37.95, lon:  23.62, country: 'Greece'       },
+  { name: 'Istanbul',           lat:  41.02, lon:  28.97, country: 'Turkey'       },
+  { name: 'Izmir',              lat:  38.42, lon:  27.14, country: 'Turkey'       },
+  { name: 'Constanta',          lat:  44.17, lon:  28.65, country: 'Romania'      },
+  // North America — Atlantic / Gulf
+  { name: 'New York',           lat:  40.70, lon: -74.17, country: 'USA'          },
+  { name: 'Savannah',           lat:  32.08, lon: -81.09, country: 'USA'          },
+  { name: 'Norfolk',            lat:  36.85, lon: -76.30, country: 'USA'          },
+  { name: 'Baltimore',          lat:  39.27, lon: -76.60, country: 'USA'          },
+  { name: 'Charleston',         lat:  32.77, lon: -79.94, country: 'USA'          },
+  { name: 'Miami',              lat:  25.78, lon: -80.19, country: 'USA'          },
+  { name: 'Boston',             lat:  42.36, lon: -71.05, country: 'USA'          },
+  { name: 'Houston',            lat:  29.75, lon: -95.10, country: 'USA'          },
+  { name: 'New Orleans',        lat:  29.96, lon: -90.10, country: 'USA'          },
+  { name: 'Halifax',            lat:  44.65, lon: -63.58, country: 'Canada'       },
+  { name: 'Montreal',           lat:  45.50, lon: -73.56, country: 'Canada'       },
+  // North America — Pacific
+  { name: 'Los Angeles',        lat:  33.75, lon:-118.27, country: 'USA'          },
+  { name: 'Long Beach',         lat:  33.77, lon:-118.22, country: 'USA'          },
+  { name: 'Seattle',            lat:  47.60, lon:-122.34, country: 'USA'          },
+  { name: 'Tacoma',             lat:  47.27, lon:-122.41, country: 'USA'          },
+  { name: 'Oakland',            lat:  37.80, lon:-122.27, country: 'USA'          },
+  { name: 'Vancouver',          lat:  49.29, lon:-123.11, country: 'Canada'       },
+  { name: 'Prince Rupert',      lat:  54.32, lon:-130.32, country: 'Canada'       },
+  // Central America / Caribbean
+  { name: 'Colon',              lat:   9.36, lon: -79.90, country: 'Panama'       },
+  { name: 'Panama City',        lat:   8.99, lon: -79.52, country: 'Panama'       },
+  { name: 'Kingston',           lat:  17.99, lon: -76.79, country: 'Jamaica'      },
+  { name: 'Cartagena',          lat:  10.42, lon: -75.54, country: 'Colombia'     },
+  // South America
+  { name: 'Santos',             lat: -23.94, lon: -46.33, country: 'Brazil'       },
+  { name: 'Rio de Janeiro',     lat: -22.90, lon: -43.17, country: 'Brazil'       },
+  { name: 'Buenos Aires',       lat: -34.61, lon: -58.38, country: 'Argentina'    },
+  { name: 'Callao',             lat: -12.05, lon: -77.12, country: 'Peru'         },
+  { name: 'Valparaiso',         lat: -33.05, lon: -71.62, country: 'Chile'        },
+  { name: 'Montevideo',         lat: -34.91, lon: -56.17, country: 'Uruguay'      },
+  // Oceania
+  { name: 'Sydney',             lat: -33.86, lon: 151.21, country: 'Australia'    },
+  { name: 'Melbourne',          lat: -37.82, lon: 144.93, country: 'Australia'    },
+  { name: 'Brisbane',           lat: -27.47, lon: 153.02, country: 'Australia'    },
+  { name: 'Fremantle',          lat: -32.05, lon: 115.74, country: 'Australia'    },
+  { name: 'Auckland',           lat: -36.84, lon: 174.76, country: 'New Zealand'  },
+];
+
+// Find the nearest major port to given coordinates
+function nearestPort(lat, lon) {
+  let best = MAJOR_PORTS[0], bestDist = Infinity;
+  for (const p of MAJOR_PORTS) {
+    const d = hDist([lon, lat], [p.lon, p.lat]);
+    if (d < bestDist) { bestDist = d; best = p; }
+  }
+  return best;
+}
+
 // Classify ocean zone from [lon, lat]
 function oZone(lon, lat) {
   if (lon >= -82 && lon <= -55 && lat >= 0) return 'ATL_W_N';
@@ -607,32 +737,78 @@ function pickCapeWaypoints(sLon, sLat, eLon, eLat) {
 }
 
 function buildMaritimeRoutes(sLat, sLon, eLat, eLon) {
-  const start = [sLon, sLat], end = [eLon, eLat];
-  const oz = oZone(sLon, sLat), dz = oZone(eLon, eLat);
+  // ── Port Snapping ─────────────────────────────────────────────────────────
+  // Maritime routing MUST start and end at actual seaports, never inland coordinates.
+  // Snap both endpoints to the nearest major port before any routing logic.
+  const sPort = nearestPort(sLat, sLon);
+  const ePort = nearestPort(eLat, eLon);
+  console.log(`[MARITIME] Port snap: ${sPort.name} (${sPort.country}) → ${ePort.name} (${ePort.country})`);
+
+  const start = [sPort.lon, sPort.lat];
+  const end   = [ePort.lon, ePort.lat];
+
+  // Classify the port zones (ports are on coasts, so zone classification is reliable)
+  const oz = oZone(sPort.lon, sPort.lat);
+  const dz = oZone(ePort.lon, ePort.lat);
+  console.log(`[MARITIME] Zones: ${oz} → ${dz}`);
+
   const isAsian  = z => ['E_ASIA', 'SE_ASIA', 'PAC_W_N', 'PAC_W_S', 'AUSTRALIA'].includes(z);
   const isIndian = z => ['ARAB_SEA', 'BAY_BENG', 'IO_C', 'E_AFR', 'GULF', 'RED_SEA'].includes(z);
   const isEU     = z => ['EUROPE', 'MED'].includes(z);
   const isAtl    = z => ['ATL_W_N', 'ATL_W_S', 'ATL_E_N', 'ATL_E_S', 'W_AFR'].includes(z);
+  const isPacE   = z => ['PAC_E_N', 'PAC_E_S'].includes(z);
 
   const suezNeeded = ((isAsian(oz) || isIndian(oz)) && (isEU(dz) || isAtl(dz)))
     || ((isAsian(dz) || isIndian(dz)) && (isEU(oz) || isAtl(oz)));
 
-  const coreMid  = pickMarineWaypoints(sLon, sLat, eLon, eLat);
-  const capeMid  = suezNeeded ? pickCapeWaypoints(sLon, sLat, eLon, eLat) : coreMid.map(w => [w[0] - 2, w[1] - 1]);
-  const var1Mid  = coreMid.map(w => [w[0] + 1.8, w[1] + 1.2]);
+  // ── Waypoint Selection ────────────────────────────────────────────────────
+  const coreMid = pickMarineWaypoints(sPort.lon, sPort.lat, ePort.lon, ePort.lat);
 
-  const primaryCoords = buildPath([start, ...coreMid, end], 32);
-  const alt1Coords    = buildPath([start, ...var1Mid, end], 32);
-  const alt2Coords    = buildPath([start, ...capeMid, end], 32);
+  // Only move the non-chokepoint waypoints to avoid pushing critical straits off course
+  const CHOKEPOINT_LONS = new Set(Object.values(CP).map(c => c[0]));
 
-  const SHIP_KMH = 26; // ~14 knots average container ship
-  const d0 = pathDistKm(primaryCoords), d1 = pathDistKm(alt1Coords), d2 = pathDistKm(alt2Coords);
+  // Alternate lane 1: nudge interior ocean waypoints slightly south (stays in water)
+  const altMid = coreMid.map(w =>
+    CHOKEPOINT_LONS.has(w[0]) ? w : [w[0], Math.max(-60, w[1] - 2.5)]
+  );
 
-  return [
-    { coords: primaryCoords, distKm: d0, durationH: d0 / SHIP_KMH, label: suezNeeded ? 'Suez Canal Route' : 'Primary Route', type: 'Optimal' },
-    { coords: alt1Coords,    distKm: d1, durationH: d1 / SHIP_KMH, label: 'Alternate Lane',  type: 'Balanced' },
-    { coords: alt2Coords,    distKm: d2, durationH: d2 / SHIP_KMH, label: suezNeeded ? 'Cape of Good Hope' : 'Alternate Route 2', type: 'Alternative' },
-  ];
+  // Alternate route 2:
+  //   - If Suez is primary: Cape of Good Hope (entirely different path)
+  //   - Otherwise: nudge interior waypoints slightly north for a distinct third path
+  let capeMid, alt2Label;
+  if (suezNeeded) {
+    capeMid   = pickCapeWaypoints(sPort.lon, sPort.lat, ePort.lon, ePort.lat);
+    alt2Label = 'Cape of Good Hope';
+  } else {
+    // North-shifted ocean lane — distinct from both primary and south-shifted alt1
+    capeMid   = coreMid.map(w =>
+      CHOKEPOINT_LONS.has(w[0]) ? w : [w[0], Math.min(60, w[1] + 3.0)]
+    );
+    alt2Label = 'Northern Ocean Lane';
+  }
+
+  // ── Path Generation ───────────────────────────────────────────────────────
+  // 40 interpolation steps per segment → smooth curves on long ocean segments
+  const primaryCoords = buildPath([start, ...coreMid, end], 40);
+  const alt1Coords    = buildPath([start, ...altMid,  end], 40);
+  const alt2Coords    = buildPath([start, ...capeMid, end], 40);
+
+  const SHIP_KMH = 26; // 14 knots average container ship
+  const d0 = pathDistKm(primaryCoords);
+  const d1 = pathDistKm(alt1Coords);
+  const d2 = pathDistKm(alt2Coords);
+
+  const primaryLabel = suezNeeded ? 'Suez Canal Route' : 'Primary Route';
+
+  return {
+    routes: [
+      { coords: primaryCoords, distKm: d0, durationH: d0 / SHIP_KMH, label: primaryLabel,    type: 'Optimal'     },
+      { coords: alt1Coords,    distKm: d1, durationH: d1 / SHIP_KMH, label: 'Alternate Lane', type: 'Balanced'    },
+      { coords: alt2Coords,    distKm: d2, durationH: d2 / SHIP_KMH, label: alt2Label,        type: 'Alternative' },
+    ],
+    originPort: sPort,
+    destPort:   ePort,
+  };
 }
 
 function buildAirRoutes(sLat, sLon, eLat, eLon) {
@@ -665,7 +841,7 @@ exports.getDirections = async (req, res) => {
     const sLat = parseFloat(startLat), sLon = parseFloat(startLng);
     const eLat = parseFloat(endLat),   eLon = parseFloat(endLng);
 
-    const cacheKey = `v20-${sLat.toFixed(2)}-${sLon.toFixed(2)}-${eLat.toFixed(2)}-${eLon.toFixed(2)}-${vehicle}`;
+    const cacheKey = `v21-${sLat.toFixed(2)}-${sLon.toFixed(2)}-${eLat.toFixed(2)}-${eLon.toFixed(2)}-${vehicle}`;
     if (routeCache.has(cacheKey)) return res.json({ success: true, routes: routeCache.get(cacheKey) });
 
     const isShip = vehicle === 'ship';
@@ -687,9 +863,20 @@ exports.getDirections = async (req, res) => {
         destEn   = sanitizeEn(dA?.city || dA?.state || dA?.country, destEn);
       } catch (e) {}
 
-      const rawRoutes = isShip
-        ? buildMaritimeRoutes(sLat, sLon, eLat, eLon)
-        : buildAirRoutes(sLat, sLon, eLat, eLon);
+      // ── Build routes (maritime returns { routes, originPort, destPort }) ──
+      let rawRoutes, originPort = null, destPort = null;
+      if (isShip) {
+        const marResult = buildMaritimeRoutes(sLat, sLon, eLat, eLon);
+        rawRoutes  = marResult.routes;
+        originPort = marResult.originPort;
+        destPort   = marResult.destPort;
+        // Override geocoded names with actual port names — more accurate and informative
+        if (originPort) sourceEn = `${originPort.name} Port`;
+        if (destPort)   destEn   = `${destPort.name} Port`;
+        console.log(`[MARITIME] Route: ${sourceEn} → ${destEn} | ${rawRoutes.length} variants`);
+      } else {
+        rawRoutes = buildAirRoutes(sLat, sLon, eLat, eLon);
+      }
 
       const processedRoutes = await Promise.all(rawRoutes.map(async (r, i) => {
         const intelligence = await getRouteIntelligence(r.coords, sourceEn, destEn, r.distKm * 1000);
@@ -702,6 +889,8 @@ exports.getDirections = async (req, res) => {
           summary: r.label,
           intelligence,
           vehicle,
+          originPort,
+          destPort,
           steps: [],
         };
       }));

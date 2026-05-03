@@ -1,0 +1,246 @@
+The current routing system is incorrect and unreliable. It allows invalid inputs (e.g., cities without ports for sea routes) and generates wrong routes (land routes for ships).
+
+You must implement a **strict validation + routing pipeline** that ensures correctness before any route is generated.
+
+---
+
+# 1. CORE PRINCIPLE (MANDATORY)
+
+Routing must follow:
+
+**Validate → Transform → Route → Render**
+
+DO NOT directly route user input.
+
+---
+
+# 2. TRANSPORT MODE CONSTRAINTS (STRICT)
+
+## SEA MODE 🚢
+
+### Rules:
+
+* ONLY ports are allowed
+* MUST NOT accept inland cities
+
+---
+
+### Example:
+
+User selects:
+"Vijayawada" ❌ (invalid for sea)
+
+System must:
+
+* Reject OR
+* Suggest nearest valid ports:
+
+Examples:
+
+* Visakhapatnam Port (Vizag)
+* Kakinada Port
+
+---
+
+### Implementation:
+
+Create:
+`portResolverService`
+
+Input:
+
+* City / State
+
+Output:
+
+* Nearest valid port(s)
+
+---
+
+## LAND MODE 🚛
+
+### Rules:
+
+* Cities allowed
+* Must use road network APIs
+* Must follow real roads
+
+---
+
+## AIR MODE ✈️
+
+### Rules:
+
+* ONLY airports allowed
+* Map city → nearest airport
+
+---
+
+# 3. LOCATION RESOLUTION LAYER (CRITICAL)
+
+Create:
+
+`locationResolverService`
+
+---
+
+### Responsibilities:
+
+* Detect input type:
+
+  * Country
+  * State
+  * City
+  * Port
+  * Airport
+
+---
+
+### Transform:
+
+| Mode | Input          | Output             |
+| ---- | -------------- | ------------------ |
+| SEA  | Andhra Pradesh | Vizag Port         |
+| LAND | Andhra Pradesh | Vijayawada         |
+| AIR  | Andhra Pradesh | Vijayawada Airport |
+
+---
+
+# 4. VALIDATION ENGINE (MANDATORY)
+
+Before routing:
+
+Check:
+
+* SEA → both origin & destination must be ports
+* LAND → valid road connectivity
+* AIR → valid airports
+
+---
+
+If invalid:
+
+DO NOT ROUTE
+
+Show:
+
+* Suggestions
+* Auto-corrections
+
+---
+
+# 5. ROUTING SERVICES (SEPARATE)
+
+Implement strict separation:
+
+* seaRouteService
+* landRouteService
+* airRouteService
+
+---
+
+### SEA SERVICE
+
+* Input: port → port
+* Output: maritime path
+* Must avoid land
+
+---
+
+### LAND SERVICE
+
+* Use real road APIs
+* Return multiple routes
+
+---
+
+### AIR SERVICE
+
+* Use great-circle path
+
+---
+
+# 6. PRE-ROUTE VALIDATION FLOW
+
+Example:
+
+User:
+"Andhra Pradesh → USA (SEA)"
+
+System:
+
+1. Detect SEA mode
+2. Resolve:
+
+   * Andhra Pradesh → Vizag Port
+   * USA → Los Angeles Port / New York Port
+3. Validate ports
+4. Generate route
+
+---
+
+# 7. UI REQUIREMENTS
+
+When user selects invalid input:
+
+### DO NOT:
+
+* Show error text
+
+### DO:
+
+Show options:
+
+"Select nearest port:"
+
+* Vizag Port
+* Kakinada Port
+
+---
+
+# 8. DEBUG + LOGGING
+
+Log:
+
+* Input received
+* Resolved locations
+* Selected routing service
+* Validation result
+
+---
+
+# 9. FAILSAFE RULE (IMPORTANT)
+
+If validation fails:
+
+* STOP execution
+* DO NOT fallback to another mode
+
+---
+
+# 10. FINAL EXPECTED BEHAVIOR
+
+### SEA:
+
+* Only ocean routes
+* Only ports
+
+### LAND:
+
+* Only roads
+
+### AIR:
+
+* Only air paths
+
+---
+
+# FINAL GOAL
+
+Make routing:
+
+* Accurate
+* Mode-aware
+* Geographically correct
+
+NOT approximate or mixed.

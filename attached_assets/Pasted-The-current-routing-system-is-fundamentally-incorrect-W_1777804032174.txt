@@ -1,0 +1,195 @@
+The current routing system is fundamentally incorrect.
+
+When SEA mode is selected, the system still generates:
+
+* Land-based routes
+* Incomplete routes
+* Unrealistic paths
+
+This is a critical failure. You must fix the routing engine properly.
+
+---
+
+# 1. ROOT CAUSE (FIX THIS FIRST)
+
+The system is incorrectly:
+
+* Using road-based routing APIs for all modes
+* OR falling back to land routes when sea data is missing
+
+This must be completely removed.
+
+---
+
+# 2. STRICT MODE-BASED ROUTING (MANDATORY)
+
+Implement hard separation:
+
+### SEA MODE
+
+* MUST ONLY use maritime routing
+* MUST NEVER call road APIs
+* MUST NEVER generate land paths
+
+If sea route cannot be generated:
+→ show error, DO NOT fallback to land
+
+---
+
+# 3. PORT-BASED ROUTING (CRITICAL)
+
+SEA routing must:
+
+* Start from **origin port**
+* End at **destination port**
+
+---
+
+## Fix this logic:
+
+User input:
+"India → USA"
+
+System must:
+
+1. Convert to ports:
+
+   * India → Mumbai Port (or selectable)
+   * USA → New York / Los Angeles port
+
+2. Then generate route between ports
+
+---
+
+# 4. SEA ROUTE GENERATION (REALISTIC)
+
+Do NOT draw straight lines or broken segments.
+
+Use:
+
+* Predefined maritime routes OR
+* Waypoint-based ocean routing
+
+---
+
+## Required behavior:
+
+* Route must:
+
+  * Stay in ocean
+  * Avoid land
+  * Follow realistic shipping paths
+
+---
+
+# 5. FULL ROUTE RENDERING (FIX HALF ROUTE BUG)
+
+Current issue:
+→ Route is incomplete
+
+Fix:
+
+* Ensure full polyline is generated
+* Ensure all coordinates are rendered
+* Fit map bounds to full route
+
+---
+
+# 6. REMOVE LAND CONTAMINATION
+
+Audit code and REMOVE:
+
+* Any function that:
+
+  * Automatically switches to road routing
+  * Mixes routing strategies
+
+---
+
+# 7. ROUTING STRATEGY PATTERN (MANDATORY)
+
+Implement:
+
+routeStrategy = {
+SEA: seaRouteService,
+LAND: landRouteService,
+AIR: airRouteService
+}
+
+Each must be isolated.
+
+---
+
+# 8. MAP RENDERING FIX
+
+* Use polyline for full route
+* Smooth curve for sea paths
+* No segmented broken dots unless intentional
+
+---
+
+# 9. VALIDATION CHECK (BEFORE RENDER)
+
+Before drawing route:
+
+IF mode === SEA:
+
+* Verify all coordinates are in ocean
+* Reject invalid path
+
+---
+
+# 10. DEBUG LOGGING (ADD THIS)
+
+Log:
+
+* Selected mode
+* Routing service used
+* Number of coordinates returned
+
+This ensures correct execution.
+
+---
+
+# 11. UI FIX (IMPORTANT)
+
+If incorrect route detected:
+
+Show:
+"Sea route unavailable for selected ports. Please choose valid ports."
+
+DO NOT silently show wrong route.
+
+---
+
+# 12. FINAL EXPECTED RESULT
+
+For:
+India → USA (SEA)
+
+System must:
+
+* Convert to ports
+* Generate full ocean route
+* Show complete path across:
+
+  * Arabian Sea
+  * Red Sea / Cape route
+  * Atlantic Ocean
+
+---
+
+# FINAL GOAL
+
+Ships must NEVER:
+
+* Drive on roads ❌
+* Stop halfway ❌
+
+They must:
+
+* Follow real maritime paths ✅
+* Render full routes ✅
+* Use correct data sources ✅
+
+This is a core system correctness issue. Fix it properly, not with patches.
