@@ -82,35 +82,55 @@ const extractJSON = (text) => {
 exports.agentChat = async (req, res) => {
     const { message, state = {}, history = [], confirmedSource, confirmedDest } = req.body;
 
-    // ── SHORT-CIRCUIT: user already confirmed port/airport in the UI ──────────
-    if (confirmedSource && confirmedDest && state.mode) {
-        const modeLabel = { sea: 'maritime', air: 'air freight', rail: 'rail', truck: 'road' }[state.mode] || state.mode;
-        return res.json({
-            success: true,
-            type: 'COMPLETE',
-            message: `Route confirmed! Calculating ${modeLabel} route from ${confirmedSource.display_name} to ${confirmedDest.display_name} with live intelligence.`,
-            state,
-            source: confirmedSource,
-            destination: confirmedDest,
-        });
-    }
-
-    if (!message) return res.status(400).json({ success: false, error: 'Missing message' });
+    if (!message && !confirmedSource) return res.status(400).json({ success: false, error: 'Missing message' });
 
     const PORT = process.env.PORT || 8000;
 
     const currentState = {
-        origin:      state.origin      || null,
-        destination: state.destination || null,
-        mode:        state.mode        || null,
-        date:        state.date        || null,
-        cargo:       state.cargo       || null,
-        priority:    state.priority    || null,
+        origin:          state.origin          || null,
+        destination:     state.destination     || null,
+        mode:            state.mode            || null,
+        date:            state.date            || null,
+        time:            state.time            || null,
+        cargo:           state.cargo           || null,
+        priority:        state.priority        || null,
+        confirmedSource: state.confirmedSource || null,
+        confirmedDest:   state.confirmedDest   || null,
     };
 
-    // Build the conversation context summary
+    // Required field set — route only generates when ALL five are known
+    const REQUIRED = ['origin', 'destination', 'mode', 'date', 'time'];
+    const FIELD_QUESTIONS = {
+        date: "What date would you like to ship? (e.g. June 15, next Monday, or ASAP)",
+        time: "What's the preferred departure time? (e.g. 09:00, morning, any time)",
+    };
+
+    // ── SHORT-CIRCUIT: port/airport already confirmed — continue collecting remaining fields ──
+    if (confirmedSource && confirmedDest && state.mode) {
+        const updatedState = { ...currentState, confirmedSource, confirmedDest };
+        const missing = REQUIRED.filter(f => !updatedState[f]);
+        if (missing.length === 0) {
+            const modeLabel = { sea: 'maritime', air: 'air freight', rail: 'rail', truck: 'road' }[state.mode] || state.mode;
+            return res.json({
+                success: true,
+                type: 'COMPLETE',
+                message: `All set! Calculating ${modeLabel} route from ${confirmedSource.display_name} to ${confirmedDest.display_name} with live risk and weather intelligence.`,
+                state: updatedState,
+                source: confirmedSource,
+                destination: confirmedDest,
+            });
+        }
+        return res.json({
+            success: true,
+            type: 'ASK',
+            message: FIELD_QUESTIONS[missing[0]] || `What is the ${missing[0]}?`,
+            state: updatedState,
+        });
+    }
+
+    // Build the conversation context summary (exclude internal coord objects)
     const stateDesc = Object.entries(currentState)
-        .filter(([, v]) => v)
+        .filter(([k, v]) => v && !['confirmedSource', 'confirmedDest'].includes(k))
         .map(([k, v]) => `${k}: ${v}`)
         .join(', ') || 'none yet';
 
@@ -129,33 +149,41 @@ TASK: Extract any logistics information from the user message, update the state,
 MODES: "sea" = maritime shipping, "air" = air freight, "rail" = rail freight, "truck" = road/truck
 
 EXTRACTION RULES:
-- Extract specific port names, cities, transport modes, dates, cargo types, priorities
-- If a location is a country or continent (India, America, Europe, China, etc.) — set it as country-level and ask user to pick a specific port
-- Dates: accept natural language ("next Monday", "June 15", "asap" = today)
+- Extract specific port names, cities, transport modes, dates, times, cargo types, priorities
+- If a location is a country or continent (India, America, Europe, China, etc.) → type "CLARIFY", suggest 4 real ports
+- Dates: accept natural language ("next Monday", "June 15", "asap" = today's date)
+- Times: accept natural language ("morning", "09:00", "afternoon", "any time")
+- Extract cargo type if mentioned (e.g. electronics, machinery, pharmaceuticals, textiles)
+- Extract priority if mentioned (express, standard, economy)
 
-REQUIRED FIELDS (must collect before generating route): origin, destination, mode
-OPTIONAL FIELDS: date, cargo, priority
+REQUIRED FIELDS (ALL must be collected before route generation): origin, destination, mode, date, time
+OPTIONAL FIELDS: cargo, priority
+
+COLLECTION ORDER (ask one at a time in this order if missing):
+1. origin → 2. destination → 3. mode → 4. date → 5. time → 6. cargo (optional) → 7. priority (optional)
 
 RESPONSE RULES:
-1. If user mentions COUNTRY or REGION for origin or destination → type "CLARIFY", suggest 4 real major ports/airports for that country (appropriate for the mode)
-2. If all required fields are now known (origin, destination, mode) → type "COMPLETE"  
-3. Otherwise ask for the NEXT missing required field → type "ASK"
+1. If user mentions COUNTRY or REGION for origin/destination → type "CLARIFY", suggest 4 real major ports/airports (appropriate for the mode)
+2. NEVER use type "COMPLETE" — route generation is handled automatically by the system when all required fields are filled
+3. Ask for the NEXT missing required field → type "ASK"
 4. For general questions → type "CHAT"
-5. Ask ONLY ONE question per response. Keep messages short and friendly.
+5. Ask ONLY ONE question per response. Keep messages short, friendly, and concise.
+6. After collecting date and time, optionally ask for cargo type then priority.
 
 REQUIRED JSON RESPONSE (no markdown, no extra text):
 {
-  "type": "ASK" | "CLARIFY" | "COMPLETE" | "CHAT",
+  "type": "ASK" | "CLARIFY" | "CHAT",
   "message": "<Routy's response — short, friendly, conversational>",
   "extracted": {
     "origin": "<specific port/city name or null>",
     "destination": "<specific port/city name or null>",
     "mode": "<sea|air|rail|truck|null>",
     "date": "<date string or null>",
+    "time": "<time string or null>",
     "cargo": "<cargo type or null>",
-    "priority": "<express|standard|null>"
+    "priority": "<express|standard|economy|null>"
   },
-  "clarifyField": "<'origin'|'destination'|null — which field needs clarification>",
+  "clarifyField": "<'origin'|'destination'|null>",
   "options": ["Port Name, Country", "Port Name, Country", "Port Name, Country", "Port Name, Country"]
 }`;
 
@@ -195,6 +223,7 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
     if (extracted.destination) newState.destination = extracted.destination;
     if (extracted.mode)        newState.mode        = extracted.mode;
     if (extracted.date)        newState.date        = extracted.date;
+    if (extracted.time)        newState.time        = extracted.time;
     if (extracted.cargo)       newState.cargo       = extracted.cargo;
     if (extracted.priority)    newState.priority    = extracted.priority;
 
@@ -210,8 +239,9 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
         });
     }
 
-    // ── HANDLE COMPLETE ───────────────────────────────────────────
-    if (parsed.type === 'COMPLETE' || (newState.origin && newState.destination && newState.mode)) {
+    // ── HANDLE COMPLETE — only when ALL 5 required fields are present ────────
+    const allRequiredFilled = REQUIRED.every(f => newState[f]);
+    if (allRequiredFilled) {
         // Geocode both locations
         const [startGeo, endGeo] = await Promise.all([
             geocode(newState.origin, PORT),
@@ -272,9 +302,7 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
         return res.json({
             success: true,
             type: 'COMPLETE',
-            message: parsed.type === 'COMPLETE'
-                ? parsed.message
-                : `All set! Calculating ${modeLabel} route from ${newState.origin} to ${newState.destination} with live risk and weather intelligence.`,
+            message: `All set! Calculating ${modeLabel} route from ${newState.origin} to ${newState.destination} with live risk and weather intelligence.`,
             state: newState,
             source: startGeo,
             destination: endGeo,

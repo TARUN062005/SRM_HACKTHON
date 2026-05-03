@@ -1,0 +1,249 @@
+The system is still incorrect despite previous fixes. There are two critical failures that must be resolved immediately:
+
+1. SEA mode is generating LAND routes
+2. AI agent is not collecting all required fields (date, time, cargo, priority)
+
+You must fix both at the architectural level.
+
+---
+
+# 1. FIX SEA ROUTING BUG (CRITICAL)
+
+## Problem:
+
+Even when:
+
+* mode = SEA
+* origin/destination = ports
+
+System still calls land routing (OSRM)
+
+---
+
+## REQUIRED FIX:
+
+In `/api/ai/directions`:
+
+### BEFORE routing:
+
+```js
+if (mode === 'ship') {
+  // MUST ONLY call maritime routing
+  return buildMaritimeRoutes(...)
+}
+```
+
+---
+
+## ADD HARD GUARD:
+
+```js
+if (mode === 'ship' && routingService !== 'maritime') {
+  throw new Error('Invalid routing: SEA mode cannot use land routing');
+}
+```
+
+---
+
+## REMOVE:
+
+* Any fallback to OSRM when SEA mode fails
+* Any mixed routing logic
+
+---
+
+## VALIDATION:
+
+Before routing:
+
+```js
+assert(origin is port)
+assert(destination is port)
+```
+
+If not:
+→ STOP execution
+
+---
+
+# 2. FIX FRONTEND MODE LEAK
+
+## Problem:
+
+Frontend is sending wrong mode OR backend ignoring it
+
+---
+
+## Fix:
+
+* Ensure `freightMode` is passed correctly in every request
+* Log in backend:
+
+```js
+console.log("MODE RECEIVED:", mode)
+```
+
+* Verify:
+  SEA → maritime only
+  LAND → OSRM only
+  AIR → air only
+
+---
+
+# 3. FIX AGENT FLOW (CRITICAL)
+
+## Problem:
+
+Agent stops after origin/destination
+
+---
+
+## REQUIRED FIELDS:
+
+Agent MUST collect:
+
+* origin
+* destination
+* mode
+* date
+* time
+* cargo
+* priority
+
+---
+
+## FIX STATE MACHINE
+
+Modify agent logic:
+
+```js
+requiredFields = [
+  "origin",
+  "destination",
+  "mode",
+  "date",
+  "time"
+]
+```
+
+---
+
+## AFTER RESOLVE:
+
+DO NOT COMPLETE
+
+Instead:
+
+Continue asking:
+
+* "What date?"
+* "What time?"
+* "What cargo type?"
+* "What priority?"
+
+---
+
+# 4. FIX AGENT RESPONSE FLOW
+
+## Correct flow:
+
+User → "Mumbai to Dubai"
+
+1. Ask mode
+2. Resolve ports
+3. Ask date
+4. Ask time
+5. Ask cargo
+6. Ask priority
+7. THEN COMPLETE
+
+---
+
+## DO NOT:
+
+* Skip steps
+* Jump directly to routing
+
+---
+
+# 5. UI FIX (IMPORTANT)
+
+Add:
+
+### Progress Tracker:
+
+Example:
+
+* Origin ✅
+* Destination ✅
+* Mode ✅
+* Date ❌
+* Time ❌
+
+---
+
+# 6. BLOCK ROUTE GENERATION
+
+Routing must only happen when:
+
+```js
+allRequiredFieldsFilled === true
+```
+
+---
+
+# 7. DEBUG CHECKS
+
+Add logs:
+
+* Mode used
+* Routing service used
+* Fields collected
+
+---
+
+# 8. FINAL EXPECTED BEHAVIOR
+
+### SEA MODE:
+
+* Only ocean routes
+* No land segments
+
+---
+
+### AGENT:
+
+User:
+"Mumbai to Dubai"
+
+System:
+
+1. Ask mode
+2. Show ports
+3. Ask date
+4. Ask time
+5. Ask cargo
+6. Ask priority
+7. Generate route
+
+---
+
+# FINAL GOAL
+
+Make system:
+
+* Strictly mode-correct
+* Fully agent-driven
+* Step-by-step guided
+* No incorrect routing
+
+---
+
+# OUTPUT REQUIRED
+
+* Files updated
+* Logs showing correct mode usage
+* Confirmation:
+
+  * SEA route uses maritime only
+  * Agent collects all fields

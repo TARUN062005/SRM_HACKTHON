@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
   X, Mic, MicOff, Send, Bot, Anchor, Plane, Train, Truck,
   MapPin, Calendar, Package, Zap, ChevronRight, RotateCcw,
-  CheckCircle2, Circle,
+  CheckCircle2, Circle, Clock,
 } from 'lucide-react';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
@@ -23,6 +23,7 @@ const FIELD_ICONS = {
   destination: { Icon: MapPin,    label: 'Destination', color: '#EF4444' },
   mode:        { Icon: Anchor,    label: 'Mode',        color: '#3B82F6' },
   date:        { Icon: Calendar,  label: 'Date',        color: '#A78BFA' },
+  time:        { Icon: Clock,     label: 'Time',        color: '#F59E0B' },
   cargo:       { Icon: Package,   label: 'Cargo',       color: '#F59E0B' },
   priority:    { Icon: Zap,       label: 'Priority',    color: '#38BDF8' },
 };
@@ -155,10 +156,12 @@ const ThinkingDots = () => (
 );
 
 // ── State progress bar ────────────────────────────────────────────────────────
+const REQUIRED_FIELDS = ['origin', 'destination', 'mode', 'date', 'time'];
+
 const StateProgress = ({ state }) => {
-  const fields = ['origin', 'destination', 'mode'];
-  const collected = fields.filter(f => state[f]);
-  const pct = (collected.length / fields.length) * 100;
+  const required  = REQUIRED_FIELDS;
+  const collected = required.filter(f => state[f]);
+  const pct = (collected.length / required.length) * 100;
 
   return (
     <div className="px-4 py-2.5 flex-shrink-0" style={{ borderBottom: '1px solid #374151' }}>
@@ -167,7 +170,7 @@ const StateProgress = ({ state }) => {
           Collection Progress
         </span>
         <span className="text-[9px] font-bold" style={{ color: '#3B82F6' }}>
-          {collected.length}/{fields.length} fields
+          {collected.length}/{required.length} required
         </span>
       </div>
       <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: '#374151' }}>
@@ -180,16 +183,17 @@ const StateProgress = ({ state }) => {
         />
       </div>
       <div className="flex gap-2 mt-2 flex-wrap">
-        {Object.entries(FIELD_ICONS).slice(0, 6).map(([key, { Icon, label, color }]) => {
+        {Object.entries(FIELD_ICONS).map(([key, { Icon, label, color }]) => {
           const val = state[key];
-          const isRequired = ['origin', 'destination', 'mode'].includes(key);
+          const isRequired = REQUIRED_FIELDS.includes(key);
           return (
             <div key={key} className="flex items-center gap-1">
               {val
                 ? <CheckCircle2 size={9} style={{ color: '#22C55E' }} />
-                : <Circle size={9} style={{ color: isRequired ? '#374151' : '#2D3748' }} />}
-              <span className="text-[9px] font-medium" style={{ color: val ? '#9CA3AF' : '#4B5563' }}>
-                {val ? val.split(',')[0].substring(0, 14) : label}
+                : <Circle size={9} style={{ color: isRequired ? '#4B5563' : '#2D3748' }} />}
+              <span className="text-[9px] font-medium" style={{ color: val ? '#9CA3AF' : isRequired ? '#6B7280' : '#4B5563' }}>
+                {val ? val.split(',')[0].substring(0, 12) : label}
+                {isRequired && !val && <span style={{ color: '#EF4444' }}>*</span>}
               </span>
             </div>
           );
@@ -325,7 +329,8 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
   const [liveTranscript, setLiveTranscript] = useState('');
   const [convState, setConvState] = useState({
     origin: null, destination: null, mode: null,
-    date: null, cargo: null, priority: null,
+    date: null, time: null, cargo: null, priority: null,
+    confirmedSource: null, confirmedDest: null,
   });
   const [convHistory, setConvHistory] = useState([]);
   const [msgId, setMsgId] = useState(1);
@@ -339,7 +344,7 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
   useEffect(() => {
     if (isOpen) {
       const initialMode = MODE_MAP[freightMode] || 'sea';
-      const initState = { origin: null, destination: null, mode: initialMode, date: null, cargo: null, priority: null };
+      const initState = { origin: null, destination: null, mode: initialMode, date: null, time: null, cargo: null, priority: null, confirmedSource: null, confirmedDest: null };
       setConvState(initState);
       setMessages([WELCOME]);
       setConvHistory([]);

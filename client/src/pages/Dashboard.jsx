@@ -169,7 +169,7 @@ const Dashboard = () => {
     setSavedRoutes(loadRouteHistory());
   }, []);
 
-  const vehicleMode = FREIGHT_MODES.find(m => m.value === freightMode)?.vehicle || 'truck';
+  const vehicleMode = freightMode;
 
   const handleRouteData = useCallback(async ({ allRoutes: routes, activeRouteIndex: idx }) => {
     setAllRoutes(routes || []);

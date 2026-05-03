@@ -989,14 +989,24 @@ function buildAirRoutes(sLat, sLon, eLat, eLon) {
 
 exports.getDirections = async (req, res) => {
   try {
-    const { startLat, startLng, endLat, endLng, vehicle = 'driving', sourceName, destName } = req.query;
+    const { startLat, startLng, endLat, endLng, vehicle: rawVehicle = 'driving', sourceName, destName } = req.query;
     if (!startLat || !startLng || !endLat || !endLng) return res.status(400).json({ error: 'Missing coords' });
+
+    // Normalise mode aliases — frontend sends 'ship', agent may send 'sea', 'maritime', etc.
+    const MODE_ALIASES = { sea: 'ship', maritime: 'ship', land: 'truck', road: 'truck', ground: 'truck' };
+    const vehicle = MODE_ALIASES[rawVehicle] || rawVehicle;
+    console.log(`[ROUTING] MODE RECEIVED: "${rawVehicle}" → normalised to: "${vehicle}"`);
 
     const sLat = parseFloat(startLat), sLon = parseFloat(startLng);
     const eLat = parseFloat(endLat),   eLon = parseFloat(endLng);
 
     const isShip = vehicle === 'ship';
     const isAir  = vehicle === 'air';
+
+    // Hard guard — sea/air must never fall through to OSRM land routing
+    if (isShip || isAir) {
+      console.log(`[ROUTING] ${isShip ? 'MARITIME' : 'AIR'} mode confirmed — using dedicated routing engine`);
+    }
 
     // ── MARITIME / AIR ROUTING ───────────────────────────────
     if (isShip || isAir) {
