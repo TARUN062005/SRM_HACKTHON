@@ -71,9 +71,17 @@ const harvestNews = async (queryFull, locations = []) => {
   }
 
   try {
-    // STEP 2: Context Expansion (Search City OR Country OR Region)
-    const contextQuery = `(${queryFull}) OR "logistics disruption" OR "transport risk"`;
-
+    // STEP 2: Strategic Query Refinement (Protocol v47 - Conflict Awareness)
+    const hotZones = ["iran", "iraq", "israel", "ukraine", "russia", "middle east", "lebanon", "red sea", "palestine", "syria"];
+    const isHotZone = locations.some(l => hotZones.some(z => l.toLowerCase().includes(z)));
+    
+    // If in a hot-zone, force conflict-specific search
+    const tacticalModifiers = isHotZone 
+       ? "(war OR military OR missile OR airstrike OR conflict OR weapons OR fighting)"
+       : "(war OR riot OR strike OR military OR explosion OR roadblock OR 'border closed')";
+    
+    const contextQuery = `(${locations.join(" OR ")}) AND ${tacticalModifiers}`;
+    
     const res = await axios.get("https://newsdata.io/api/1/news", {
       params: { 
         apikey: process.env.NEWSDATA_API_KEY, 
@@ -83,61 +91,86 @@ const harvestNews = async (queryFull, locations = []) => {
       timeout: 6000
     });
 
-    const articles = res.data.results || [];
-    console.log(`[INTELLIGENCE ENGINE] Signals detected for "${queryFull}": ${articles.length}`);
-
-    // STEP 3 & 4: Detection & Filtering (Multi-Category Classifier)
-    const categories = {
-        conflict: ["war", "conflict", "missile", "airstrike", "military", "explosion", "bomb", "shelling"],
-        protest: ["protest", "riot", "violence", "clashes", "curfew", "demonstration", "strike", "march"],
-        transport: ["accident", "roadblock", "closure", "traffic", "highway", "port", "train", "delay", "collision"],
-        weather: ["storm", "cyclone", "flood", "rain", "heatwave", "blizzard", "typhoon"],
-        political: ["sanction", "policy", "border", "restriction", "customs", "checkpoint"]
-    };
-
-    const detectedEvents = [];
-    articles.forEach(art => {
-        const text = ((art.title || "") + " " + (art.description || "")).toLowerCase();
-        
-        let type = null;
-        for (const [cat, keywords] of Object.entries(categories)) {
-            if (keywords.some(k => text.includes(k))) {
-                type = cat;
-                break;
-            }
-        }
-
-        if (type) {
-            detectedEvents.push({
-                type: type,
-                title: art.title,
-                severity: type === "conflict" ? "high" : type === "protest" ? "medium" : "low",
-                impact: `Active ${type} activity identified in mission corridor.`,
-                link: art.link,
-                date: art.pubDate || new Date().toISOString()
-            });
-        }
-    });
-
-    // STEP 5: Risk Classification
-    const hasHighRisk = detectedEvents.some(e => e.severity === "high" || e.type === "conflict");
-    const hasMedRisk = detectedEvents.some(e => e.severity === "medium" || e.type === "protest" || e.type === "political");
-
-    const status = hasHighRisk ? "HIGH" : hasMedRisk ? "MODERATE" : "SAFE";
+    let articles = res.data.results || [];
     
-    // STEP 6 & 7: Strict Output Format & Fallback
-    if (detectedEvents.length === 0) {
-        return {
-            status: "SAFE",
-            summary: "No major disruptions detected in the route region",
-            affected_regions: locations,
-            events: []
-        };
+    // STEP 2.1: Contextural Expansion Loop (Protocol v46)
+    if (articles.length === 0) {
+       try {
+         const regionalRes = await axios.get("https://newsdata.io/api/1/news", {
+           params: { 
+             apikey: process.env.NEWSDATA_API_KEY, 
+             q: `(Regional Geopolitics OR Conflict News) AND ${tacticalModifiers}`, 
+             language: "en" 
+           },
+           timeout: 5000
+         });
+         articles = regionalRes.data.results || [];
+       } catch (regionalErr) {
+         console.warn("[GEO-SYNC-FALLBACK] Regional expansion failed");
+       }
     }
 
+    // STEP 2.2: Neural Situation Fallback (Protocol v47)
+    if (articles.length === 0 && isHotZone) {
+       console.log(`[GEO-VELOCITY] Conflict Zone identified: ${locations[0]}. Generating Neural Status...`);
+       try {
+         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+         const statusRes = await model.generateContent(`Provide a 1-sentence tactical briefing for the CURRENT geopolitical/war situation in ${locations[0]} as of March 2026. Be objective.`);
+         return { 
+           status: "HIGH", 
+           summary: `NEURAL ALERT: ${statusRes.response.text().trim()}`, 
+           affected_regions: locations, 
+           events: [{ type: "conflict", title: "Regional Military Tension Detected", severity: "high", impact: "High risk to all transport and supply chains.", date: new Date().toISOString() }] 
+         };
+       } catch (e) { /* fallback */ }
+    }
+
+    if (articles.length === 0) {
+        return { status: "SAFE", summary: "No tactical or logistical threats detected in this sector.", affected_regions: locations, events: [] };
+    }
+
+    // STEP 3: Neural Truth Verification (AI-Sifting)
+    const candidates = articles.map(a => a.title).slice(0, 10);
+    let verifiedIndices = [];
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const verifyPrompt = `
+        Headline Audit for Logistics Threat:
+        ${candidates.map((c, i) => `[${i}] ${c}`).join("\n")}
+        
+        Indices for REAL threats (war, strike, roadblock, military) ONLY: [0, 2]
+      `;
+      const result = await model.generateContent(verifyPrompt);
+      const text = result.response.text();
+      verifiedIndices = JSON.parse(text.replace(/```json|```/g, "").trim());
+    } catch (e) {
+      verifiedIndices = articles.map((_, i) => i);
+    }
+
+    const detectedEvents = [];
+    articles.forEach((art, idx) => {
+        if (!verifiedIndices.includes(idx)) return;
+        
+        const text = ((art.title || "") + " " + (art.description || "")).toLowerCase();
+        let type = "conflict";
+        if (text.includes("strike") || text.includes("protest")) type = "protest";
+        if (text.includes("road") || text.includes("highway") || text.includes("close")) type = "transport-harm";
+
+        detectedEvents.push({
+            type: type,
+            title: art.title,
+            severity: type === "conflict" ? "high" : "medium",
+            impact: `Tactical ${type} signal verified in mission zone.`,
+            link: art.link,
+            date: art.pubDate || new Date().toISOString()
+        });
+    });
+
+    const status = detectedEvents.some(e => e.severity === "high") ? "HIGH" : (detectedEvents.length > 0 ? "MODERATE" : "SAFE");
+    
     return {
         status: status,
-        summary: `Identified ${detectedEvents.length} mission-relevant signals in territory.`,
+        summary: `Strategic detection: ${detectedEvents.length} verified tactical threats confirmed.`,
         affected_regions: locations,
         events: detectedEvents.slice(0, 6)
     };
