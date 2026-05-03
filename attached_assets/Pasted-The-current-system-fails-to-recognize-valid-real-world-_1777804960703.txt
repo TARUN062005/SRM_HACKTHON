@@ -1,0 +1,187 @@
+The current system fails to recognize valid real-world locations like "Mumbai". This is unacceptable.
+
+You must implement a **robust location resolution system** that can understand natural user input and map it correctly for routing.
+
+---
+
+# 1. CORE REQUIREMENT
+
+The system must accept:
+
+* City names (e.g., Mumbai)
+* States (e.g., Andhra Pradesh)
+* Countries (e.g., India)
+
+And convert them into:
+
+* Ports (SEA)
+* Airports (AIR)
+* Cities (LAND)
+
+---
+
+# 2. ADD GEOCODING (MANDATORY)
+
+Integrate a real geocoding API:
+
+Options:
+
+* Mapbox Geocoding API
+* OpenCage
+* Google Geocoding API
+
+---
+
+## Behavior:
+
+Input:
+"Mumbai"
+
+Output:
+
+* Coordinates
+* Type: City
+* Country: India
+
+---
+
+# 3. ENTITY RESOLUTION (CRITICAL)
+
+Create:
+
+`locationResolverService`
+
+---
+
+## Responsibilities:
+
+Convert based on mode:
+
+### SEA MODE 🚢
+
+"Mumbai" → Mumbai Port
+
+If multiple ports:
+→ Show options:
+
+* Mumbai Port
+* Nhava Sheva (JNPT)
+
+---
+
+### LAND MODE 🚛
+
+"Mumbai" → Mumbai (valid)
+
+---
+
+### AIR MODE ✈️
+
+"Mumbai" → Chhatrapati Shivaji Airport
+
+---
+
+# 4. FUZZY MATCHING (IMPORTANT)
+
+Do NOT require exact names.
+
+Handle:
+
+* "mumbai"
+* "Mumbai city"
+* "bombay"
+
+All must resolve correctly.
+
+---
+
+# 5. REMOVE THIS BEHAVIOR (CRITICAL)
+
+❌ DO NOT say:
+"I couldn't find Mumbai"
+
+Instead:
+✅ Always:
+
+* Resolve automatically OR
+* Suggest closest matches
+
+---
+
+# 6. FALLBACK STRATEGY
+
+If uncertain:
+
+Show suggestions:
+
+"Did you mean:"
+
+* Mumbai Port
+* Nhava Sheva Port
+
+---
+
+# 7. PORT / AIRPORT DATABASE
+
+Maintain dataset:
+
+* Ports (India + global)
+* Airports
+
+Each entry:
+
+* name
+* coordinates
+* country
+* type
+
+---
+
+# 8. VALIDATION AFTER RESOLUTION
+
+Once resolved:
+
+* SEA → must be port
+* AIR → must be airport
+
+---
+
+# 9. USER EXPERIENCE
+
+User:
+"Mumbai to Dubai"
+
+System:
+
+1. Detect both as cities
+2. Convert:
+
+   * Mumbai → Mumbai Port
+   * Dubai → Jebel Ali Port
+3. Ask confirmation OR auto-select best
+
+---
+
+# 10. FINAL BEHAVIOR
+
+User should be able to type:
+
+* "Mumbai to Dubai"
+* "India to USA"
+* "Vizag to Singapore"
+
+And system should ALWAYS:
+
+* Understand
+* Resolve
+* Guide correctly
+
+---
+
+# FINAL GOAL
+
+Make the system behave like:
+
+"Google Maps + Domain Intelligence"
+
+NOT a strict keyword matcher.

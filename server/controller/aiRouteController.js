@@ -1116,6 +1116,43 @@ exports.getWeather = async (req, res) => {
   }
 };
 
+// ── Port Resolver — returns nearest ports to a given coordinate ───────────────
+// Used by the frontend to validate sea-mode location selections.
+exports.resolvePort = async (req, res) => {
+  try {
+    const lat = parseFloat(req.query.lat);
+    const lon = parseFloat(req.query.lon);
+    if (isNaN(lat) || isNaN(lon)) return res.status(400).json({ error: 'Missing lat/lon' });
+
+    const IS_PORT_KM = 80; // within 80 km → considered a coastal/port city
+
+    const withDist = MAJOR_PORTS
+      .map(p => ({ ...p, distKm: Math.round(hDist([lon, lat], [p.lon, p.lat])) }))
+      .sort((a, b) => a.distKm - b.distKm);
+
+    const top4 = withDist.slice(0, 4).map(p => ({
+      name:         p.name,
+      country:      p.country,
+      lat:          p.lat,
+      lon:          p.lon,
+      distKm:       p.distKm,
+      display_name: `${p.name} Port`,
+    }));
+
+    const closest = top4[0];
+    console.log(`[RESOLVE-PORT] (${lat.toFixed(2)},${lon.toFixed(2)}) → ${closest.name} ${closest.distKm} km`);
+
+    res.json({
+      isPort:       closest.distKm <= IS_PORT_KM,
+      closestDistKm: closest.distKm,
+      nearestPorts: top4,
+    });
+  } catch (err) {
+    console.error('resolvePort error:', err.message);
+    res.status(500).json({ error: 'Port resolution failed' });
+  }
+};
+
 exports.compareRoutes = async (req, res) => {
   try {
     const { routes } = req.body;
