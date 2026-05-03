@@ -232,6 +232,10 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
         const normalizedMsg = normalize(msg);
         const countryMatch = Object.keys(COUNTRY_PORT_HINTS).find(k => normalizedMsg === k || normalizedMsg.includes(` ${k} `) || normalizedMsg.startsWith(`${k} `) || normalizedMsg.endsWith(` ${k}`));
         const matchedPort = Object.values(COUNTRY_PORT_HINTS).flat().find(p => normalize(p) === normalizedMsg);
+        const matchedCountryPort = Object.entries(COUNTRY_PORT_HINTS).find(([, ports]) =>
+            ports.some(p => normalize(p) === normalizedMsg)
+        );
+        const portCountry = matchedCountryPort?.[0] || null;
 
         if (matchedPort && !currentState.origin) {
             parsed = {
@@ -250,6 +254,22 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
                 options: COUNTRY_PORT_HINTS[countryMatch],
             };
         } else if (matchedPort && currentState.origin && !currentState.destination) {
+            parsed = {
+                type: 'ASK',
+                message: `Great — ${matchedPort}. Which transport mode would you like to use? Sea, Air, Rail, or Road?`,
+                extracted: { origin: null, destination: matchedPort, mode: null, date: null, time: null, cargo: null, priority: null },
+                clarifyField: null,
+                options: [],
+            };
+        } else if (matchedCountryPort && !currentState.origin) {
+            parsed = {
+                type: 'ASK',
+                message: `Great — ${matchedPort}. And where is it going?`,
+                extracted: { origin: matchedPort, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
+                clarifyField: null,
+                options: [],
+            };
+        } else if (matchedCountryPort && currentState.origin && !currentState.destination) {
             parsed = {
                 type: 'ASK',
                 message: `Great — ${matchedPort}. Which transport mode would you like to use? Sea, Air, Rail, or Road?`,
