@@ -142,6 +142,24 @@ html.light {
     background: rgba(255,255,255,0.8);
   }
 
+  .theme-preview-dark {
+    background: linear-gradient(180deg, #111827 0%, #0b1220 100%);
+    color: #f9fafb;
+  }
+
+  .theme-preview-light {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    color: #111827;
+  }
+
+  .theme-preview-dark .theme-preview-accent {
+    background: #374151;
+  }
+
+  .theme-preview-light .theme-preview-accent {
+    background: #dbeafe;
+  }
+
   .rg-card {
     background: var(--card);
     border: 1px solid var(--border);

@@ -242,22 +242,17 @@ const SettingsPage = () => {
                         className="flex flex-col items-center gap-3 p-4 rounded-2xl transition-all"
                         style={{
                           border: theme === id ? '2px solid #3B82F6' : '2px solid #374151',
-                          background: theme === id ? 'rgba(59,130,246,0.1)' : '#0B1220',
+                          background: theme === id ? 'rgba(59,130,246,0.12)' : '#111827',
                         }}
                       >
                         <div
-                          className="w-full h-14 rounded-xl overflow-hidden"
-                          style={{
-                            background: id === 'dark' ? '#111827' : id === 'system'
-                              ? 'linear-gradient(90deg, #F9FAFB 50%, #111827 50%)'
-                              : '#F9FAFB',
-                            border: '1px solid #374151',
-                          }}
+                          className={`w-full h-14 rounded-xl overflow-hidden ${id === 'light' ? 'theme-preview-light' : 'theme-preview-dark'}`}
+                          style={{ border: '1px solid #374151' }}
                         >
                           <div className="h-full p-2 flex flex-col justify-between">
-                            <div className="h-1.5 w-3/4 rounded-full" style={{ background: id === 'dark' ? '#374151' : '#E5E7EB' }} />
+                            <div className="h-1.5 w-3/4 rounded-full theme-preview-accent" />
                             <div className="flex gap-1">
-                              <div className="h-1.5 flex-1 rounded-full" style={{ background: id === 'dark' ? '#374151' : '#E5E7EB' }} />
+                              <div className="h-1.5 flex-1 rounded-full theme-preview-accent" />
                               <div className="h-1.5 flex-1 rounded-full" style={{ background: '#3B82F6', opacity: 0.5 }} />
                             </div>
                           </div>
