@@ -7,7 +7,9 @@ const PasswordlessStrategy = require('../src/core/auth/strategies/PasswordlessSt
 const ActivityService = require('../src/core/services/ActivityService');
 const { prisma } = require('../utils/dbConnector');
 
-const BASE_URL = (process.env.BASE_URL || "http://localhost:5000").replace(/\/+$/, "");
+// Use Replit public domain if available, fallback to env or localhost
+const REPLIT_DOMAIN = process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',')[0].trim() : null;
+const BASE_URL = (process.env.BASE_URL || (REPLIT_DOMAIN ? `https://${REPLIT_DOMAIN}` : "http://localhost:5000")).replace(/\/+$/, "");
 
 const authManager = new AuthManager();
 const userService = new UserService();
@@ -260,7 +262,26 @@ class AuthController {
         expiresAt: verificationToken.expiresAt
       });
 
-      // 3. Send verification email
+      // 3. Send verification email — if SMTP not configured, auto-verify the user
+      const emailConfigured = !!(process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS);
+
+      if (!emailConfigured) {
+        // Auto-verify: no email service, skip verification step
+        await userService.update(result.user.id, { emailVerified: true });
+        const token = authManager.generateToken({ ...result.user, emailVerified: true });
+        await userService.createSession(result.user.id, {
+          token,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        });
+        return res.status(201).json({
+          success: true,
+          message: 'Registration successful! You are now logged in.',
+          token,
+          user: { ...result.user, emailVerified: true },
+          requiresVerification: false
+        });
+      }
+
       const clientUrl = getPrimaryClientUrl();
       const verifyUrl = `${clientUrl}/verify-email?token=${rawToken}`;
       await emailService.sendVerificationEmail(email, verifyUrl, name);

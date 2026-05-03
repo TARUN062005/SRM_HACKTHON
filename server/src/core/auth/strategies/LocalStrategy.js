@@ -27,7 +27,9 @@ class LocalStrategy {
     }
 
     // --- CRITICAL: Email Verification Check (Only for LOCAL accounts) ---
-    if (user.authProvider === 'LOCAL' && !user.emailVerified) {
+    // Skip if no email service is configured (SMTP not set up)
+    const emailConfigured = !!(process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS);
+    if (emailConfigured && user.authProvider === 'LOCAL' && !user.emailVerified) {
       throw new Error('EMAIL_NOT_VERIFIED');
     }
 
