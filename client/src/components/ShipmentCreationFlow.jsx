@@ -1,87 +1,95 @@
-import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Loader2, Navigation, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, MapPin, Loader2, Check, X, ArrowUpDown } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 
-/**
- * INTERNAL COMPONENT: Specialized Location Input
- * Defined outside to prevent re-remounting/focus-loss on parent re-render.
- */
-const LocationInput = ({ label, query, setQuery, results, searching, type, selected, setSelected, activeDropdown, setActiveDropdown, onSelect }) => (
-  <div className="relative w-full">
-    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 block font-sans">
-      {label}
-    </label>
-    <div className={`relative flex items-center bg-slate-50 dark:bg-slate-950 border-2 transition-all rounded-2xl px-4 py-3.5 ${activeDropdown === type ? 'border-primary-500 ring-4 ring-primary-500/10' : 'border-slate-100 dark:border-slate-800'}`}>
-      <div className="mr-3 text-slate-400 shrink-0">
-        {searching ? <Loader2 size={18} className="animate-spin text-primary-500" /> : <Search size={18} />}
-      </div>
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          if (selected) setSelected(null);
-        }}
-        onFocus={() => setActiveDropdown(type)}
-        placeholder={`Enter ${label.toLowerCase()}...`}
-        className="w-full bg-transparent outline-none text-sm font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-700 font-sans"
-      />
-      {selected && (
-        <div className="ml-2 text-primary-500 animate-in zoom-in-50 duration-200">
-          <Check size={18} strokeWidth={3} />
-        </div>
-      )}
-    </div>
-
-    <AnimatePresence>
-      {activeDropdown === type && results.length > 0 && !selected && (
-        <motion.div 
-          initial={{ opacity: 0, y: 10, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] rounded-2xl overflow-hidden z-[2000] p-1.5"
-        >
-          {results.map((loc, i) => (
-            <button
-              key={i}
-              onClick={() => onSelect(loc, type)}
-              className="w-full text-left p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl flex items-start gap-3 transition-colors group"
-            >
-              <div className="mt-1 p-1 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-md group-hover:scale-110 transition-transform">
-                <MapPin size={12} strokeWidth={3} />
-              </div>
-              <div className="flex-1 min-w-0">
-                 <div className="flex items-center justify-between gap-2">
-                    <div className="text-[12px] font-black text-slate-900 dark:text-slate-100 truncate leading-tight font-sans">
-                      {loc.display_name.split(',')[0]}
-                    </div>
-                    <div className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded text-[8px] font-black uppercase tracking-tighter shrink-0">
-                      {loc.address?.state || loc.display_name.split(',').slice(-3, -2)[0]?.trim() || 'POI'}
-                    </div>
-                 </div>
-                 <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 truncate mt-1 font-sans">
-                   {loc.display_name.split(',').slice(1).join(',')}
-                 </div>
-              </div>
-            </button>
-          ))}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  </div>
-);
-
 const searchCache = new Map();
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 
-export const ShipmentCreationFlow = ({ 
-  onLocationSelect, 
-  onClearRoute, 
-  vehicleMode, 
-  setVehicleMode,
+const LocationInput = ({
+  label, dot, dotColor, query, setQuery, results, searching,
+  type, selected, setSelected, activeDropdown, setActiveDropdown, onSelect, onClear
+}) => {
+  const inputRef = useRef(null);
+  const isFocused = activeDropdown === type;
+
+  return (
+    <div className="relative">
+      <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${
+        isFocused ? 'border-blue-400 bg-white shadow-sm ring-2 ring-blue-100' : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+      }`}>
+        {/* Dot indicator */}
+        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${dotColor}`} />
+
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          placeholder={label}
+          onChange={e => {
+            setQuery(e.target.value);
+            if (selected) setSelected(null);
+          }}
+          onFocus={() => setActiveDropdown(type)}
+          className="flex-1 bg-transparent outline-none text-sm font-medium text-slate-800 placeholder:text-slate-400 min-w-0"
+        />
+
+        {/* Right icon */}
+        {searching ? (
+          <Loader2 size={14} className="animate-spin text-blue-500 flex-shrink-0" />
+        ) : selected ? (
+          <button onClick={onClear} className="text-slate-300 hover:text-slate-500 transition-colors flex-shrink-0">
+            <X size={14} />
+          </button>
+        ) : query.length > 0 ? (
+          <button onClick={onClear} className="text-slate-300 hover:text-slate-500 transition-colors flex-shrink-0">
+            <X size={14} />
+          </button>
+        ) : null}
+      </div>
+
+      {/* Dropdown */}
+      <AnimatePresence>
+        {isFocused && results.length > 0 && !selected && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.12)] rounded-2xl overflow-hidden z-[2000]"
+          >
+            {results.map((loc, i) => (
+              <button
+                key={i}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => onSelect(loc, type)}
+                className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-start gap-3 transition-colors border-b border-slate-50 last:border-0"
+              >
+                <div className="mt-0.5 w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                  <MapPin size={13} className="text-blue-500" strokeWidth={2.5} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-slate-900 truncate leading-tight">
+                    {loc.display_name.split(',')[0]}
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                    {loc.display_name.split(',').slice(1, 3).join(',')}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export const ShipmentCreationFlow = ({
+  onLocationSelect,
+  onClearRoute,
   initialSource = null,
-  initialDest = null 
+  initialDest = null,
 }) => {
   const [sourceQuery, setSourceQuery] = useState('');
   const [destQuery, setDestQuery] = useState('');
@@ -93,142 +101,136 @@ export const ShipmentCreationFlow = ({
   const [selectedDest, setSelectedDest] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
 
-  // Sync with External/AI State
+  // Sync external state
   useEffect(() => {
-    if (initialSource) {
-      setSelectedSource(initialSource);
-      setSourceQuery(initialSource.display_name || '');
-    }
+    if (initialSource) { setSelectedSource(initialSource); setSourceQuery(initialSource.display_name?.split(',')[0] || ''); }
+    else { setSelectedSource(null); setSourceQuery(''); }
   }, [initialSource]);
 
   useEffect(() => {
-    if (initialDest) {
-      setSelectedDest(initialDest);
-      setDestQuery(initialDest.display_name || '');
-    }
+    if (initialDest) { setSelectedDest(initialDest); setDestQuery(initialDest.display_name?.split(',')[0] || ''); }
+    else { setSelectedDest(null); setDestQuery(''); }
   }, [initialDest]);
 
-  // Optimized Search Logic...
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = () => setActiveDropdown(null);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, []);
+
+  // Auto-trigger when both selected
+  useEffect(() => {
+    if (selectedSource && selectedDest) {
+      onLocationSelect(selectedSource, selectedDest);
+    }
+  }, [selectedSource, selectedDest]);
+
   const fetchLocations = async (query, setResults, setSearching) => {
-    if (!query || query.trim().length < 3) {
-      setResults([]);
-      return;
-    }
-
-    const trimmedQuery = query.trim().toLowerCase();
-    if (searchCache.has(trimmedQuery)) {
-      setResults(searchCache.get(trimmedQuery));
-      return;
-    }
-
+    const key = query.trim().toLowerCase();
+    if (key.length < 2) { setResults([]); return; }
+    if (searchCache.has(key)) { setResults(searchCache.get(key)); return; }
     setSearching(true);
     try {
-      const res = await axios.get(`${BASE_URL}/api/ai/search`, {
-        params: { q: query, limit: 6 },
-        timeout: 5000 
-      });
+      const res = await axios.get(`${BASE_URL}/api/ai/search`, { params: { q: query, limit: 6 }, timeout: 5000 });
       const data = res.data || [];
-      if (data.length > 0) {
-        searchCache.set(trimmedQuery, data);
-        setResults(data);
-      }
-    } catch (e) { 
-      if (e.response?.status === 429) {
-          console.warn("[GEO-429] Satellite congestion. Serving legacy results.");
-      } else {
-          console.error("[GEO-SYNC ERROR]:", e.message);
-          setResults([]);
-      }
+      if (data.length > 0) { searchCache.set(key, data); setResults(data); }
+    } catch (e) {
+      if (e.response?.status !== 429) setResults([]);
     } finally {
       setSearching(false);
     }
   };
 
-  // Debounced Search Effects
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (activeDropdown === 'source' && !selectedSource) {
-        fetchLocations(sourceQuery, setSourceResults, setSearchingSource);
-      }
-    }, 250);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => {
+      if (activeDropdown === 'source' && !selectedSource) fetchLocations(sourceQuery, setSourceResults, setSearchingSource);
+    }, 220);
+    return () => clearTimeout(t);
   }, [sourceQuery, activeDropdown, selectedSource]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (activeDropdown === 'dest' && !selectedDest) {
-        fetchLocations(destQuery, setDestResults, setSearchingDest);
-      }
-    }, 250);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => {
+      if (activeDropdown === 'dest' && !selectedDest) fetchLocations(destQuery, setDestResults, setSearchingDest);
+    }, 220);
+    return () => clearTimeout(t);
   }, [destQuery, activeDropdown, selectedDest]);
 
   const handleSelect = (loc, type) => {
     if (type === 'source') {
       setSelectedSource(loc);
-      setSourceQuery(loc.display_name);
+      setSourceQuery(loc.display_name?.split(',')[0] || loc.display_name);
       setSourceResults([]);
     } else {
       setSelectedDest(loc);
-      setDestQuery(loc.display_name);
+      setDestQuery(loc.display_name?.split(',')[0] || loc.display_name);
       setDestResults([]);
     }
     setActiveDropdown(null);
   };
 
-  const confirmSelection = () => {
-    if (selectedSource && selectedDest) {
-      onLocationSelect(selectedSource, selectedDest);
-    }
+  const handleSwap = () => {
+    const tmpSrc = selectedSource;
+    const tmpDest = selectedDest;
+    const tmpSQ = sourceQuery;
+    const tmpDQ = destQuery;
+    setSelectedSource(tmpDest);
+    setSelectedDest(tmpSrc);
+    setSourceQuery(tmpDQ);
+    setDestQuery(tmpSQ);
   };
 
+  const clearSource = () => { setSelectedSource(null); setSourceQuery(''); setSourceResults([]); };
+  const clearDest = () => { setSelectedDest(null); setDestQuery(''); setDestResults([]); };
+
   return (
-    <div className="flex flex-col gap-6 w-full">
-      <div className="space-y-6">
-        <LocationInput 
-          label="Origin Point" 
-          query={sourceQuery} 
-          setQuery={setSourceQuery} 
-          results={sourceResults} 
-          searching={searchingSource}
-          type="source"
-          selected={selectedSource}
-          setSelected={setSelectedSource}
-          activeDropdown={activeDropdown}
-          setActiveDropdown={setActiveDropdown}
-          onSelect={handleSelect}
-        />
+    <div className="space-y-2" onClick={e => e.stopPropagation()}>
+      {/* Origin */}
+      <LocationInput
+        label="Choose starting point"
+        dotColor="bg-green-500"
+        query={sourceQuery}
+        setQuery={setSourceQuery}
+        results={sourceResults}
+        searching={searchingSource}
+        type="source"
+        selected={selectedSource}
+        setSelected={setSelectedSource}
+        activeDropdown={activeDropdown}
+        setActiveDropdown={setActiveDropdown}
+        onSelect={handleSelect}
+        onClear={clearSource}
+      />
 
-
-        <div className="h-2" /> 
-
-        <LocationInput 
-          label="Destination Point" 
-          query={destQuery} 
-          setQuery={setDestQuery} 
-          results={destResults} 
-          searching={searchingDest}
-          type="dest"
-          selected={selectedDest}
-          setSelected={setSelectedDest}
-          activeDropdown={activeDropdown}
-          setActiveDropdown={setActiveDropdown}
-          onSelect={handleSelect}
-        />
+      {/* Swap button between inputs */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-px bg-slate-100" />
+        <button
+          onClick={handleSwap}
+          disabled={!selectedSource && !selectedDest}
+          className="w-7 h-7 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-300 transition-all disabled:opacity-30"
+        >
+          <ArrowUpDown size={12} />
+        </button>
+        <div className="flex-1 h-px bg-slate-100" />
       </div>
 
-      <button
-        onClick={confirmSelection}
-        disabled={!selectedSource || !selectedDest}
-        className={`w-full py-4 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-2xl ${
-          selectedSource && selectedDest 
-          ? 'bg-primary-600 text-white shadow-primary-600/20 hover:scale-[1.02] active:scale-95' 
-          : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed shadow-none'
-        }`}
-      >
-        <Navigation size={18} />
-        Initiate Mission
-      </button>
+      {/* Destination */}
+      <LocationInput
+        label="Choose destination"
+        dotColor="bg-red-500"
+        query={destQuery}
+        setQuery={setDestQuery}
+        results={destResults}
+        searching={searchingDest}
+        type="dest"
+        selected={selectedDest}
+        setSelected={setSelectedDest}
+        activeDropdown={activeDropdown}
+        setActiveDropdown={setActiveDropdown}
+        onSelect={handleSelect}
+        onClear={clearDest}
+      />
     </div>
   );
 };

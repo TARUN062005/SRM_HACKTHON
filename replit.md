@@ -38,7 +38,7 @@ This is a fullstack web application with a React frontend and an Express.js back
 ## Features
 
 - User authentication (local, Google, GitHub, Facebook OAuth, magic link)
-- JWT-based sessions
+- JWT-based sessions; auto-verify on register when SMTP not configured
 - Admin panel with user management
 - Broadcast notification system (in-app, email, push)
 - Email templates (EJS)
@@ -47,6 +47,24 @@ This is a fullstack web application with a React frontend and an Express.js back
 - Delivery tracking & analytics
 - File uploads (multer)
 - Rate limiting & security (helmet)
+- CORS: all `*.replit.dev` and `*.repl.co` origins are permitted
+
+## Dashboard Map (RouteGuardian)
+
+- **Layout**: Google Maps style — fixed 380px left sidebar + full-width map panel
+- **Map tiles**: CartoDB Voyager (closest free alternative to Google Maps look)
+- **Route rendering**: white-border + blue-fill polylines (exact Google Maps style); inactive routes in gray
+- **Markers**: custom SVG labeled pins (green A = origin, red B = destination)
+- **Route intelligence**: collapsible sidebar section with weather waypoints + risk news alerts
+- **Simulation**: route animation controls embedded in sidebar (play/stop, speed slider)
+- **AI assistant**: Routy chat HUD (bottom-left of map) for voice/text route planning
+- **Layer picker**: top-right map control for Road / Satellite / Dark tiles
+- **Locate me**: Leaflet control for GPS-centering
+- **Key files**:
+  - `client/src/pages/Dashboard.jsx` — Google Maps two-panel layout
+  - `client/src/components/RouteMap.jsx` — Leaflet map, markers, routes, AI HUD
+  - `client/src/components/ShipmentCreationFlow.jsx` — search inputs with autocomplete + swap button
+  - `client/src/pages/AuthPage.jsx` — animated auth page (Framer Motion)
 
 ## Project Structure
 
