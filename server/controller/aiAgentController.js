@@ -219,7 +219,24 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
         const datePattern = /(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{1,2}[\/\-]\d{1,2}|monday|tuesday|wednesday|thursday|friday|saturday|sunday|asap|today|tomorrow|next\s+\w+)/i;
         const timePattern = /(?:\d{1,2}:\d{2}|morning|afternoon|evening|night|\d{1,2}\s*am|\d{1,2}\s*pm|any\s*time)/i;
 
-        if (detectedMode && !currentState.mode) {
+        const COUNTRY_PORT_HINTS = {
+            india: ['Mumbai Port, India', 'Chennai Port, India', 'Visakhapatnam Port, India', 'Kandla Port, India'],
+            usa: ['Port of New York and New Jersey, USA', 'Port of Los Angeles, USA', 'Port of Long Beach, USA', 'Port of Savannah, USA'],
+            america: ['Port of New York and New Jersey, USA', 'Port of Los Angeles, USA', 'Port of Long Beach, USA', 'Port of Savannah, USA'],
+            china: ['Shanghai Port, China', 'Shenzhen Port, China', 'Ningbo-Zhoushan Port, China', 'Qingdao Port, China'],
+        };
+
+        const countryMatch = Object.keys(COUNTRY_PORT_HINTS).find(k => msg === k || msg.includes(` ${k} `) || msg.startsWith(`${k} `) || msg.endsWith(` ${k}`));
+
+        if (countryMatch && !currentState.origin) {
+            parsed = {
+                type: 'CLARIFY',
+                message: `I found "${countryMatch}" as a country. Please choose a specific port to continue.`,
+                extracted: { origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
+                clarifyField: 'origin',
+                options: COUNTRY_PORT_HINTS[countryMatch],
+            };
+        } else if (detectedMode && !currentState.mode) {
             // User answered a "which mode?" question
             const modeLabels = { sea: 'Maritime', air: 'Air freight', rail: 'Rail', truck: 'Road' };
             const nextQ = !currentState.date
@@ -322,9 +339,11 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
             const missing = !startGeo ? newState.origin : newState.destination;
             return res.json({
                 success: true,
-                type: 'ASK',
-                message: `I couldn't find "${missing}" on the map. Could you give me a more specific port or city name?`,
+                type: 'CLARIFY',
+                message: `I couldn't find "${missing}" on the map. Please choose a more specific port or city.`,
                 state: { ...newState, [!startGeo ? 'origin' : 'destination']: null },
+                clarifyField: !startGeo ? 'origin' : 'destination',
+                options: !startGeo ? (COUNTRY_PORT_HINTS[missing.toLowerCase()] || []) : [],
             });
         }
 
