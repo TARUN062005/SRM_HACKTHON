@@ -60,11 +60,28 @@ This is a fullstack web application with a React frontend and an Express.js back
 - **AI assistant**: Routy chat HUD (bottom-left of map) for voice/text route planning
 - **Layer picker**: top-right map control for Road / Satellite / Dark tiles
 - **Locate me**: Leaflet control for GPS-centering
-- **Key files**:
-  - `client/src/pages/Dashboard.jsx` — Google Maps two-panel layout
-  - `client/src/components/RouteMap.jsx` — Leaflet map, markers, routes, AI HUD
-  - `client/src/components/ShipmentCreationFlow.jsx` — search inputs with autocomplete + swap button
-  - `client/src/pages/AuthPage.jsx` — animated auth page (Framer Motion)
+
+## Live Intelligence System (v5)
+
+- **GLOBAL_RISK_ZONES**: 8 named threat corridors (Red Sea, Hormuz, Black Sea, Gulf of Aden, South China Sea, Eastern Mediterranean, Taiwan Strait, Kerch Strait) in `aiRouteController.js`
+- **Route proximity check**: `routePassesNear()` uses Haversine distance to detect which risk zones fall within 700 km of a route corridor
+- **Composite risk score**: Zones (60%) + Live news (25%) + Weather (15%) → 0-100 score per route
+- **riskZones in intelligence**: Each route's `.intelligence.riskZones` array contains matched zones with `severity`, `reason`, `type`, `newsConfirmed`
+- **Map Circle overlays**: Leaflet `Circle` components render each risk zone as a semi-transparent red/orange/amber area on the map
+- **Risk score badge**: Floating button (bottom-right of map) shows live score + severity. Color changes: green→amber→red. Opens `RiskIntelPanel` on click
+- **RiskIntelPanel**: Slide-in panel from the right of the map with 3 tabs:
+  - *Threats*: expandable threat zone cards with WHY explanation text
+  - *Intel*: live news articles from NewsData.io with type/date/link
+  - *Weather*: hazardous waypoints + all checkpoints with icons
+  - *Safer route recommendation*: if a lower-risk alternative exists, shows switch button
+- **Live Threat Feed** in Dashboard empty state: Dynamic 5-zone threat feed replacing hardcoded "Active Risk — Red Sea" card
+- **getAlerts endpoint** (`GET /api/ai/alerts`): Returns full GLOBAL_RISK_ZONES list as a live threat API
+
+### Key files:
+  - `client/src/pages/Dashboard.jsx` — sidebar layout, live threat feed, GLOBAL_THREAT_PREVIEW
+  - `client/src/components/RouteMap.jsx` — Circle overlays, risk badge, RiskIntelPanel connection
+  - `client/src/components/RiskIntelPanel.jsx` — NEW: explainable risk panel component
+  - `server/controller/aiRouteController.js` — GLOBAL_RISK_ZONES, routePassesNear, enhanced getRouteIntelligence, getAlerts
 
 ## Project Structure
 

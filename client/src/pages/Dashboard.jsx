@@ -9,8 +9,22 @@ import {
   CloudRain, Wind, Sun, Zap, AlertTriangle,
   CheckCircle, ChevronDown, ChevronUp, ExternalLink, X,
   Play, Square, Bell, Settings, LogOut, User, Clock,
-  Activity, Globe, Shield, ChevronRight, Menu,
+  Activity, Globe, Shield, ChevronRight, Menu, Radio, TrendingUp,
 } from 'lucide-react';
+
+// Static global threat feed shown in empty-state sidebar
+const GLOBAL_THREAT_PREVIEW = [
+  { name: 'Red Sea / Bab-el-Mandeb', severity: 'CRITICAL', type: 'conflict',
+    shortDesc: 'Active Houthi missile attacks on commercial shipping. Major carriers diverted via Cape.' },
+  { name: 'Black Sea', severity: 'CRITICAL', type: 'conflict',
+    shortDesc: 'Russia–Ukraine war. Naval mines in transit corridors. Grain export under threat.' },
+  { name: 'Strait of Hormuz', severity: 'HIGH', type: 'conflict',
+    shortDesc: 'US-Iran tensions. Vessel seizures and naval exercises creating closure risk.' },
+  { name: 'Eastern Mediterranean', severity: 'HIGH', type: 'conflict',
+    shortDesc: 'Regional conflict creating airspace and sea-lane uncertainty.' },
+  { name: 'South China Sea', severity: 'MODERATE', type: 'dispute',
+    shortDesc: 'Territorial disputes. Coast guard standoffs near disputed island chains.' },
+];
 
 const FREIGHT_MODES = [
   { label: 'Sea',  value: 'ship',  Icon: Anchor, vehicle: 'ship'  },
@@ -408,15 +422,31 @@ const Dashboard = () => {
                       </div>
                     </div>
 
+                    {/* Live global threat feed */}
                     <div className="px-4 pb-3">
-                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <AlertTriangle size={13} className="text-amber-500 flex-shrink-0" />
-                          <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">Active Risk — Red Sea</span>
-                        </div>
-                        <p className="text-[11px] text-amber-700 leading-relaxed">
-                          Ongoing Bab-el-Mandeb conflict. AI recommending Cape of Good Hope re-routing (+14 days).
-                        </p>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Radio size={9} className="text-red-500 animate-pulse" />
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Threat Feed</p>
+                      </div>
+                      <div className="space-y-2">
+                        {GLOBAL_THREAT_PREVIEW.slice(0, 3).map((threat, i) => {
+                          const sev = threat.severity;
+                          const clr = sev === 'CRITICAL'
+                            ? { card: 'bg-red-50 border-red-200',    dot: 'bg-red-500',    badge: 'bg-red-100 text-red-600',    title: 'text-red-700',    desc: 'text-red-700'    }
+                            : sev === 'HIGH'
+                            ? { card: 'bg-orange-50 border-orange-200', dot: 'bg-orange-500', badge: 'bg-orange-100 text-orange-600', title: 'text-orange-700', desc: 'text-orange-700' }
+                            : { card: 'bg-amber-50 border-amber-200',  dot: 'bg-amber-400',  badge: 'bg-amber-100 text-amber-600',  title: 'text-amber-700',  desc: 'text-amber-700'  };
+                          return (
+                            <div key={i} className={`p-2.5 rounded-xl border ${clr.card}`}>
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${clr.dot}`} />
+                                <span className={`text-[9px] font-black uppercase tracking-wider flex-1 truncate ${clr.title}`}>{threat.name}</span>
+                                <span className={`text-[7px] font-black uppercase px-1.5 py-0.5 rounded flex-shrink-0 ${clr.badge}`}>{sev}</span>
+                              </div>
+                              <p className={`text-[10px] leading-relaxed ${clr.desc}`}>{threat.shortDesc}</p>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 

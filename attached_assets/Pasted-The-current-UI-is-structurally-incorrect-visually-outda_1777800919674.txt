@@ -1,0 +1,337 @@
+The current UI is structurally incorrect, visually outdated, and lacks hierarchy. Each page behaves independently instead of being part of a unified system.
+
+You must redesign the entire frontend into a **modern, production-grade logistics control tower UI**.
+
+---
+
+# 1. GLOBAL DESIGN SYSTEM (MANDATORY)
+
+## Theme
+
+* Default: **Dark theme**
+* Optional toggle: Light theme
+
+## Colors (STRICT)
+
+Use consistent tokens:
+
+### Dark Theme
+
+* Background: #0B1220
+* Surface: #111827
+* Card: #1F2937
+* Border: #374151
+
+### Primary
+
+* Blue: #3B82F6 (main actions, highlights)
+
+### Status Colors
+
+* Success: #22C55E (green)
+* Warning: #F59E0B (orange)
+* Danger: #EF4444 (red)
+* Info: #38BDF8 (cyan)
+
+### Text
+
+* Primary: #F9FAFB
+* Secondary: #9CA3AF
+* Muted: #6B7280
+
+---
+
+## Typography
+
+* Font: Inter / system UI
+* Headings: Bold
+* Body: Regular
+* Use consistent spacing (8px grid system)
+
+---
+
+# 2. GLOBAL LAYOUT (VERY IMPORTANT)
+
+Create a **fixed app shell**:
+
+### LEFT SIDEBAR (fixed)
+
+Width: ~240px
+
+Sections:
+
+* Logo (top)
+* Navigation:
+
+  * Dashboard
+  * Routes Map
+  * Risk Alerts
+  * Shipments
+* Bottom:
+
+  * Settings
+  * Logout
+
+---
+
+### TOP NAVBAR (fixed)
+
+Height: ~64px
+
+Right side:
+
+* Notifications (bell icon)
+* Profile avatar (click → dropdown)
+
+Dropdown:
+
+* Profile
+* Settings
+* Logout
+
+---
+
+### MAIN CONTENT AREA
+
+* Takes remaining width
+* Scrollable
+* Padding: 24px
+
+---
+
+# 3. DASHBOARD PAGE (CORE SCREEN)
+
+## Layout (split)
+
+LEFT: Control Panel (30%)
+RIGHT: MAP (70%)
+
+---
+
+## LEFT PANEL
+
+### Transport Selector (TOP)
+
+Buttons:
+
+* 🚢 Ship
+* 🚛 Land
+* ✈️ Air
+
+Style:
+
+* Rounded segmented control
+* Active = blue highlight
+
+---
+
+### Route Input
+
+* Origin input
+* Destination input
+* Swap button
+
+---
+
+### KPI CARDS (GRID)
+
+* Active Shipments
+* Risk Alerts
+* On-Time %
+* Avg Transit
+
+Cards:
+
+* Rounded
+* Subtle shadow
+* Color-coded icons
+
+---
+
+### ACTIVE RISK CARD
+
+Example:
+"⚠️ Red Sea Conflict"
+
+Must include:
+
+* Severity badge (RED)
+* Short explanation
+* AI recommendation
+
+---
+
+## RIGHT PANEL (MAP — PRIMARY)
+
+* Full height
+* Smooth zoom/pan
+* No lag
+
+Overlays:
+
+* Routes
+* Risk zones
+* Alerts
+
+---
+
+# 4. MAP BEHAVIOR (CRITICAL)
+
+## Mode-based rendering:
+
+### SEA
+
+* Blue ocean focus
+* Curved shipping lanes
+* No roads
+
+### LAND
+
+* Roads + traffic
+
+### AIR
+
+* Minimal map
+* Arc flight paths
+
+---
+
+## Interaction:
+
+* Click route → open side panel
+* Click risk zone → show details
+
+---
+
+# 5. RISK EXPLANATION PANEL (RIGHT SLIDE PANEL)
+
+Appears when user clicks alert/route
+
+Must include:
+
+### HEADER
+
+"🚨 Critical Risk: Strait of Hormuz"
+
+---
+
+### CONTENT
+
+1. AI Explanation
+2. Risk Score (0–100)
+3. Impact:
+
+   * Delay estimate
+   * Affected shipments
+
+---
+
+### NEWS SECTION
+
+* Article cards:
+
+  * Image
+  * Title
+  * Source
+
+---
+
+### ACTION
+
+* “View Alternate Route”
+* “Apply Reroute”
+
+---
+
+# 6. NOTIFICATIONS PAGE (FIX YOUR CURRENT ONE)
+
+Current issue: EMPTY + USELESS
+
+## Redesign:
+
+* Timeline style list
+* Each item:
+
+  * Icon
+  * Title
+  * Severity color
+  * Timestamp
+
+Example:
+"🚨 Conflict escalation near Hormuz — reroute suggested"
+
+---
+
+# 7. SETTINGS PAGE (FIX STRUCTURE)
+
+Current issue: looks okay but disconnected
+
+## Improve:
+
+LEFT: Tabs
+
+* Appearance
+* Profile
+* Notifications
+* Security
+
+RIGHT: Content panel
+
+---
+
+### Add:
+
+* Toggle switches
+* Better spacing
+* Clear grouping
+
+---
+
+# 8. PERFORMANCE FIXES
+
+* Lazy load map
+* Use memoization
+* Avoid full re-renders
+
+---
+
+# 9. ANIMATION (SUBTLE ONLY)
+
+* Hover effects
+* Smooth panel slide
+* No heavy animations
+
+---
+
+# 10. REMOVE THESE PROBLEMS
+
+* No isolated pages
+* No inconsistent spacing
+* No random colors
+* No duplicated UI patterns
+
+---
+
+# FINAL GOAL
+
+Transform this into:
+
+"A real-time AI-powered logistics control tower interface"
+
+NOT a basic dashboard.
+
+It must feel like:
+
+* Professional
+* Fast
+* Intelligent
+* Decision-focused
+
+---
+
+# OUTPUT REQUIRED
+
+* Updated layout structure
+* Refactored components
+* Clean reusable UI system
+* Working UI without lag

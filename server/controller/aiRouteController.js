@@ -19,6 +19,35 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyCF-jKD
 const geminiCache = new NodeCache({ stdTTL: 1800 }); // Longer cache for analysis
 const geocoderCache = new NodeCache({ stdTTL: 86400 }); // 24-hour geocoding cache
 
+// ── Global Known Risk Zones ─────────────────────────────────────────────────
+// Each zone is checked against route checkpoints; matching zones are returned in intelligence.riskZones
+const GLOBAL_RISK_ZONES = [
+  { id: 'red-sea',       lat: 14.0,  lon: 42.5,  radiusKm: 700, name: 'Red Sea / Bab-el-Mandeb', type: 'conflict', baselineSeverity: 'CRITICAL',
+    reason: 'Houthi forces conducting active missile and drone attacks on commercial vessels. Over 60 incidents since Jan 2024. Major carriers have diverted via Cape of Good Hope, adding 10–14 transit days.',
+    keywords: ['red sea', 'houthi', 'bab el mandeb', 'yemen', 'suez'] },
+  { id: 'hormuz',        lat: 26.5,  lon: 56.5,  radiusKm: 300, name: 'Strait of Hormuz', type: 'conflict', baselineSeverity: 'HIGH',
+    reason: '~20% of global oil flows through this chokepoint daily. Heightened US-Iran tensions. Iran has conducted vessel seizures and naval exercises, creating periodic closure risk.',
+    keywords: ['hormuz', 'iran', 'gulf', 'persian gulf'] },
+  { id: 'black-sea',     lat: 46.0,  lon: 33.0,  radiusKm: 700, name: 'Black Sea', type: 'conflict', baselineSeverity: 'CRITICAL',
+    reason: 'Active Russia–Ukraine war. Shipping severely disrupted. Naval mines reported in transit corridors. Ukrainian grain export corridor under constant threat from military operations.',
+    keywords: ['ukraine', 'russia', 'black sea', 'crimea', 'odesa'] },
+  { id: 'gulf-aden',     lat: 12.5,  lon: 47.5,  radiusKm: 500, name: 'Gulf of Aden', type: 'piracy', baselineSeverity: 'HIGH',
+    reason: 'Historically elevated piracy risk zone. Regional instability has increased threat levels significantly. Armed groups targeting commercial vessels for ransom from adjacent coastlines.',
+    keywords: ['aden', 'somalia', 'piracy', 'hijack'] },
+  { id: 'south-china',   lat: 14.5,  lon: 113.5, radiusKm: 900, name: 'South China Sea', type: 'dispute', baselineSeverity: 'MODERATE',
+    reason: 'Overlapping territorial claims by China, Taiwan, Philippines, Vietnam. Coast guard confrontations and naval standoffs frequently reported near disputed island chains and shipping corridors.',
+    keywords: ['south china', 'taiwan', 'philippine', 'spratly', 'paracel'] },
+  { id: 'e-med',         lat: 32.5,  lon: 34.5,  radiusKm: 500, name: 'Eastern Mediterranean', type: 'conflict', baselineSeverity: 'HIGH',
+    reason: 'Ongoing regional conflict affecting maritime security. Military operations and cross-border exchanges creating airspace and sea-lane uncertainty for commercial transit.',
+    keywords: ['israel', 'gaza', 'lebanon', 'hezbollah', 'eastern mediterranean'] },
+  { id: 'taiwan-strait', lat: 24.0,  lon: 120.5, radiusKm: 400, name: 'Taiwan Strait', type: 'dispute', baselineSeverity: 'HIGH',
+    reason: 'Military exercises and cross-strait tensions create periodic closure risks to this critical chokepoint handling ~50 ships per day. PLA naval exercises have previously halted transit.',
+    keywords: ['taiwan', 'pla', 'strait', 'china sea'] },
+  { id: 'kerch',         lat: 45.4,  lon: 36.6,  radiusKm: 250, name: 'Kerch Strait', type: 'conflict', baselineSeverity: 'HIGH',
+    reason: 'Ukraine-Russia conflict zone. Russia-controlled strait connecting Black Sea to Sea of Azov. Commercial shipping suspended and subject to military enforcement.',
+    keywords: ['kerch', 'azov', 'ukraine bridge'] },
+];
+
 function getDistance(p1, p2) {
   const R = 6371e3; // meters
   const φ1 = (p1[1] * Math.PI) / 180;
@@ -258,15 +287,35 @@ const getRouteIntelligence = async (coords, sourceName = "Mission Sector", destN
 
     const validWaypoints = waypointData.filter(Boolean);
 
-    // 4. Final Assessment Bundle (Step 6 Schema)
+    // 4. Risk Zone Detection — match known global threat corridors to route checkpoints
+    const routeRiskZones = GLOBAL_RISK_ZONES
+      .filter(zone => routePassesNear(checkpoints, zone))
+      .map(zone => {
+        const newsConfirmed = newsStatus.events?.some(e => {
+          const txt = ((e.title || '') + ' ' + (e.impact || '')).toLowerCase();
+          return zone.keywords.some(kw => txt.includes(kw));
+        });
+        return { ...zone, severity: newsConfirmed ? 'CRITICAL' : zone.baselineSeverity, newsConfirmed };
+      });
+
+    // 5. Composite risk score: zones (up to 60) + news (up to 25) + weather (up to 15)
+    const zoneRisk    = Math.min(60, routeRiskZones.reduce((acc, z) =>
+      acc + (z.severity === 'CRITICAL' ? 40 : z.severity === 'HIGH' ? 22 : 10), 0));
+    const weatherRisk = Math.min(15, validWaypoints.filter(w => w.code >= 61).length * 5);
+    const newsRisk    = newsStatus.status === 'HIGH' ? 25 : newsStatus.status === 'MODERATE' ? 14 : 0;
+    const riskScore   = Math.min(100, Math.round(zoneRisk + weatherRisk + newsRisk));
+    const severity    = riskScore >= 68 ? 'CRITICAL' : riskScore >= 35 ? 'CAUTION' : 'STABLE';
+
+    // 6. Final Assessment Bundle
     const finalIntel = {
       summary: newsStatus.summary,
       newsStatus: newsStatus.status,
-      newsFeed: newsStatus.events, // Map events to newsFeed for Frontend
+      newsFeed: newsStatus.events,
       affected_regions: newsStatus.affected_regions,
       waypointReports: validWaypoints,
-      riskScore: newsStatus.status === "HIGH" ? 95 : newsStatus.status === "MODERATE" ? 55 : 15,
-      severity: newsStatus.status === "HIGH" || validWaypoints.some(v => v.condition === "Storm") ? "CRITICAL" : (newsStatus.status === "MODERATE" ? "CAUTION" : "STABLE"),
+      riskZones: routeRiskZones,
+      riskScore,
+      severity,
       lastScanned: new Date().toISOString()
     };
 
@@ -363,6 +412,13 @@ function pathDistKm(coords) {
   let d = 0;
   for (let i = 1; i < coords.length; i++) d += hDist(coords[i - 1], coords[i]);
   return d;
+}
+
+// Check whether any route checkpoint falls within a buffer around a known risk zone
+// checkpoints are [lon, lat] arrays
+function routePassesNear(checkpoints, zone) {
+  const buffer = zone.radiusKm + 700; // generous 700 km corridor buffer
+  return checkpoints.some(cp => hDist([cp[0], cp[1]], [zone.lon, zone.lat]) < buffer);
 }
 
 // Major maritime chokepoints [lon, lat]
@@ -843,7 +899,19 @@ exports.getShipment = async (req, res) => {
 
 exports.getAlerts = async (req, res) => {
   try {
-     res.json({ success: true, alerts: [] });
+    // Return global risk zone intelligence as a live threat feed
+    const threats = GLOBAL_RISK_ZONES.map(z => ({
+      id: z.id,
+      title: z.name,
+      type: z.type,
+      severity: z.baselineSeverity,
+      reason: z.reason,
+      lat: z.lat,
+      lon: z.lon,
+      radiusKm: z.radiusKm,
+      timestamp: new Date().toISOString(),
+    }));
+    res.json({ success: true, alerts: threats, count: threats.length });
   } catch (error) {
     res.status(500).json({ error: "Risk Feed Offline." });
   }

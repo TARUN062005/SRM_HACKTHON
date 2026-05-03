@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, ZoomControl, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, Circle, Popup, useMap, ZoomControl, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
-import { X, Layers, Bot, Mic, Crosshair, MicOff, Send, Anchor, AlertTriangle } from 'lucide-react';
+import { X, Layers, Bot, Mic, Crosshair, MicOff, Send, Anchor, AlertTriangle, Shield, Radio } from 'lucide-react';
+import { RiskIntelPanel } from './RiskIntelPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
@@ -425,6 +426,7 @@ export const RouteMap = ({
   const [showLayerPicker, setShowLayerPicker] = useState(false);
   const [showAIHUD, setShowAIHUD]           = useState(false);
   const [hoveredRoute, setHoveredRoute]     = useState(null);
+  const [showRiskPanel, setShowRiskPanel]   = useState(false);
 
   useEffect(() => { setShowSeamarks(freightMode === 'ship'); }, [freightMode]);
 
@@ -495,6 +497,12 @@ export const RouteMap = ({
     truck: { activeColor: '#c2410c', altColor: '#ea580c', glowColor: 'rgba(194,65,12,0.22)',  weight: 5, altWeight: 4, dashArray: null,    glowW: 11 },
   };
   const modeStyle = MODE_STYLE[freightMode] || MODE_STYLE.truck;
+
+  // ── Active route risk intelligence ────────────────────────────────────────
+  const activeIntel    = allRoutes[activeRouteIndex]?.intelligence ?? null;
+  const riskScore      = activeIntel?.riskScore    ?? 0;
+  const riskSeverity   = activeIntel?.severity     ?? 'STABLE';
+  const riskZones      = activeIntel?.riskZones    ?? [];
 
   // Duration formatter: show in hours/days for ship, minutes for land/air
   const formatDuration = (seconds) => {
@@ -706,6 +714,48 @@ export const RouteMap = ({
         </button>
       </div>
 
+      {/* Risk score badge — bottom right, above zoom controls */}
+      <AnimatePresence>
+        {allRoutes.length > 0 && activeIntel && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 8 }}
+            transition={{ duration: 0.25 }}
+            className="absolute bottom-24 right-3 z-[1050]"
+          >
+            <button
+              onClick={() => setShowRiskPanel(v => !v)}
+              title="Open Risk Intelligence Panel"
+              className={`flex items-center gap-2.5 pl-3.5 pr-4 py-2.5 rounded-xl shadow-lg border-2 transition-all hover:shadow-xl ${
+                showRiskPanel
+                  ? 'bg-slate-900 border-slate-700 text-white'
+                  : riskSeverity === 'CRITICAL'
+                  ? 'bg-red-600 border-red-500 hover:bg-red-700 text-white'
+                  : riskSeverity === 'CAUTION'
+                  ? 'bg-amber-500 border-amber-400 hover:bg-amber-600 text-white'
+                  : 'bg-emerald-600 border-emerald-500 hover:bg-emerald-700 text-white'
+              }`}
+            >
+              <div className="flex flex-col items-center leading-none">
+                <span className="text-[20px] font-black leading-none">{riskScore}</span>
+                <span className="text-[7px] font-black uppercase tracking-widest opacity-75 mt-0.5">risk</span>
+              </div>
+              <div className="w-px h-8 bg-white/30" />
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1">
+                  <Radio size={8} className="animate-pulse" />
+                  <span className="text-[9px] font-black uppercase tracking-wider">{riskSeverity}</span>
+                </div>
+                <span className="text-[8px] opacity-70 leading-tight">
+                  {riskZones.length} zone{riskZones.length !== 1 ? 's' : ''} · tap for intel
+                </span>
+              </div>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* MAP */}
       <MapContainer center={[25, 15]} zoom={2}
         style={{ position: 'absolute', inset: 0, height: '100%', width: '100%' }}
@@ -718,6 +768,44 @@ export const RouteMap = ({
           <TileLayer url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
             attribution='&copy; OpenSeaMap' opacity={0.8} maxZoom={18} />
         )}
+
+        {/* Risk zone threat overlays */}
+        {riskZones.map(zone => {
+          const zoneColor = zone.severity === 'CRITICAL' ? '#dc2626'
+            : zone.severity === 'HIGH' ? '#ea580c'
+            : '#d97706';
+          return (
+            <Circle
+              key={zone.id}
+              center={[zone.lat, zone.lon]}
+              radius={zone.radiusKm * 1000}
+              pathOptions={{
+                color: zoneColor,
+                fillColor: zoneColor,
+                fillOpacity: 0.07,
+                weight: 1.5,
+                opacity: 0.5,
+                dashArray: '6 5',
+              }}
+            >
+              <Popup>
+                <div className="p-1" style={{ minWidth: 180, maxWidth: 220 }}>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span style={{ fontSize: 13 }}>
+                      {zone.type === 'conflict' ? '⚔️' : zone.type === 'piracy' ? '🏴‍☠️' : '🚩'}
+                    </span>
+                    <p className="font-black text-slate-800 text-xs">{zone.name}</p>
+                  </div>
+                  <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: zoneColor }} className="mb-1">
+                    {zone.severity} · {zone.type}
+                  </p>
+                  <p style={{ fontSize: 10, color: '#475569', lineHeight: 1.4 }}>{zone.reason}</p>
+                </div>
+              </Popup>
+            </Circle>
+          );
+        })}
+
         {mapLayers}
         {sourceCoord && (
           <Marker position={sourceCoord} icon={srcIcon} zIndexOffset={1000}>
@@ -736,6 +824,17 @@ export const RouteMap = ({
           </Marker>
         )}
       </MapContainer>
+
+      {/* Risk Intelligence Panel — slides in from right */}
+      <RiskIntelPanel
+        intelligence={activeIntel}
+        isOpen={showRiskPanel}
+        onClose={() => setShowRiskPanel(false)}
+        allRoutes={allRoutes}
+        activeRouteIndex={activeRouteIndex}
+        onSwitchRoute={onSetActiveRoute}
+        freightMode={freightMode}
+      />
     </div>
   );
 };
