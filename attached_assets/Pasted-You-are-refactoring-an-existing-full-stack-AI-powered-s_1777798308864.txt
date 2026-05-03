@@ -1,0 +1,113 @@
+You are refactoring an existing full-stack AI-powered supply chain routing platform. The current codebase is messy, inconsistent, and contains unused components and unclear UI flows.
+
+Your task is to **clean, simplify, and redesign the frontend UI/UX** with a focus on **ship route monitoring and predictive rerouting**, while preserving core functionality.
+
+### Objectives
+
+1. **UI/UX Overhaul**
+
+   * Redesign the interface to be **clean, minimal, and professional (dashboard style)**
+   * Focus on **clarity of logistics data, not visual clutter**
+   * Use a **modern design system (Material UI / Tailwind preferred)**
+   * Ensure full **responsiveness (desktop-first, mobile compatible)**
+
+2. **Feature Prioritization (IMPORTANT)**
+   Keep ONLY these core features:
+
+   * Real-time ship route visualization (map-based)
+   * Risk alerts (weather, geopolitical, traffic disruptions)
+   * AI-based rerouting suggestions
+   * Shipment tracking panel
+   * Simple analytics (delay risk, ETA deviation)
+
+   REMOVE:
+
+   * Any unused pages, components, APIs, or experimental features
+   * Duplicate logic and redundant state management
+   * Dead backend routes or unused schemas
+
+3. **New UI Structure**
+   Build a structured dashboard with:
+
+   * **Sidebar Navigation**
+
+     * Dashboard
+     * Routes Map
+     * Risk Alerts
+     * Shipments
+   * **Top Navbar**
+
+     * System status (live / degraded)
+     * Notifications
+     * User profile
+
+4. **Dashboard Layout**
+   Include:
+
+   * Global map with active shipping routes
+   * Highlighted risk zones (color-coded)
+   * Summary cards:
+
+     * Active shipments
+     * Delayed shipments
+     * High-risk routes
+   * Recent alerts feed
+
+5. **Routes Map Page**
+
+   * Interactive map (Mapbox / Leaflet)
+   * Show:
+
+     * Current routes
+     * Predicted disruption zones
+     * Suggested alternate routes
+   * Clicking a route should show:
+
+     * ETA
+     * Risk score
+     * AI recommendation
+
+6. **Risk Alerts Page**
+
+   * Stream of detected risks:
+
+     * Weather
+     * News/geopolitical events
+     * Port congestion
+   * Each alert should include:
+
+     * Severity level
+     * Affected routes
+     * Suggested action
+
+7. **Code Quality Requirements**
+
+   * Use clean component architecture (no monolithic files)
+   * Follow:
+
+     * Separation of concerns
+     * Reusable components
+     * Proper folder structure
+   * Remove inline styles → use consistent styling system
+   * Add loading states, empty states, and error handling
+
+8. **Performance Constraints**
+
+   * Avoid unnecessary re-renders
+   * Lazy load heavy components (maps, analytics)
+   * Optimize API calls (debounce / caching if needed)
+
+9. **Do NOT**
+
+   * Do not rewrite backend unless required to remove dead endpoints
+   * Do not introduce unnecessary libraries
+   * Do not overcomplicate UI with animations
+
+10. **Output Requirements**
+
+* Provide updated folder structure
+* Provide all modified files with clean code
+* Clearly mention removed files/components
+* Ensure app runs without errors
+
+Goal: Transform the project into a **production-grade logistics dashboard focused on predictive ship routing**, not a prototype.

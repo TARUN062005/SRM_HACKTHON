@@ -449,9 +449,9 @@ const DashboardLayout = () => {
 
       {/* Main wrapper */}
       <div className={["flex-1 flex flex-col h-full transition-all duration-300 relative", isSidebarOpen ? "lg:pl-72" : "lg:pl-0"].join(" ")}>
-        {/* Navbar */}
-        <header className={location.pathname === '/dashboard' 
-          ? "h-20 absolute top-0 left-0 right-0 z-30 pointer-events-none bg-transparent flex items-center justify-between px-6 lg:px-10" 
+        {/* Navbar — hidden on dashboard (it has its own sidebar header) */}
+        <header className={location.pathname === '/dashboard'
+          ? "hidden"
           : "h-20 bg-white/80 dark:bg-slate-950/60 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30"}
         >
           {/* Left */}

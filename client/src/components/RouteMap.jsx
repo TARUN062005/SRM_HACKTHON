@@ -10,7 +10,29 @@ const BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 
 const isValidCoord = c => Array.isArray(c) && c.length === 2 && !isNaN(c[0]) && !isNaN(c[1]);
 
-// ── Custom pin icons ────────────────────────────────────────────
+// ── Port / Anchor marker (maritime) ─────────────────────────────
+const makePortIcon = (type, bg, shadow) =>
+  L.divIcon({
+    html: `<div style="position:relative;width:38px;height:38px;display:flex;align-items:center;justify-content:center;">
+      <div style="width:38px;height:38px;border-radius:50%;background:${bg};
+        border:3px solid white;box-shadow:0 4px 16px ${shadow};
+        display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="5" r="3"/>
+          <line x1="12" y1="22" x2="12" y2="8"/>
+          <path d="M5 12H2a10 10 0 0020 0h-3"/>
+        </svg>
+      </div>
+      <div style="position:absolute;top:-2px;right:-2px;width:13px;height:13px;border-radius:50%;
+        background:${type === 'origin' ? '#34a853' : '#ea4335'};border:2px solid white;"></div>
+    </div>`,
+    className: '',
+    iconSize: [38, 38],
+    iconAnchor: [19, 19],
+    popupAnchor: [0, -22],
+  });
+
+// ── Road / location pin marker ───────────────────────────────────
 const makePinIcon = (label, bg, shadowColor) =>
   L.divIcon({
     html: `<div style="position:relative;width:32px;height:42px;display:flex;flex-direction:column;align-items:center;">
@@ -27,8 +49,11 @@ const makePinIcon = (label, bg, shadowColor) =>
     popupAnchor: [0, -44],
   });
 
-const startIcon = makePinIcon('A', '#34a853', 'rgba(52,168,83,0.45)');
-const endIcon   = makePinIcon('B', '#ea4335', 'rgba(234,67,53,0.45)');
+const startPin = makePinIcon('A', '#34a853', 'rgba(52,168,83,0.45)');
+const endPin   = makePinIcon('B', '#ea4335', 'rgba(234,67,53,0.45)');
+
+const portOriginIcon = makePortIcon('origin', '#1a73e8', 'rgba(26,115,232,0.45)');
+const portDestIcon   = makePortIcon('dest',   '#ea4335', 'rgba(234,67,53,0.45)');
 
 const makeWaypointIcon = (num, critical) =>
   L.divIcon({
@@ -42,7 +67,7 @@ const makeWaypointIcon = (num, critical) =>
   });
 
 // ── NavigationSimulator ─────────────────────────────────────────
-const NavigationSimulator = ({ coords, isActive, isNavigating, speedMultiplier }) => {
+const NavigationSimulator = ({ coords, isActive, isNavigating, speedMultiplier, freightMode }) => {
   const map = useMap();
   const [position, setPosition] = useState(coords?.[0] ?? null);
   const [rotation, setRotation] = useState(0);
@@ -80,18 +105,37 @@ const NavigationSimulator = ({ coords, isActive, isNavigating, speedMultiplier }
 
   if (!isActive || !position || !isValidCoord(position)) return null;
 
+  const isMaritime = freightMode === 'ship';
+  const isAir      = freightMode === 'air';
+
+  // Ship icon
+  const shipSVG = `<svg viewBox="0 0 24 24" width="16" height="16" fill="white" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 20s3-3 7-3 7 3 13 3M12 3v10M8 9l4-4 4 4M6 13h12l-2 7H8L6 13z"/>
+  </svg>`;
+
+  // Plane icon
+  const planeSVG = `<svg viewBox="0 0 24 24" width="16" height="16" fill="white">
+    <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+  </svg>`;
+
+  // Arrow (default)
+  const arrowSVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+    <path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"/>
+  </svg>`;
+
+  const iconSVG = isMaritime ? shipSVG : isAir ? planeSVG : arrowSVG;
+  const iconBg  = isMaritime ? '#0d47a1' : isAir ? '#0288d1' : '#1a73e8';
+
   const navIcon = L.divIcon({
-    html: `<div style="transform:rotate(${rotation}deg);width:28px;height:28px;
-      background:#1a73e8;border-radius:50%;border:3px solid white;
+    html: `<div style="transform:rotate(${rotation}deg);width:30px;height:30px;
+      background:${iconBg};border-radius:${isMaritime ? '6px' : '50%'};border:3px solid white;
       box-shadow:0 0 0 3px rgba(26,115,232,0.3),0 4px 12px rgba(26,115,232,0.4);
       display:flex;align-items:center;justify-content:center;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-        <path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"/>
-      </svg>
+      ${iconSVG}
     </div>`,
     className: '',
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
   });
 
   return <Marker position={position} icon={navIcon} zIndexOffset={6000} />;
@@ -106,13 +150,13 @@ const MapFitBounds = ({ allRoutes }) => {
     if (!coords.length) return;
     try {
       const bounds = L.polyline(coords).getBounds();
-      if (bounds.isValid()) map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14, duration: 0.8 });
+      if (bounds.isValid()) map.fitBounds(bounds, { padding: [60, 60], maxZoom: 12, duration: 0.8 });
     } catch (_) {}
   }, [allRoutes, map]);
   return null;
 };
 
-// ── Locate-me button (must live inside MapContainer) ────────────
+// ── Locate-me control ────────────────────────────────────────────
 const LocateMeButton = () => {
   const map = useMap();
   const [busy, setBusy] = useState(false);
@@ -120,18 +164,15 @@ const LocateMeButton = () => {
     if (!navigator.geolocation) return;
     setBusy(true);
     navigator.geolocation.getCurrentPosition(
-      p => { map.flyTo([p.coords.latitude, p.coords.longitude], 13, { duration: 1.2 }); setBusy(false); },
+      p => { map.flyTo([p.coords.latitude, p.coords.longitude], 10, { duration: 1.2 }); setBusy(false); },
       () => setBusy(false)
     );
   };
   return (
     <div className="leaflet-bottom leaflet-right" style={{ marginBottom: '90px' }}>
       <div className="leaflet-control">
-        <button
-          onClick={locate}
-          title="My location"
-          className={`w-[30px] h-[30px] bg-white border border-slate-300 rounded flex items-center justify-center shadow-sm hover:bg-slate-50 transition-colors ${busy ? 'opacity-60' : ''}`}
-        >
+        <button onClick={locate} title="My location"
+          className={`w-[30px] h-[30px] bg-white border border-slate-300 rounded flex items-center justify-center shadow-sm hover:bg-slate-50 transition-colors ${busy ? 'opacity-60' : ''}`}>
           <Crosshair size={14} className={busy ? 'animate-spin text-blue-500' : 'text-slate-600'} />
         </button>
       </div>
@@ -139,15 +180,21 @@ const LocateMeButton = () => {
   );
 };
 
-// ── AI chat HUD ─────────────────────────────────────────────────
-const RouteAIHUD = ({ isOpen, onClose, onRouteResolved }) => {
+// ── AI Chat HUD ──────────────────────────────────────────────────
+const RouteAIHUD = ({ isOpen, onClose, onRouteResolved, freightMode }) => {
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [history, setHistory] = useState([
-    { type: 'ai', text: "Hi! I'm Routy. Tell me where you want to go — e.g. \"Route from London to Paris\" — and I'll plan it." }
+    { type: 'ai', text: "Hi! I'm Routy, your supply chain AI. Try: \"Route from Shanghai to Rotterdam\" or ask about geopolitical risks." }
   ]);
   const chatEndRef = useRef(null);
+
+  const suggestions = freightMode === 'ship'
+    ? ['Route from Shanghai to Rotterdam', 'Red Sea risk alert']
+    : freightMode === 'air'
+    ? ['Route from JFK to Heathrow', 'Air freight from Dubai to New York']
+    : ['Route from New York to Chicago', 'What is RouteGuardian?'];
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [history]);
 
@@ -201,6 +248,7 @@ const RouteAIHUD = ({ isOpen, onClose, onRouteResolved }) => {
             <div className="flex items-center gap-2.5">
               <div className={`w-2 h-2 rounded-full ${isThinking ? 'bg-blue-400 animate-pulse' : isListening ? 'bg-red-400 animate-pulse' : 'bg-emerald-400'}`} />
               <span className="text-xs font-bold text-white">Routy AI</span>
+              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Supply Chain</span>
             </div>
             <button onClick={onClose} className="p-1 text-slate-500 hover:text-slate-300 transition-colors"><X size={14} /></button>
           </div>
@@ -209,7 +257,7 @@ const RouteAIHUD = ({ isOpen, onClose, onRouteResolved }) => {
             {history.map((msg, i) => (
               <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[90%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
-                  msg.type === 'user' ? 'bg-blue-600 text-white rounded-tr-sm font-semibold' :
+                  msg.type === 'user'  ? 'bg-blue-600 text-white rounded-tr-sm font-semibold' :
                   msg.type === 'error' ? 'bg-red-50 text-red-600 border border-red-100 rounded-tl-sm' :
                   'bg-slate-50 text-slate-700 border border-slate-100 rounded-tl-sm'
                 }`}>{msg.text}</div>
@@ -228,7 +276,7 @@ const RouteAIHUD = ({ isOpen, onClose, onRouteResolved }) => {
           </div>
 
           <div className="px-3 py-2 flex gap-2 overflow-x-auto border-t border-slate-50 bg-white">
-            {['Route from New York to Boston', 'What is RouteGuardian?'].map((s, i) => (
+            {suggestions.map((s, i) => (
               <button key={i} onClick={() => handleAI(s)}
                 className="whitespace-nowrap px-3 py-1.5 bg-slate-50 border border-slate-100 text-[9px] font-bold text-slate-500 uppercase tracking-wide rounded-full hover:border-blue-300 hover:text-blue-600 transition-all flex-shrink-0">
                 {s}
@@ -242,7 +290,7 @@ const RouteAIHUD = ({ isOpen, onClose, onRouteResolved }) => {
                 value={inputText}
                 onChange={e => setInputText(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAI(inputText)}
-                placeholder="Ask for a route…"
+                placeholder="Ask about a route or risk…"
                 className="flex-1 bg-transparent outline-none text-xs font-medium text-slate-800 placeholder:text-slate-400"
               />
               <button onClick={startVoice}
@@ -257,26 +305,31 @@ const RouteAIHUD = ({ isOpen, onClose, onRouteResolved }) => {
   );
 };
 
-// ── MAIN COMPONENT ──────────────────────────────────────────────
+// ── MAIN MAP COMPONENT ───────────────────────────────────────────
 export const RouteMap = ({
   selectedSource, selectedDestination,
   setSelectedSource, setSelectedDestination,
-  vehicleMode = 'car',
+  vehicleMode = 'truck',
+  freightMode = 'ship',
   onClearRoute, onRouteData,
   activeRouteIndex = 0, onSetActiveRoute,
   isNavigating = false, simSpeed = 2,
 }) => {
-  const [allRoutes, setAllRoutes] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [mapType, setMapType] = useState('voyager');
+  const [allRoutes, setAllRoutes]         = useState([]);
+  const [loading, setLoading]             = useState(false);
+  const [mapType, setMapType]             = useState('voyager');
+  const [showSeamarks, setShowSeamarks]   = useState(false);
   const [showLayerPicker, setShowLayerPicker] = useState(false);
-  const [showAIHUD, setShowAIHUD] = useState(false);
-  const [hoveredRoute, setHoveredRoute] = useState(null);
+  const [showAIHUD, setShowAIHUD]         = useState(false);
+  const [hoveredRoute, setHoveredRoute]   = useState(null);
+
+  // Enable seamarks by default when in ship mode
+  useEffect(() => { setShowSeamarks(freightMode === 'ship'); }, [freightMode]);
 
   const onRouteDataRef = useRef(onRouteData);
   useEffect(() => { onRouteDataRef.current = onRouteData; }, [onRouteData]);
 
-  const mapStyles = {
+  const tileUrls = {
     voyager:   'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
     satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     dark:      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
@@ -326,7 +379,6 @@ export const RouteMap = ({
     }
   }, [selectedSource, selectedDestination, vehicleMode, fetchRoutes]);
 
-  // Source / Destination lat-lng
   const sourceCoord = useMemo(() => {
     if (!selectedSource) return null;
     const lat = parseFloat(selectedSource.lat);
@@ -341,7 +393,12 @@ export const RouteMap = ({
     return isNaN(lat) || isNaN(lng) ? null : [lat, lng];
   }, [selectedDestination]);
 
-  // Build route polylines (active on top)
+  // Route color by freight mode
+  const activeColor = freightMode === 'ship'  ? '#0d47a1'
+                    : freightMode === 'air'   ? '#0288d1'
+                    : freightMode === 'rail'  ? '#7b1fa2'
+                    :                          '#e65100';
+
   const mapLayers = useMemo(() => {
     const sorted = [...allRoutes].sort((a, b) =>
       a.id === activeRouteIndex ? 1 : b.id === activeRouteIndex ? -1 : 0
@@ -349,18 +406,16 @@ export const RouteMap = ({
     return sorted.map(route => {
       if (!route.coords?.length) return null;
       const isActive = route.id === activeRouteIndex;
-      const isHov = hoveredRoute === route.id && !isActive;
-      const color = isActive ? '#1a73e8' : '#9aa0a6';
-      const weight = isActive ? 6 : (isHov ? 5 : 4);
-      const opacity = isActive ? 1 : (isHov ? 0.8 : 0.6);
+      const isHov    = hoveredRoute === route.id && !isActive;
+      const color    = isActive ? activeColor : '#9aa0a6';
+      const weight   = isActive ? 6 : (isHov ? 5 : 4);
+      const opacity  = isActive ? 1 : (isHov ? 0.75 : 0.5);
 
       return (
         <React.Fragment key={route.id}>
-          {/* White outline (Google Maps style) */}
           <Polyline positions={route.coords} color="white"
-            weight={isActive ? 12 : 8} opacity={isActive ? 0.8 : 0.5}
+            weight={isActive ? 12 : 8} opacity={isActive ? 0.75 : 0.45}
             lineCap="round" lineJoin="round" />
-          {/* Colored fill */}
           <Polyline positions={route.coords} color={color}
             weight={weight} opacity={opacity}
             lineCap="round" lineJoin="round"
@@ -380,6 +435,7 @@ export const RouteMap = ({
           <NavigationSimulator
             coords={route.coords} isActive={isActive}
             isNavigating={isNavigating} speedMultiplier={simSpeed}
+            freightMode={freightMode}
           />
 
           {isActive && route.intelligence?.waypointReports?.map((wp, idx) => {
@@ -389,7 +445,7 @@ export const RouteMap = ({
             return (
               <Marker key={`wp-${idx}`} position={pos} icon={makeWaypointIcon(idx + 1, wp.severity === 'CRITICAL')}>
                 <Popup>
-                  <div className="p-1 text-xs font-semibold">
+                  <div className="p-1 text-xs">
                     <div className="font-black text-blue-600 mb-0.5">{wp.place}</div>
                     <div className="text-slate-600">{wp.weather}</div>
                   </div>
@@ -400,7 +456,14 @@ export const RouteMap = ({
         </React.Fragment>
       );
     });
-  }, [allRoutes, activeRouteIndex, isNavigating, simSpeed, hoveredRoute, onSetActiveRoute]);
+  }, [allRoutes, activeRouteIndex, isNavigating, simSpeed, hoveredRoute, onSetActiveRoute, activeColor, freightMode]);
+
+  // Derived icons based on freight mode
+  const isMaritime = freightMode === 'ship';
+  const srcIcon    = isMaritime ? portOriginIcon : startPin;
+  const dstIcon    = isMaritime ? portDestIcon   : endPin;
+  const srcLabel   = isMaritime ? 'Origin Port'  : 'Origin';
+  const dstLabel   = isMaritime ? 'Destination Port' : 'Destination';
 
   const layerOptions = [
     { id: 'voyager',   label: 'Map',       img: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=80&q=60' },
@@ -423,6 +486,21 @@ export const RouteMap = ({
         )}
       </AnimatePresence>
 
+      {/* Maritime badge — top center */}
+      {isMaritime && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1050] pointer-events-none">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-900/90 backdrop-blur-sm rounded-full shadow-lg border border-blue-700/50">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[10px] font-black text-white uppercase tracking-widest">
+              Maritime Route Intelligence
+            </span>
+            {showSeamarks && (
+              <span className="text-[8px] font-bold text-blue-300 uppercase">· OpenSeaMap Active</span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Layer picker — top right */}
       <div className="absolute top-3 right-3 z-[1050] flex flex-col items-end gap-2">
         <AnimatePresence>
@@ -431,16 +509,29 @@ export const RouteMap = ({
               initial={{ opacity: 0, y: -6, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.96 }}
-              className="flex gap-2 p-2 bg-white rounded-2xl shadow-lg border border-slate-100"
+              className="flex flex-col gap-2 p-2 bg-white rounded-2xl shadow-lg border border-slate-100"
             >
-              {layerOptions.map(t => (
-                <button key={t.id} onClick={() => { setMapType(t.id); setShowLayerPicker(false); }}
-                  className={`relative w-[62px] h-[62px] rounded-xl overflow-hidden border-2 transition-all ${mapType === t.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200 hover:border-slate-400'}`}>
-                  <img src={t.img} className="w-full h-full object-cover" alt={t.label} />
-                  <div className="absolute inset-0 bg-black/25" />
-                  <span className="absolute bottom-0.5 left-0 right-0 text-center text-white text-[8px] font-black uppercase drop-shadow">{t.label}</span>
-                </button>
-              ))}
+              {/* Map type tiles */}
+              <div className="flex gap-2">
+                {layerOptions.map(t => (
+                  <button key={t.id} onClick={() => { setMapType(t.id); setShowLayerPicker(false); }}
+                    className={`relative w-[62px] h-[62px] rounded-xl overflow-hidden border-2 transition-all ${mapType === t.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200 hover:border-slate-400'}`}>
+                    <img src={t.img} className="w-full h-full object-cover" alt={t.label} />
+                    <div className="absolute inset-0 bg-black/25" />
+                    <span className="absolute bottom-0.5 left-0 right-0 text-center text-white text-[8px] font-black uppercase drop-shadow">{t.label}</span>
+                  </button>
+                ))}
+              </div>
+              {/* OpenSeaMap toggle */}
+              <button onClick={() => setShowSeamarks(v => !v)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                  showSeamarks ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300'
+                }`}>
+                <div className={`w-3 h-3 rounded border-2 flex items-center justify-center ${showSeamarks ? 'bg-blue-600 border-blue-600' : 'border-slate-400'}`}>
+                  {showSeamarks && <span className="text-white text-[8px] font-black">✓</span>}
+                </div>
+                OpenSeaMap Overlay
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -453,6 +544,7 @@ export const RouteMap = ({
       {/* AI HUD — bottom left */}
       <div className="absolute bottom-8 left-3 z-[1050]">
         <RouteAIHUD isOpen={showAIHUD} onClose={() => setShowAIHUD(false)}
+          freightMode={freightMode}
           onRouteResolved={data => {
             setSelectedSource?.(data.source);
             setSelectedDestination?.(data.destination);
@@ -464,9 +556,9 @@ export const RouteMap = ({
         </button>
       </div>
 
-      {/* THE MAP ─ full absolute fill */}
+      {/* MAP — full absolute fill */}
       <MapContainer
-        center={[20, 0]}
+        center={[25, 15]}
         zoom={2}
         style={{ position: 'absolute', inset: 0, height: '100%', width: '100%' }}
         zoomControl={false}
@@ -476,33 +568,45 @@ export const RouteMap = ({
         <MapFitBounds allRoutes={allRoutes} />
         <ZoomControl position="bottomright" />
         <LocateMeButton />
+
+        {/* Base tile layer */}
         <TileLayer
-          url={mapStyles[mapType]}
+          url={tileUrls[mapType]}
           attribution='&copy; <a href="https://carto.com">CARTO</a>'
           maxZoom={20}
         />
 
+        {/* OpenSeaMap overlay (maritime navigation marks) */}
+        {showSeamarks && (
+          <TileLayer
+            url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openseamap.org">OpenSeaMap</a>'
+            opacity={0.8}
+            maxZoom={18}
+          />
+        )}
+
         {/* Routes */}
         {mapLayers}
 
-        {/* Origin */}
+        {/* Origin marker */}
         {sourceCoord && (
-          <Marker position={sourceCoord} icon={startIcon} zIndexOffset={1000}>
+          <Marker position={sourceCoord} icon={srcIcon} zIndexOffset={1000}>
             <Popup>
               <div className="p-1 text-xs">
-                <p className="text-[10px] text-green-600 font-black uppercase mb-0.5">Origin</p>
+                <p className="text-[10px] text-green-600 font-black uppercase mb-0.5">{srcLabel}</p>
                 <p className="font-bold text-slate-800">{selectedSource?.display_name?.split(',')[0]}</p>
               </div>
             </Popup>
           </Marker>
         )}
 
-        {/* Destination */}
+        {/* Destination marker */}
         {destCoord && (
-          <Marker position={destCoord} icon={endIcon} zIndexOffset={1000}>
+          <Marker position={destCoord} icon={dstIcon} zIndexOffset={1000}>
             <Popup>
               <div className="p-1 text-xs">
-                <p className="text-[10px] text-red-500 font-black uppercase mb-0.5">Destination</p>
+                <p className="text-[10px] text-red-500 font-black uppercase mb-0.5">{dstLabel}</p>
                 <p className="font-bold text-slate-800">{selectedDestination?.display_name?.split(',')[0]}</p>
               </div>
             </Popup>
