@@ -6,11 +6,13 @@ import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
+import RoutesMapPage from './pages/RoutesMapPage';
+import ShipmentsPage from './pages/ShipmentsPage';
 import VerifyEmail from './pages/VerifyEmail';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import RateLimitPage from './pages/RateLimitPage';
-import NotFound from './pages/NotFound'; // Added NotFound Import
+import NotFound from './pages/NotFound';
 import ReactivatePage from './pages/ReactivatePage';
 import NotificationsPage from './pages/NotificationsPage';
 
@@ -21,8 +23,8 @@ import ProtectedRoutes from './components/common/ProtectedRoutes';
 function App() {
   return (
     <>
-      <Toaster 
-        position="top-right" 
+      <Toaster
+        position="top-right"
         toastOptions={{
           style: {
             borderRadius: '12px',
@@ -33,30 +35,26 @@ function App() {
       />
 
       <Routes>
-        {/* --- Public Routes --- */}
+        {/* Public */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
-
-        {/* Social & Magic Link Callback */}
         <Route path="/auth/callback" element={<AuthCallback />} />
-        
-        {/* Security Error Page */}
         <Route path="/too-many-requests" element={<RateLimitPage />} />
 
-        {/* --- Protected Dashboard Routes --- */}
+        {/* Protected */}
         <Route element={<ProtectedRoutes />}>
           <Route element={<DashboardLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/reactivate" element={<ReactivatePage />} />
-            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/dashboard"   element={<Dashboard />} />
+            <Route path="/routes-map"  element={<RoutesMapPage />} />
+            <Route path="/shipments"   element={<ShipmentsPage />} />
+            <Route path="/profile"     element={<ProfilePage />} />
+            <Route path="/reactivate"  element={<ReactivatePage />} />
+            <Route path="/settings"    element={<SettingsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
           </Route>
         </Route>
 
-        {/* --- Global Catch-all (The "Lost" Page) --- */}
-        {/* Instead of Navigate, we show the NotFound UI */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>

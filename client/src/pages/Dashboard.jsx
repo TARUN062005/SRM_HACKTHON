@@ -5,25 +5,13 @@ import { RouteMap } from '../components/RouteMap';
 import RoutyChatPanel, { loadRouteHistory, saveRouteToHistory } from '../components/RoutyChatPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Anchor, Plane, Train, Truck, Ship,
+  Anchor, Plane, Train, Truck,
   CloudRain, Wind, Sun, Zap, AlertTriangle,
   CheckCircle, ChevronDown, ChevronUp, ExternalLink, X,
-  Play, Square, Clock, Activity, Globe, Shield, Radio,
-  Bot, History, MapPin, Trash2, ChevronRight,
+  Play, Square, Clock, Activity,
+  Bot, History, Trash2, ChevronRight,
 } from 'lucide-react';
 
-const GLOBAL_THREAT_PREVIEW = [
-  { name: 'Red Sea / Bab-el-Mandeb', severity: 'CRITICAL', type: 'conflict',
-    shortDesc: 'Active Houthi missile attacks on commercial shipping. Major carriers diverted via Cape.' },
-  { name: 'Black Sea', severity: 'CRITICAL', type: 'conflict',
-    shortDesc: 'Russia–Ukraine war. Naval mines in transit corridors. Grain export under threat.' },
-  { name: 'Strait of Hormuz', severity: 'HIGH', type: 'conflict',
-    shortDesc: 'US-Iran tensions. Vessel seizures and naval exercises creating closure risk.' },
-  { name: 'Eastern Mediterranean', severity: 'HIGH', type: 'conflict',
-    shortDesc: 'Regional conflict creating airspace and sea-lane uncertainty.' },
-  { name: 'South China Sea', severity: 'MODERATE', type: 'dispute',
-    shortDesc: 'Territorial disputes. Coast guard standoffs near disputed island chains.' },
-];
 
 const FREIGHT_MODES = [
   { label: 'Sea',  value: 'ship',  Icon: Anchor },
@@ -45,12 +33,6 @@ const getWeatherIcon = (condition) => {
   return Wind;
 };
 
-const LIVE_STATS = [
-  { label: 'Active Shipments', value: '2,847', delta: '+12',    Icon: Ship,          color: '#3B82F6', bg: 'rgba(59,130,246,0.1)'   },
-  { label: 'Risk Alerts',      value: '3',     delta: '1 High', Icon: AlertTriangle, color: '#EF4444', bg: 'rgba(239,68,68,0.1)'    },
-  { label: 'On Schedule',      value: '94.2%', delta: '+1.2%',  Icon: CheckCircle,   color: '#22C55E', bg: 'rgba(34,197,94,0.1)'    },
-  { label: 'Avg Transit',      value: '18.3d', delta: '-0.5d',  Icon: Clock,         color: '#A78BFA', bg: 'rgba(167,139,250,0.1)'  },
-];
 
 const SEV_STYLES = {
   CRITICAL: { card: 'rgba(239,68,68,0.08)', border: '#EF4444', dot: '#EF4444', badge: 'rgba(239,68,68,0.2)', badgeText: '#EF4444', text: '#FCA5A5' },
@@ -538,59 +520,9 @@ const Dashboard = () => {
               </motion.div>
 
             ) : (
-              /* ── EMPTY STATE ── */
+              /* ── EMPTY STATE — only Routy CTA ── */
               <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-
-                {/* KPI Cards */}
-                <div className="p-4 pb-2">
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-3" style={{ color: '#6B7280' }}>
-                    Live Network Status
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {LIVE_STATS.map(({ label, value, delta, Icon, color, bg }) => (
-                      <div key={label} className="rounded-2xl p-3" style={{ background: bg, border: `1px solid ${color}22` }}>
-                        <div className="flex items-center justify-between mb-2">
-                          <Icon size={14} style={{ color }} />
-                          <span className="text-[8px] font-bold" style={{ color: '#6B7280' }}>{delta}</span>
-                        </div>
-                        <p className="text-xl font-black" style={{ color }}>{value}</p>
-                        <p className="text-[10px] mt-0.5 font-medium" style={{ color: '#9CA3AF' }}>{label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Live Threat Feed */}
-                <div className="px-4 pb-3">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <Radio size={9} className="animate-pulse" style={{ color: '#EF4444' }} />
-                    <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#6B7280' }}>
-                      Live Threat Feed
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    {GLOBAL_THREAT_PREVIEW.slice(0, 3).map((threat, i) => {
-                      const s = SEV_STYLES[threat.severity] || SEV_STYLES.MODERATE;
-                      return (
-                        <div key={i} className="p-2.5 rounded-xl" style={{ background: s.card, border: `1px solid ${s.border}33` }}>
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.dot }} />
-                            <span className="text-[9px] font-black uppercase tracking-wider flex-1 truncate" style={{ color: s.text }}>
-                              {threat.name}
-                            </span>
-                            <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded flex-shrink-0" style={{ background: s.badge, color: s.badgeText }}>
-                              {threat.severity}
-                            </span>
-                          </div>
-                          <p className="text-[10px] leading-relaxed" style={{ color: s.text, opacity: 0.85 }}>{threat.shortDesc}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Routy CTA */}
-                <div className="px-4 pb-3">
+                <div className="px-4 py-5">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -611,31 +543,6 @@ const Dashboard = () => {
                     </div>
                     <ChevronRight size={14} style={{ color: '#3B82F6', flexShrink: 0 }} />
                   </motion.button>
-                </div>
-
-                {/* Getting started */}
-                <div className="px-4 pb-5">
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-3" style={{ color: '#6B7280' }}>
-                    Plan a Shipment
-                  </p>
-                  <div className="space-y-2.5">
-                    {[
-                      { step: '1', Icon: Globe,  text: 'Select freight mode — Sea, Air, Rail or Road' },
-                      { step: '2', Icon: Bot,    text: 'Chat with Routy AI or enter ports manually' },
-                      { step: '3', Icon: Shield, text: 'Get AI-optimized routes with real-time risk intelligence' },
-                    ].map(({ step, Icon, text }) => (
-                      <div key={step} className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5"
-                          style={{ background: 'rgba(59,130,246,0.15)', color: '#3B82F6' }}>
-                          {step}
-                        </div>
-                        <div className="flex items-start gap-2 flex-1">
-                          <Icon size={12} style={{ color: '#6B7280' }} className="mt-0.5 flex-shrink-0" />
-                          <p className="text-xs leading-relaxed" style={{ color: '#9CA3AF' }}>{text}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </motion.div>
             )}

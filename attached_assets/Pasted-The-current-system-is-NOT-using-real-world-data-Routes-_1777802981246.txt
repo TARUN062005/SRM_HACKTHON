@@ -1,0 +1,260 @@
+The current system is NOT using real-world data. Routes are not accurate, geopolitical risks are not real-time, and the map interaction is not comparable to modern navigation systems.
+
+You must upgrade the system into a **real-data-driven intelligent routing platform**.
+
+---
+
+# 1. CORE REQUIREMENT
+
+The system must:
+
+* Fetch **real routes (sea, land, air)**
+* Fetch **real-time geopolitical + weather data**
+* Show **multiple route options**
+* Allow user to **click/select route like Google Maps**
+* Analyze and display **risk per route**
+
+This is NOT optional. Do NOT simulate data.
+
+---
+
+# 2. REAL ROUTING ENGINE (MANDATORY)
+
+## LAND ROUTES
+
+Use:
+
+* Google Maps Directions API OR Mapbox Directions API
+
+---
+
+## SEA ROUTES (IMPORTANT)
+
+You CANNOT use road APIs.
+
+Use:
+
+* Predefined maritime routes OR
+* Marine APIs / shipping lane datasets
+
+Must:
+
+* Avoid land
+* Follow realistic ocean paths
+
+---
+
+## AIR ROUTES
+
+* Use great-circle calculation
+* Simulate real flight paths
+* No road constraints
+
+---
+
+# 3. MULTIPLE ROUTE OPTIONS (LIKE GOOGLE MAPS)
+
+For every query:
+
+Show:
+
+* Route 1 (Fastest)
+* Route 2 (Safer)
+* Route 3 (Economical)
+
+Each route must display:
+
+* ETA
+* Distance
+* Risk score
+
+---
+
+# 4. INTERACTIVE MAP (CRITICAL UX)
+
+User must be able to:
+
+* Click on any route line
+* Selected route should:
+
+  * Highlight (bold color)
+  * Show full details panel
+
+---
+
+# 5. REAL-TIME DATA INTEGRATION
+
+## GEOPOLITICAL DATA
+
+Integrate:
+
+* News APIs (GDELT / NewsAPI)
+
+Detect:
+
+* War zones
+* Trade disruptions
+* Conflicts
+
+---
+
+## WEATHER DATA
+
+Integrate:
+
+* Weather APIs (OpenWeather / similar)
+
+Fetch:
+
+* Conditions ALONG THE ROUTE (not just origin)
+
+---
+
+## LOGISTICS DATA
+
+* Port congestion
+* Traffic
+* Airspace restrictions (if possible)
+
+---
+
+# 6. ROUTE RISK ANALYSIS ENGINE
+
+For EACH route:
+
+Calculate:
+
+* Risk score (0–100)
+* Risk breakdown:
+
+  * Weather
+  * Geopolitical
+  * Congestion
+
+---
+
+# 7. VISUALIZATION (VERY IMPORTANT)
+
+## Map Layers
+
+* Route Layer (multiple routes)
+* Risk Zone Layer
+* Weather Layer
+
+---
+
+## Route Coloring
+
+* Green → Safe
+* Yellow → Moderate
+* Red → Dangerous
+
+---
+
+# 8. ROUTE DETAILS PANEL
+
+When user clicks route:
+
+Show:
+
+* Route name (Fastest / Safest)
+* ETA
+* Distance
+* Risk score
+
+---
+
+### WEATHER ALONG ROUTE
+
+* Show segments:
+
+  * “Storm near Arabian Sea”
+
+---
+
+### GEOPOLITICAL RISKS
+
+Example:
+
+* “Conflict near Strait of Hormuz”
+
+---
+
+### NEWS ARTICLES
+
+* Title
+* Source
+* Image (if available)
+
+---
+
+# 9. AI DECISION ENGINE
+
+AI must:
+
+* Compare all routes
+* Recommend best one:
+
+Example:
+"Route 2 is safer due to avoiding conflict zones, but adds 2 days delay."
+
+---
+
+# 10. PERFORMANCE REQUIREMENTS
+
+* No lag on map interaction
+* Use:
+
+  * Debouncing
+  * Layer-based rendering
+  * Lazy loading
+
+---
+
+# 11. ERROR HANDLING
+
+If API fails:
+
+* Show fallback message
+* Do NOT crash UI
+
+---
+
+# 12. ARCHITECTURE (STRICT)
+
+Separate modules:
+
+* routingService
+* weatherService
+* newsService
+* riskEngine
+* mapRenderer
+
+NO mixing logic with UI.
+
+---
+
+# 13. FINAL USER EXPERIENCE
+
+User flow:
+
+1. User enters route (chat or UI)
+2. System fetches real routes
+3. Displays multiple options
+4. User clicks route
+5. System shows:
+
+   * Weather
+   * Risks
+   * News
+6. AI recommends best route
+
+---
+
+# FINAL GOAL
+
+Build a system that feels like:
+
+"Google Maps + Real-Time Global Intelligence + AI Decision Engine"
+
+NOT a demo, NOT mock data.
