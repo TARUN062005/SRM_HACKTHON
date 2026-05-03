@@ -572,8 +572,8 @@ const startServer = async () => {
       console.log('⚠️  Admin user already exists or could not be created');
     }
 
-    const port = process.env.PORT || 5000;
-    const host = process.env.HOST || '0.0.0.0';
+    const port = process.env.PORT || 8000;
+    const host = '0.0.0.0';
 
     server = app.listen(port, host, () => {
       console.log('\n' + '='.repeat(70));

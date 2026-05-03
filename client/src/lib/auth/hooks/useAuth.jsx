@@ -3,9 +3,9 @@ import axios from 'axios';
 
 const AuthContext = createContext(null);
 
-// Create axios instance with base URL
+// Create axios instance with base URL - empty string means relative URLs (proxied by Vite)
 export const API = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000',
+  baseURL: import.meta.env.VITE_BACKEND_URL || '',
 });
 
 export const useAuth = () => {

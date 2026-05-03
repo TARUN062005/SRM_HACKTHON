@@ -1,6 +1,6 @@
 // ----------------- Datasource & Generator -----------------
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -86,14 +86,12 @@ enum AdminPermission {
   SCHEDULE_BROADCASTS
 }
 
-// NEW: Push token platform type
 enum PushPlatform {
   WEB
   ANDROID
   IOS
 }
 
-// NEW: Email template type
 enum EmailTemplateType {
   GENERIC
   MARKETING
@@ -104,7 +102,7 @@ enum EmailTemplateType {
 // ----------------- Models -----------------
 
 model User {
-  id   String   @id @default(auto()) @map("_id") @db.ObjectId
+  id   String   @id @default(cuid())
   role UserRole @default(USER)
 
   // Authentication
@@ -178,10 +176,9 @@ model User {
   @@index([emailSubscribed])
 }
 
-// Tracks specific actions for the "Account Activity" UI component
 model ActivityLog {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
+  id        String   @id @default(cuid())
+  userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   action    String
   details   String?
@@ -193,8 +190,8 @@ model ActivityLog {
 }
 
 model Session {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
+  id        String   @id @default(cuid())
+  userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   token     String   @unique
   userAgent String?
@@ -209,8 +206,8 @@ model Session {
 }
 
 model LinkedAccount {
-  id         String      @id @default(auto()) @map("_id") @db.ObjectId
-  userId     String      @db.ObjectId
+  id         String      @id @default(cuid())
+  userId     String
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   type       AccountType
   email      String?
@@ -225,8 +222,8 @@ model LinkedAccount {
 }
 
 model Address {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
+  id        String   @id @default(cuid())
+  userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   line1     String
   line2     String?
@@ -242,8 +239,8 @@ model Address {
 }
 
 model Otp {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId     String?  @db.ObjectId
+  id         String   @id @default(cuid())
+  userId     String?
   user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   identifier String
   code       String
@@ -259,8 +256,8 @@ model Otp {
 // ----------------- PUSH TOKENS -----------------
 
 model PushToken {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  userId String @db.ObjectId
+  id     String @id @default(cuid())
+  userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   token     String       @unique
@@ -280,7 +277,7 @@ model PushToken {
 // ----------------- NOTIFICATIONS -----------------
 
 model Notification {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  id      String @id @default(cuid())
   title   String
   message String
 
@@ -302,7 +299,7 @@ model Notification {
   sendPush  Boolean @default(false)
 
   // Scheduling
-  sendMode    String    @default("NOW") // NOW | LATER | CANCELLED
+  sendMode    String    @default("NOW")
   scheduledAt DateTime?
 
   // Expiry / TTL
@@ -311,21 +308,21 @@ model Notification {
 
   // Email specific
   emailSubject  String?
-  emailTemplate String? // HTML/EJS template
+  emailTemplate String?
 
   // Stats tracking
   inAppCreated Int    @default(0)
   pushSent     Int    @default(0)
   emailSent    Int    @default(0)
   totalTargets Int    @default(0)
-  status       String @default("DRAFT") // DRAFT, SCHEDULED, SENDING, COMPLETED, FAILED, CANCELLED
+  status       String @default("DRAFT")
 
   // If target = SINGLE_USER
-  userId String? @db.ObjectId
+  userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Admin creator reference
-  createdById String? @db.ObjectId
+  createdById String?
   createdBy   User?   @relation("AdminNotifications", fields: [createdById], references: [id])
 
   createdAt DateTime @default(now())
@@ -347,9 +344,9 @@ model Notification {
 }
 
 model UserNotification {
-  id             String @id @default(auto()) @map("_id") @db.ObjectId
-  userId         String @db.ObjectId
-  notificationId String @db.ObjectId
+  id             String @id @default(cuid())
+  userId         String
+  notificationId String
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
@@ -367,15 +364,15 @@ model UserNotification {
 // ----------------- EMAIL TEMPLATES -----------------
 
 model EmailTemplate {
-  id          String            @id @default(auto()) @map("_id") @db.ObjectId
+  id          String            @id @default(cuid())
   name        String
   subject     String
   htmlContent String
   type        EmailTemplateType @default(GENERIC)
-  variables   String[] // ["name", "email", "message", "unsubscribeUrl"]
+  variables   String[]
 
   isActive    Boolean @default(true)
-  createdById String? @db.ObjectId
+  createdById String?
   createdBy   User?   @relation(fields: [createdById], references: [id])
 
   createdAt DateTime @default(now())
@@ -389,15 +386,15 @@ model EmailTemplate {
 // ----------------- DELIVERY TRACKING -----------------
 
 model DeliveryTracking {
-  id             String       @id @default(auto()) @map("_id") @db.ObjectId
-  notificationId String       @db.ObjectId
+  id             String       @id @default(cuid())
+  notificationId String
   notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
 
-  userId String @db.ObjectId
+  userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  channel String // "in_app", "email", "push"
-  status  String // "queued", "sent", "delivered", "opened", "clicked", "failed"
+  channel String
+  status  String
 
   deviceToken  String?
   emailAddress String?
@@ -423,15 +420,15 @@ model DeliveryTracking {
 // ----------------- ADMIN AUDIT LOG -----------------
 
 model AdminAuditLog {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId
-  adminId String @db.ObjectId
+  id      String @id @default(cuid())
+  adminId String
   admin   User   @relation("AdminAudit", fields: [adminId], references: [id], onDelete: Cascade)
 
   actionType   AdminActionType
-  targetUserId String?         @db.ObjectId
+  targetUserId String?
   details      String?
   ip           String?
-  metadata     Json? // Additional data like notificationId, etc.
+  metadata     Json?
   createdAt    DateTime        @default(now())
 
   @@index([adminId])
@@ -443,11 +440,10 @@ model AdminAuditLog {
 // ----------------- ADMIN PROFILE -----------------
 
 model AdminProfile {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId
-  adminId String @unique @db.ObjectId
+  id      String @id @default(cuid())
+  adminId String @unique
   admin   User   @relation("AdminProfile", fields: [adminId], references: [id], onDelete: Cascade)
 
-  // Extended admin info
   title          String?
   department     String?
   employeeId     String?   @unique
@@ -455,18 +451,15 @@ model AdminProfile {
   joiningDate    DateTime?
   officeLocation String?
 
-  // Contact info
   backupEmail      String?
   emergencyContact String?
   workPhone        String?
   timezone         String? @default("UTC")
 
-  // Preferences
   language      String? @default("en")
   theme         String? @default("light")
   notifications Json?
 
-  // Metadata
   lastSeen     DateTime?
   totalActions Int       @default(0)
 
@@ -480,12 +473,12 @@ model AdminProfile {
 // ----------------- ADMIN PERMISSIONS -----------------
 
 model AdminPermissionMapping {
-  id         String          @id @default(auto()) @map("_id") @db.ObjectId
-  adminId    String          @db.ObjectId
+  id         String          @id @default(cuid())
+  adminId    String
   admin      User            @relation("AdminPermissions", fields: [adminId], references: [id], onDelete: Cascade)
   permission AdminPermission
   grantedAt  DateTime        @default(now())
-  grantedBy  String?         @db.ObjectId
+  grantedBy  String?
 
   @@unique([adminId, permission])
 }

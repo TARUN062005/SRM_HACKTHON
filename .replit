@@ -1,0 +1,68 @@
+modules = ["nodejs-20", "web"]
+[agent]
+expertMode = true
+stack = "BEST_EFFORT_FALLBACK"
+
+[nix]
+channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+NODE_ENV = "production"
+PORT = "8000"
+HOST = "localhost"
+CLIENT_URL = "http://localhost:5000"
+JWT_SECRET = "accdcdac39cd9c7f5dac4cffa363544195ae3202b6f16d50ce5fc7d03d41b7b98a1151f0661f8d8a0ac6b84ef724b7605610543a33fa368836996cbe4a83365f"
+REFRESH_TOKEN_SECRET = "fde7fc931115622038a4fbe1d362287468bcfa3d6ea0c56cdd2c0bedf64f2b276771b02651994b4a7fbfb76dc1fe8ed34c5fc8aa00b30871913413316af4dfcc"
+JWT_EXPIRE = "7d"
+REFRESH_TOKEN_EXPIRE = "30d"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Backend API"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm run dev"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Backend API"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd server && node index.js"
+waitForPort = 8000
+
+[[ports]]
+localPort = 8000
+externalPort = 8000
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["bash", "-c", "cd server && node index.js"]
+build = ["bash", "-c", "cd client && npm run build && cd ../server && npx prisma generate"]

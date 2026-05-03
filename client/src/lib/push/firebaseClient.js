@@ -1,7 +1,7 @@
 // client/src/lib/push/firebaseClient.js
 
-import { initializeApp } from "firebase/app";
-import { getMessaging } from "firebase/messaging";
+import { initializeApp, getApps } from "firebase/app";
+import { getMessaging, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -12,7 +12,26 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
+let messaging = null;
 
-// ✅ Export messaging so SettingsPage can use it
-export const messaging = getMessaging(app);
+const isFirebaseConfigured = () =>
+  firebaseConfig.apiKey &&
+  firebaseConfig.projectId &&
+  firebaseConfig.appId;
+
+if (isFirebaseConfigured()) {
+  try {
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    isSupported().then((supported) => {
+      if (supported) {
+        messaging = getMessaging(app);
+      }
+    }).catch(() => {});
+  } catch (err) {
+    console.warn("Firebase initialization skipped:", err.message);
+  }
+} else {
+  console.info("Firebase not configured - push notifications disabled");
+}
+
+export { messaging };
