@@ -70,6 +70,81 @@ export const clearRouteHistory = () => {
   try { localStorage.removeItem('routeguardian_routes'); } catch {}
 };
 
+// ── Port / Airport dual-picker shown after Routy RESOLVE response ─────────────
+const ResolveCard = ({ mode, originName, destName, originOptions, destOptions, onConfirm }) => {
+  const [pickedOrigin, setPickedOrigin] = useState(null);
+  const [pickedDest,   setPickedDest]   = useState(null);
+  const isAir    = mode === 'air';
+  const accent   = isAir ? '#8B5CF6' : '#3B82F6';
+  const bgAccent = isAir ? 'rgba(139,92,246,0.12)' : 'rgba(59,130,246,0.12)';
+  const ready    = pickedOrigin && pickedDest;
+
+  const OptionList = ({ options, picked, onPick, label }) => (
+    <div className="mb-3">
+      <p className="text-[9px] font-black uppercase tracking-wider mb-1.5" style={{ color: '#6B7280' }}>
+        {label}
+      </p>
+      <div className="flex flex-col gap-1">
+        {options.map((opt, i) => {
+          const selected    = picked?.name === opt.name;
+          const displayName = isAir ? `${opt.name} (${opt.iata})` : `${opt.name} Port`;
+          return (
+            <button key={i} onClick={() => onPick(opt)}
+              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all"
+              style={{
+                background: selected ? bgAccent : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${selected ? accent : 'rgba(255,255,255,0.08)'}`,
+              }}
+            >
+              {isAir
+                ? <Plane   size={10} style={{ color: selected ? accent : '#6B7280', flexShrink: 0 }} />
+                : <Anchor  size={10} style={{ color: selected ? accent : '#6B7280', flexShrink: 0 }} />}
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold truncate" style={{ color: selected ? accent : '#D1D5DB' }}>
+                  {displayName}
+                  {i === 0 && (
+                    <span className="ml-1.5 text-[8px] font-black uppercase px-1 py-0.5 rounded"
+                      style={{ background: bgAccent, color: accent }}>Nearest</span>
+                  )}
+                </p>
+                <p className="text-[9px] mt-0.5" style={{ color: '#6B7280' }}>
+                  {isAir ? opt.city : opt.country} · {opt.distKm} km away
+                </p>
+              </div>
+              {selected && <CheckCircle2 size={10} style={{ color: accent, flexShrink: 0 }} />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="p-3 rounded-2xl rounded-tl-none" style={{ background: '#1F2937', border: '1px solid #374151', maxWidth: '95%' }}>
+      <div className="flex items-center gap-1.5 mb-3">
+        {isAir ? <Plane size={11} style={{ color: accent }} /> : <Anchor size={11} style={{ color: accent }} />}
+        <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: accent }}>
+          Confirm {isAir ? 'Airports' : 'Seaports'}
+        </p>
+      </div>
+      <OptionList options={originOptions} picked={pickedOrigin} onPick={setPickedOrigin} label={`From: ${originName}`} />
+      <OptionList options={destOptions}   picked={pickedDest}   onPick={setPickedDest}   label={`To: ${destName}`}     />
+      <button
+        disabled={!ready}
+        onClick={() => ready && onConfirm(pickedOrigin, pickedDest)}
+        className="w-full py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+        style={{
+          background: ready ? accent : '#374151',
+          color:      ready ? '#fff' : '#6B7280',
+          cursor:     ready ? 'pointer' : 'not-allowed',
+        }}
+      >
+        {ready ? 'Confirm & Calculate Route' : 'Select both locations above'}
+      </button>
+    </div>
+  );
+};
+
 // ── Thinking dots ─────────────────────────────────────────────────────────────
 const ThinkingDots = () => (
   <div className="flex items-center gap-1 px-4 py-3 rounded-2xl rounded-tl-none" style={{ background: '#1F2937', border: '1px solid #374151' }}>
@@ -125,7 +200,7 @@ const StateProgress = ({ state }) => {
 };
 
 // ── Message bubble ────────────────────────────────────────────────────────────
-const MessageBubble = ({ msg, onPortSelect, onModeSelect }) => {
+const MessageBubble = ({ msg, onPortSelect, onModeSelect, onResolveConfirm }) => {
   if (msg.role === 'user') {
     return (
       <div className="flex justify-end">
@@ -207,6 +282,25 @@ const MessageBubble = ({ msg, onPortSelect, onModeSelect }) => {
           </div>
           {msg.text}
         </div>
+      </div>
+    );
+  }
+
+  if (msg.role === 'resolve') {
+    return (
+      <div className="flex justify-start flex-col gap-2">
+        <div className="max-w-[85%] px-3.5 py-2.5 rounded-2xl rounded-tl-none text-xs leading-relaxed"
+          style={{ background: '#1F2937', color: '#D1D5DB', border: '1px solid #374151' }}>
+          {msg.text}
+        </div>
+        <ResolveCard
+          mode={msg.mode}
+          originName={msg.originName}
+          destName={msg.destName}
+          originOptions={msg.originOptions || []}
+          destOptions={msg.destOptions || []}
+          onConfirm={(origin, dest) => onResolveConfirm?.(origin, dest, msg.pendingState)}
+        />
       </div>
     );
   }
@@ -309,6 +403,15 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
         } else {
           addMsg('clarify', data.message, { clarifyField: data.clarifyField || 'origin', options: data.options || [] });
         }
+      } else if (data.type === 'RESOLVE') {
+        addMsg('resolve', data.message, {
+          mode:          data.mode,
+          originName:    data.originName,
+          destName:      data.destName,
+          originOptions: data.originOptions || [],
+          destOptions:   data.destOptions   || [],
+          pendingState:  updatedState,
+        });
       } else if (data.type === 'ASK') {
         // If asking for mode and none set yet, show mode chips
         const msgLower = data.message?.toLowerCase() || '';
@@ -365,6 +468,47 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
       setTimeout(() => { addMsg('ai', nextQ); setIsThinking(false); }, 400);
     }
   }, [convState, convHistory, addMsg, onRouteGenerated, onClose, onRouteSaved]);
+
+  const handleConfirmResolve = useCallback(async (pickedOrigin, pickedDest, pendingState) => {
+    const isAir = pendingState?.mode === 'air';
+    const origDisplay = isAir ? `${pickedOrigin.name} (${pickedOrigin.iata})` : `${pickedOrigin.name} Port`;
+    const destDisplay  = isAir ? `${pickedDest.name} (${pickedDest.iata})`   : `${pickedDest.name} Port`;
+    addMsg('user', `${origDisplay} → ${destDisplay}`);
+    setIsThinking(true);
+
+    const confirmedSource = { lat: pickedOrigin.lat, lon: pickedOrigin.lon, display_name: `${origDisplay}, ${pickedOrigin.country}` };
+    const confirmedDest   = { lat: pickedDest.lat,   lon: pickedDest.lon,   display_name: `${destDisplay}, ${pickedDest.country}` };
+
+    try {
+      const res = await axios.post(`${BASE_URL}/api/ai/agent/chat`, {
+        message: 'confirmed',
+        state: pendingState,
+        confirmedSource,
+        confirmedDest,
+        history: convHistory,
+      }, { timeout: 30000 });
+
+      const data = res.data;
+      const finalState = { ...pendingState, ...(data.state || {}) };
+      setConvState(finalState);
+
+      if (data.type === 'COMPLETE' && data.source && data.destination) {
+        addMsg('complete', data.message);
+        const saved = saveRouteToHistory({ state: finalState, source: data.source, destination: data.destination });
+        onRouteSaved?.(saved);
+        setTimeout(() => {
+          onRouteGenerated?.({ source: data.source, destination: data.destination, mode: finalState.mode });
+          onClose?.();
+        }, 1200);
+      } else {
+        addMsg('ai', data.message || 'Route confirmed! Calculating...');
+      }
+    } catch {
+      addMsg('error', 'Could not confirm selection — please try again.');
+    } finally {
+      setIsThinking(false);
+    }
+  }, [convHistory, addMsg, onRouteGenerated, onClose, onRouteSaved]);
 
   const handleModeSelect = useCallback((mode) => {
     const modeLabels = { sea: 'Sea (maritime)', air: 'Air freight', rail: 'Rail', truck: 'Road' };
@@ -481,6 +625,7 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
                   msg={msg}
                   onPortSelect={handlePortSelect}
                   onModeSelect={handleModeSelect}
+                  onResolveConfirm={handleConfirmResolve}
                 />
               ))}
 

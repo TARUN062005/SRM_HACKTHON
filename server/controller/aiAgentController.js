@@ -6,7 +6,10 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios');
 
-const GEMINI_KEY = process.env.GEMINI_API_KEY || 'AIzaSyCF-jKDV0TrY4sMQA3BueNZWAE04QgdoYA';
+if (!process.env.GEMINI_API_KEY) {
+    console.warn('[SECURITY] GEMINI_API_KEY not set — Routy AI features will be degraded');
+}
+const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
 
 const runGemini = async (prompt) => {
     const genAI = new GoogleGenerativeAI(GEMINI_KEY);
@@ -77,7 +80,21 @@ const extractJSON = (text) => {
 
 // ── MULTI-TURN AGENT ──────────────────────────────────────────────────────────
 exports.agentChat = async (req, res) => {
-    const { message, state = {}, history = [] } = req.body;
+    const { message, state = {}, history = [], confirmedSource, confirmedDest } = req.body;
+
+    // ── SHORT-CIRCUIT: user already confirmed port/airport in the UI ──────────
+    if (confirmedSource && confirmedDest && state.mode) {
+        const modeLabel = { sea: 'maritime', air: 'air freight', rail: 'rail', truck: 'road' }[state.mode] || state.mode;
+        return res.json({
+            success: true,
+            type: 'COMPLETE',
+            message: `Route confirmed! Calculating ${modeLabel} route from ${confirmedSource.display_name} to ${confirmedDest.display_name} with live intelligence.`,
+            state,
+            source: confirmedSource,
+            destination: confirmedDest,
+        });
+    }
+
     if (!message) return res.status(400).json({ success: false, error: 'Missing message' });
 
     const PORT = process.env.PORT || 8000;
@@ -211,7 +228,47 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
             });
         }
 
-        const modeLabel = { sea: 'maritime', air: 'air freight', rail: 'rail', truck: 'road' }[newState.mode] || newState.mode;
+        const mode      = newState.mode;
+        const modeLabel = { sea: 'maritime', air: 'air freight', rail: 'rail', truck: 'road' }[mode] || mode;
+
+        // ── SEA / AIR: resolve to port/airport options first (RESOLVE step) ──
+        // Never route directly from raw city coordinates for sea/air modes.
+        if (mode === 'sea' || mode === 'air') {
+            const endpoint = mode === 'sea' ? 'resolve-port' : 'resolve-airport';
+            const optKey   = mode === 'sea' ? 'nearestPorts' : 'nearestAirports';
+            try {
+                const [originRes, destRes] = await Promise.all([
+                    axios.get(`http://localhost:${PORT}/api/ai/${endpoint}`, {
+                        params: { lat: startGeo.lat, lon: startGeo.lon, name: newState.origin },
+                        timeout: 5000,
+                    }),
+                    axios.get(`http://localhost:${PORT}/api/ai/${endpoint}`, {
+                        params: { lat: endGeo.lat, lon: endGeo.lon, name: newState.destination },
+                        timeout: 5000,
+                    }),
+                ]);
+                const originOptions = originRes.data[optKey] || [];
+                const destOptions   = destRes.data[optKey]   || [];
+                if (originOptions.length > 0 && destOptions.length > 0) {
+                    const noun = mode === 'sea' ? 'seaport' : 'airport';
+                    return res.json({
+                        success: true,
+                        type: 'RESOLVE',
+                        message: `Almost there! Please confirm the exact ${noun} for each location.`,
+                        state: newState,
+                        mode,
+                        originName:    newState.origin,
+                        destName:      newState.destination,
+                        originOptions,
+                        destOptions,
+                    });
+                }
+            } catch (err) {
+                console.warn('[AGENT] Resolver call failed, falling back to raw geocode:', err.message);
+            }
+        }
+
+        // ── TRUCK / RAIL (or sea/air resolver fallback): direct COMPLETE ──────
         return res.json({
             success: true,
             type: 'COMPLETE',

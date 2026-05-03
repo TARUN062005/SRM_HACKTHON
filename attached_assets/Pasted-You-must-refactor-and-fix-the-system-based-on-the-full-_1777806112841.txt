@@ -1,0 +1,240 @@
+You must refactor and fix the system based on the full audit. The goal is to make routing, AI, validation, and data handling fully correct and production-grade.
+
+Do NOT patch. Apply structured fixes.
+
+---
+
+# 1. ENFORCE VALIDATION PIPELINE (MANDATORY)
+
+Implement strict pipeline everywhere:
+
+User Input
+→ Location Resolver
+→ Mode Validation
+→ Transformation (port/airport mapping)
+→ Routing
+→ Rendering
+
+---
+
+## RULE:
+
+* No route generation unless inputs are valid for that mode
+
+---
+
+# 2. FIX AI AGENT (CRITICAL)
+
+## Problem:
+
+Agent bypasses resolve-port / resolve-airport
+
+## Fix:
+
+When AI reaches COMPLETE:
+
+### SEA MODE:
+
+* Call `/api/ai/resolve-port`
+* Return port options
+* Wait for user selection
+* ONLY THEN proceed to routing
+
+---
+
+### AIR MODE:
+
+* Call `/api/ai/resolve-airport`
+* Do NOT use raw city coordinates
+* Require airport confirmation
+
+---
+
+## DO NOT:
+
+* Directly call `/directions` from agent
+
+---
+
+# 3. ADD SERVER-SIDE AIRPORT SNAPPING
+
+In `buildAirRoutes()`:
+
+* Add:
+  nearestAirport(lat, lon)
+
+* Replace:
+  raw coordinates → airport coordinates
+
+---
+
+# 4. FIX RAIL MODE (IMPORTANT)
+
+Current:
+
+* Uses OSRM road API ❌
+
+Fix:
+
+Option A:
+
+* Rename "Rail" → "Ground (Road)" if no real rail API
+
+Option B (better):
+
+* Integrate real rail routing OR simulate using rail corridors dataset
+
+---
+
+# 5. REMOVE HARDCODED API KEYS (SECURITY)
+
+Remove:
+
+* Hardcoded Gemini API key from:
+
+  * aiAgentController.js
+  * aiRouteController.js
+
+Replace with:
+
+* process.env.GEMINI_API_KEY ONLY
+
+---
+
+# 6. FIX OSRM ERROR HANDLING
+
+Wrap:
+
+fetchRoutesFromProvider()
+
+with try/catch:
+
+* Validate response structure
+* If invalid:
+
+  * Return safe fallback
+  * Do NOT crash
+
+---
+
+# 7. FIX ROUTY AGENT LOCATION FLOW
+
+## Replace current logic:
+
+Current:
+
+* /api/ai/search?limit=1 → direct use ❌
+
+---
+
+## New flow:
+
+* Step 1: detect input
+* Step 2: call search
+* Step 3: call resolver (port/airport)
+* Step 4: show UI selection
+* Step 5: confirm
+* Step 6: route
+
+---
+
+# 8. IMPROVE USER VISIBILITY
+
+When port/airport auto-selected:
+
+Show:
+
+"Using Mumbai Port"
+"Using Jebel Ali Port"
+
+User must always know what system chose
+
+---
+
+# 9. FIX AIR ROUTE REALISM (OPTIONAL IMPROVEMENT)
+
+Improve:
+
+* Limit arc curvature
+* Avoid unrealistic deviations
+* Keep within reasonable flight corridors
+
+---
+
+# 10. ROUTE CACHE IMPROVEMENT
+
+* Include:
+  port names in cache key
+* Reduce incorrect reuse
+
+---
+
+# 11. FINAL VALIDATION CHECK
+
+Before routing:
+
+IF mode === SEA:
+
+* assert origin is port
+* assert destination is port
+
+IF mode === AIR:
+
+* assert airport
+
+IF invalid:
+
+* STOP execution
+
+---
+
+# 12. UI ENFORCEMENT
+
+* Disable "Generate Route" until valid
+* Show:
+
+  * Port picker
+  * Airport picker
+* Block routing otherwise
+
+---
+
+# 13. TEST CASES (MUST PASS)
+
+### SEA:
+
+* Vijayawada → USA → must show port picker
+* Mumbai → Dubai → must auto-select Mumbai Port
+
+### AIR:
+
+* Hyderabad → London → must use airport
+
+### LAND:
+
+* Delhi → Mumbai → valid road route
+
+---
+
+# 14. FINAL GOAL
+
+System must behave like:
+
+* Mode-aware
+* Validation-driven
+* Transparent
+* Accurate
+
+NOT:
+
+* Guess-based
+* Fallback-driven
+* Mixed-mode routing
+
+---
+
+# OUTPUT REQUIRED
+
+* Updated files
+* Explanation of fixes
+* Confirmation all test cases pass

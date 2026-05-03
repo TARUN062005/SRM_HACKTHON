@@ -15,10 +15,10 @@ import {
 
 
 const FREIGHT_MODES = [
-  { label: 'Sea',  value: 'ship',  Icon: Anchor },
-  { label: 'Air',  value: 'air',   Icon: Plane  },
-  { label: 'Rail', value: 'rail',  Icon: Train  },
-  { label: 'Road', value: 'truck', Icon: Truck  },
+  { label: 'Sea',    value: 'ship',  Icon: Anchor },
+  { label: 'Air',    value: 'air',   Icon: Plane  },
+  { label: 'Ground', value: 'rail',  Icon: Truck  },
+  { label: 'Road',   value: 'truck', Icon: Truck  },
 ];
 
 const ROUTE_LABELS = ['Optimal Route', 'Alternate 1', 'Alternate 2'];

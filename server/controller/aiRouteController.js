@@ -15,7 +15,10 @@ function sanitizeEn(text, fallback = "Sector") {
   // If we have a decent latin string, use it. Otherwise, use fallback.
   return latinOnly.length >= 2 ? latinOnly : fallback;
 }
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyCF-jKDV0TrY4sMQA3BueNZWAE04QgdoYA');
+if (!process.env.GEMINI_API_KEY) {
+  console.warn('[SECURITY] GEMINI_API_KEY environment variable not set — AI features will be degraded');
+}
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const geminiCache = new NodeCache({ stdTTL: 1800 }); // Longer cache for analysis
 const geocoderCache = new NodeCache({ stdTTL: 86400 }); // 24-hour geocoding cache
 
@@ -358,9 +361,18 @@ const isUniqueRoute = (route, existing) => {
  * Fetch routes from OSRM with alternatives enabled
  */
 const fetchRoutesFromProvider = async (start, end, profile = 'driving') => {
-  const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${start[1]},${start[0]};${end[1]},${end[0]}?geometries=geojson&alternatives=true&steps=true&overview=full`;
-  const response = await axios.get(osrmUrl);
-  return response.data.routes || [];
+  try {
+    const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${start[1]},${start[0]};${end[1]},${end[0]}?geometries=geojson&alternatives=true&steps=true&overview=full`;
+    const response = await axios.get(osrmUrl, { timeout: 12000 });
+    if (!response.data || !Array.isArray(response.data.routes)) {
+      console.warn('[OSRM] Unexpected response shape — returning empty routes');
+      return [];
+    }
+    return response.data.routes;
+  } catch (err) {
+    console.error('[OSRM] Fetch failed:', err.message);
+    return [];
+  }
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -695,6 +707,16 @@ function nearestPort(lat, lon) {
   return best;
 }
 
+// Find the nearest major airport to given coordinates
+function nearestAirport(lat, lon) {
+  let best = MAJOR_AIRPORTS[0], bestDist = Infinity;
+  for (const a of MAJOR_AIRPORTS) {
+    const d = hDist([lon, lat], [a.lon, a.lat]);
+    if (d < bestDist) { bestDist = d; best = a; }
+  }
+  return best;
+}
+
 // Classify ocean zone from [lon, lat]
 function oZone(lon, lat) {
   if (lon >= -82 && lon <= -55 && lat >= 0) return 'ATL_W_N';
@@ -928,9 +950,21 @@ function buildMaritimeRoutes(sLat, sLon, eLat, eLon) {
 }
 
 function buildAirRoutes(sLat, sLon, eLat, eLon) {
-  const start = [sLon, sLat], end = [eLon, eLat];
-  const mid1 = [(sLon + eLon) / 2 + 3, (sLat + eLat) / 2 + 2.5];
-  const mid2 = [(sLon + eLon) / 2 - 3, (sLat + eLat) / 2 - 2.5];
+  // Airport snapping — air routes MUST start/end at actual airports, never inland coordinates
+  const sAirport = nearestAirport(sLat, sLon);
+  const eAirport = nearestAirport(eLat, eLon);
+  console.log(`[AIR] Airport snap: ${sAirport.name} (${sAirport.iata}) → ${eAirport.name} (${eAirport.iata})`);
+
+  const start = [sAirport.lon, sAirport.lat];
+  const end   = [eAirport.lon, eAirport.lat];
+
+  // Constrained arc midpoints — proportional to route span, max 6° deviation to avoid unrealistic paths
+  const lonMid = (start[0] + end[0]) / 2;
+  const latMid = (start[1] + end[1]) / 2;
+  const span   = Math.abs(start[0] - end[0]) || 10;
+  const arc    = Math.min(span * 0.08, 6);
+  const mid1   = [lonMid + arc, latMid + arc * 0.5];
+  const mid2   = [lonMid - arc, latMid - arc * 0.5];
 
   const p0 = gcInterp(start, end, 80);
   const p1 = [...gcInterp(start, mid1, 40), ...gcInterp(mid1, end, 40).slice(1)];
@@ -939,11 +973,15 @@ function buildAirRoutes(sLat, sLon, eLat, eLon) {
   const AIR_KMH = 900;
   const d0 = pathDistKm(p0), d1 = pathDistKm(p1), d2 = pathDistKm(p2);
 
-  return [
-    { coords: p0, distKm: d0, durationH: d0 / AIR_KMH, label: 'Direct Airway',   type: 'Optimal' },
-    { coords: p1, distKm: d1, durationH: d1 / AIR_KMH, label: 'Alternate Airway 1', type: 'Balanced' },
-    { coords: p2, distKm: d2, durationH: d2 / AIR_KMH, label: 'Alternate Airway 2', type: 'Alternative' },
-  ];
+  return {
+    routes: [
+      { coords: p0, distKm: d0, durationH: d0 / AIR_KMH, label: 'Direct Airway',      type: 'Optimal'     },
+      { coords: p1, distKm: d1, durationH: d1 / AIR_KMH, label: 'Alternate Airway 1', type: 'Balanced'    },
+      { coords: p2, distKm: d2, durationH: d2 / AIR_KMH, label: 'Alternate Airway 2', type: 'Alternative' },
+    ],
+    originAirport: sAirport,
+    destAirport:   eAirport,
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -957,9 +995,6 @@ exports.getDirections = async (req, res) => {
     const sLat = parseFloat(startLat), sLon = parseFloat(startLng);
     const eLat = parseFloat(endLat),   eLon = parseFloat(endLng);
 
-    const cacheKey = `v21-${sLat.toFixed(2)}-${sLon.toFixed(2)}-${eLat.toFixed(2)}-${eLon.toFixed(2)}-${vehicle}`;
-    if (routeCache.has(cacheKey)) return res.json({ success: true, routes: routeCache.get(cacheKey) });
-
     const isShip = vehicle === 'ship';
     const isAir  = vehicle === 'air';
 
@@ -967,32 +1002,34 @@ exports.getDirections = async (req, res) => {
     if (isShip || isAir) {
       console.log(`[ROUTING] Mode: ${vehicle.toUpperCase()} | ${sLat},${sLon} → ${eLat},${eLon}`);
 
-      let sourceEn = sourceName || 'Origin Port';
+      // ── Build routes — snapping happens inside the builders ──
+      let rawRoutes, originPort = null, destPort = null, originAirport = null, destAirport = null;
+      let sourceEn = sourceName || 'Origin';
       let destEn   = destName   || 'Destination';
-      try {
-        const [sRes, dRes] = await Promise.all([
-          axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${sLat}&lon=${sLon}&zoom=8&accept-language=en`, { headers: { 'User-Agent': 'RouteGuardian/2.0' }, timeout: 4000 }),
-          axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${eLat}&lon=${eLon}&zoom=8&accept-language=en`, { headers: { 'User-Agent': 'RouteGuardian/2.0' }, timeout: 4000 }),
-        ]);
-        const sA = sRes.data?.address, dA = dRes.data?.address;
-        sourceEn = sanitizeEn(sA?.city || sA?.state || sA?.country, sourceEn);
-        destEn   = sanitizeEn(dA?.city || dA?.state || dA?.country, destEn);
-      } catch (e) {}
 
-      // ── Build routes (maritime returns { routes, originPort, destPort }) ──
-      let rawRoutes, originPort = null, destPort = null;
       if (isShip) {
         const marResult = buildMaritimeRoutes(sLat, sLon, eLat, eLon);
         rawRoutes  = marResult.routes;
         originPort = marResult.originPort;
         destPort   = marResult.destPort;
-        // Override geocoded names with actual port names — more accurate and informative
-        if (originPort) sourceEn = `${originPort.name} Port`;
-        if (destPort)   destEn   = `${destPort.name} Port`;
+        sourceEn   = originPort ? `${originPort.name} Port` : sourceEn;
+        destEn     = destPort   ? `${destPort.name} Port`   : destEn;
         console.log(`[MARITIME] Route: ${sourceEn} → ${destEn} | ${rawRoutes.length} variants`);
       } else {
-        rawRoutes = buildAirRoutes(sLat, sLon, eLat, eLon);
+        const airResult = buildAirRoutes(sLat, sLon, eLat, eLon);
+        rawRoutes     = airResult.routes;
+        originAirport = airResult.originAirport;
+        destAirport   = airResult.destAirport;
+        sourceEn      = originAirport ? `${originAirport.name} (${originAirport.iata})` : sourceEn;
+        destEn        = destAirport   ? `${destAirport.name} (${destAirport.iata})`     : destEn;
+        console.log(`[AIR] Route: ${sourceEn} → ${destEn} | ${rawRoutes.length} variants`);
       }
+
+      // Cache key uses snapped port/airport names — prevents stale reuse from nearby coordinate drift
+      const snapKey = isShip
+        ? `v22-sea-${originPort?.name || sLat.toFixed(2)}-${destPort?.name || eLat.toFixed(2)}`
+        : `v22-air-${originAirport?.iata || sLat.toFixed(2)}-${destAirport?.iata || eLat.toFixed(2)}`;
+      if (routeCache.has(snapKey)) return res.json({ success: true, routes: routeCache.get(snapKey) });
 
       const processedRoutes = await Promise.all(rawRoutes.map(async (r, i) => {
         const intelligence = await getRouteIntelligence(r.coords, sourceEn, destEn, r.distKm * 1000);
@@ -1007,15 +1044,20 @@ exports.getDirections = async (req, res) => {
           vehicle,
           originPort,
           destPort,
+          originAirport,
+          destAirport,
           steps: [],
         };
       }));
 
-      routeCache.set(cacheKey, processedRoutes);
+      routeCache.set(snapKey, processedRoutes);
       return res.json({ success: true, routes: processedRoutes });
     }
 
     // ── LAND ROUTING via OSRM ────────────────────────────────
+    // Cache key for land routes (coordinate-based, since no snapping applies)
+    const cacheKey = `v22-land-${sLat.toFixed(2)}-${sLon.toFixed(2)}-${eLat.toFixed(2)}-${eLon.toFixed(2)}-${vehicle}`;
+    if (routeCache.has(cacheKey)) return res.json({ success: true, routes: routeCache.get(cacheKey) });
     const vehicleProfileMap = { 'car': 'driving', 'bike': 'cycling', 'foot': 'walking', 'bus': 'driving', 'truck': 'driving', 'rail': 'driving' };
     const speedScaleMap     = { 'car': 1, 'bike': 3, 'foot': 8, 'bus': 1.5, 'truck': 1.3, 'rail': 0.9 };
 
