@@ -569,6 +569,122 @@ const MAJOR_PORTS = [
   { name: 'Auckland',           lat: -36.84, lon: 174.76, country: 'New Zealand'  },
 ];
 
+// ── Aliases & fuzzy helpers ───────────────────────────────────────────────────
+const PORT_ALIASES = {
+  'bombay': 'Mumbai', 'vizag': 'Visakhapatnam', 'waltair': 'Visakhapatnam',
+  'calcutta': 'Kolkata', 'madras': 'Chennai', 'cochin': 'Kochi',
+  'jnpt': 'Nhava Sheva (JNPT)', 'nhava sheva': 'Nhava Sheva (JNPT)',
+  'dubai': 'Jebel Ali', 'jebel ali': 'Jebel Ali',
+  'canton': 'Guangzhou', 'colombo port': 'Colombo',
+  'la': 'Los Angeles', 'ny': 'New York', 'nyc': 'New York',
+};
+
+const AIRPORT_ALIASES = {
+  'bombay': 'Chhatrapati Shivaji International',
+  'vizag': 'Visakhapatnam Airport', 'waltair': 'Visakhapatnam Airport',
+  'madras': 'Chennai International', 'calcutta': 'Netaji Subhas Chandra Bose International',
+  'heathrow': 'Heathrow Airport', 'jfk': 'John F. Kennedy International',
+  'lax': 'Los Angeles International', 'changi': 'Singapore Changi',
+  'dubai': 'Dubai International', 'doha': 'Hamad International',
+  'delhi': 'Indira Gandhi International', 'new delhi': 'Indira Gandhi International',
+};
+
+function normalizeQ(s) { return (s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim(); }
+
+function fuzzyMatchPorts(q) {
+  const qn = normalizeQ(q);
+  if (qn.length < 2) return [];
+  const aliasTarget = PORT_ALIASES[qn];
+  return MAJOR_PORTS.filter(p => {
+    const pn = normalizeQ(p.name);
+    return pn.startsWith(qn) || qn.startsWith(pn) || pn.includes(qn) ||
+           (aliasTarget && normalizeQ(aliasTarget) === pn);
+  }).slice(0, 3);
+}
+
+// Major cargo/passenger airports worldwide
+const MAJOR_AIRPORTS = [
+  // South Asia
+  { name: 'Indira Gandhi International',              iata: 'DEL', city: 'New Delhi',        lat:  28.56, lon:  77.09, country: 'India'        },
+  { name: 'Chhatrapati Shivaji International',        iata: 'BOM', city: 'Mumbai',           lat:  19.09, lon:  72.86, country: 'India'        },
+  { name: 'Chennai International',                    iata: 'MAA', city: 'Chennai',          lat:  12.99, lon:  80.17, country: 'India'        },
+  { name: 'Kempegowda International',                 iata: 'BLR', city: 'Bengaluru',        lat:  13.20, lon:  77.71, country: 'India'        },
+  { name: 'Rajiv Gandhi International',               iata: 'HYD', city: 'Hyderabad',        lat:  17.23, lon:  78.43, country: 'India'        },
+  { name: 'Netaji Subhas Chandra Bose International', iata: 'CCU', city: 'Kolkata',          lat:  22.65, lon:  88.45, country: 'India'        },
+  { name: 'Cochin International',                     iata: 'COK', city: 'Kochi',            lat:  10.16, lon:  76.39, country: 'India'        },
+  { name: 'Visakhapatnam Airport',                    iata: 'VTZ', city: 'Visakhapatnam',    lat:  17.72, lon:  83.22, country: 'India'        },
+  { name: 'Bandaranaike International',               iata: 'CMB', city: 'Colombo',          lat:   7.18, lon:  79.88, country: 'Sri Lanka'    },
+  { name: 'Jinnah International',                     iata: 'KHI', city: 'Karachi',          lat:  24.91, lon:  67.16, country: 'Pakistan'     },
+  // East Asia
+  { name: 'Shanghai Pudong International',            iata: 'PVG', city: 'Shanghai',         lat:  31.14, lon: 121.81, country: 'China'        },
+  { name: 'Beijing Capital International',            iata: 'PEK', city: 'Beijing',          lat:  40.08, lon: 116.60, country: 'China'        },
+  { name: 'Hong Kong International',                  iata: 'HKG', city: 'Hong Kong',        lat:  22.31, lon: 113.92, country: 'China'        },
+  { name: 'Guangzhou Baiyun International',           iata: 'CAN', city: 'Guangzhou',        lat:  23.39, lon: 113.30, country: 'China'        },
+  { name: 'Incheon International',                    iata: 'ICN', city: 'Seoul',            lat:  37.46, lon: 126.44, country: 'South Korea'  },
+  { name: 'Narita International',                     iata: 'NRT', city: 'Tokyo',            lat:  35.77, lon: 140.39, country: 'Japan'        },
+  { name: 'Kansai International',                     iata: 'KIX', city: 'Osaka',            lat:  34.43, lon: 135.24, country: 'Japan'        },
+  // Southeast Asia
+  { name: 'Singapore Changi',                         iata: 'SIN', city: 'Singapore',        lat:   1.36, lon: 103.99, country: 'Singapore'   },
+  { name: 'Suvarnabhumi',                             iata: 'BKK', city: 'Bangkok',          lat:  13.69, lon: 100.75, country: 'Thailand'     },
+  { name: 'Kuala Lumpur International',               iata: 'KUL', city: 'Kuala Lumpur',     lat:   2.74, lon: 101.70, country: 'Malaysia'     },
+  { name: 'Ninoy Aquino International',               iata: 'MNL', city: 'Manila',           lat:  14.51, lon: 121.02, country: 'Philippines'  },
+  { name: 'Soekarno-Hatta International',             iata: 'CGK', city: 'Jakarta',          lat:  -6.13, lon: 106.65, country: 'Indonesia'    },
+  { name: 'Tan Son Nhat International',               iata: 'SGN', city: 'Ho Chi Minh City', lat:  10.82, lon: 106.65, country: 'Vietnam'      },
+  // Middle East
+  { name: 'Dubai International',                      iata: 'DXB', city: 'Dubai',            lat:  25.25, lon:  55.36, country: 'UAE'          },
+  { name: 'Abu Dhabi International',                  iata: 'AUH', city: 'Abu Dhabi',        lat:  24.43, lon:  54.65, country: 'UAE'          },
+  { name: 'Hamad International',                      iata: 'DOH', city: 'Doha',             lat:  25.27, lon:  51.61, country: 'Qatar'        },
+  { name: 'King Abdulaziz International',             iata: 'JED', city: 'Jeddah',           lat:  21.68, lon:  39.16, country: 'Saudi Arabia' },
+  { name: 'King Khalid International',                iata: 'RUH', city: 'Riyadh',           lat:  24.96, lon:  46.70, country: 'Saudi Arabia' },
+  { name: 'Istanbul Airport',                         iata: 'IST', city: 'Istanbul',         lat:  41.28, lon:  28.75, country: 'Turkey'       },
+  // Europe
+  { name: 'Heathrow Airport',                         iata: 'LHR', city: 'London',           lat:  51.48, lon:  -0.45, country: 'UK'           },
+  { name: 'Charles de Gaulle Airport',                iata: 'CDG', city: 'Paris',            lat:  49.01, lon:   2.55, country: 'France'       },
+  { name: 'Frankfurt Airport',                        iata: 'FRA', city: 'Frankfurt',        lat:  50.04, lon:   8.56, country: 'Germany'      },
+  { name: 'Amsterdam Schiphol',                       iata: 'AMS', city: 'Amsterdam',        lat:  52.31, lon:   4.76, country: 'Netherlands'  },
+  { name: 'Madrid Barajas',                           iata: 'MAD', city: 'Madrid',           lat:  40.49, lon:  -3.57, country: 'Spain'        },
+  { name: 'Rome Fiumicino',                           iata: 'FCO', city: 'Rome',             lat:  41.80, lon:  12.24, country: 'Italy'        },
+  { name: 'Zurich Airport',                           iata: 'ZRH', city: 'Zurich',           lat:  47.46, lon:   8.55, country: 'Switzerland'  },
+  { name: 'Copenhagen Airport',                       iata: 'CPH', city: 'Copenhagen',       lat:  55.62, lon:  12.66, country: 'Denmark'      },
+  // Africa
+  { name: 'O.R. Tambo International',                 iata: 'JNB', city: 'Johannesburg',     lat: -26.13, lon:  28.24, country: 'South Africa' },
+  { name: 'Cairo International',                      iata: 'CAI', city: 'Cairo',            lat:  30.12, lon:  31.41, country: 'Egypt'        },
+  { name: 'Murtala Mohammed International',           iata: 'LOS', city: 'Lagos',            lat:   6.58, lon:   3.32, country: 'Nigeria'      },
+  { name: 'Jomo Kenyatta International',              iata: 'NBO', city: 'Nairobi',          lat:  -1.32, lon:  36.93, country: 'Kenya'        },
+  { name: 'Cape Town International',                  iata: 'CPT', city: 'Cape Town',        lat: -33.96, lon:  18.60, country: 'South Africa' },
+  // Americas
+  { name: 'John F. Kennedy International',            iata: 'JFK', city: 'New York',         lat:  40.64, lon: -73.78, country: 'USA'          },
+  { name: 'Los Angeles International',                iata: 'LAX', city: 'Los Angeles',      lat:  33.94, lon:-118.41, country: 'USA'          },
+  { name: "O'Hare International",                     iata: 'ORD', city: 'Chicago',          lat:  41.98, lon: -87.90, country: 'USA'          },
+  { name: 'Dallas/Fort Worth International',          iata: 'DFW', city: 'Dallas',           lat:  32.90, lon: -97.04, country: 'USA'          },
+  { name: 'Miami International',                      iata: 'MIA', city: 'Miami',            lat:  25.80, lon: -80.29, country: 'USA'          },
+  { name: 'Hartsfield-Jackson Atlanta',               iata: 'ATL', city: 'Atlanta',          lat:  33.64, lon: -84.43, country: 'USA'          },
+  { name: 'San Francisco International',              iata: 'SFO', city: 'San Francisco',    lat:  37.62, lon:-122.38, country: 'USA'          },
+  { name: 'George Bush Intercontinental',             iata: 'IAH', city: 'Houston',          lat:  29.99, lon: -95.34, country: 'USA'          },
+  { name: 'Seattle-Tacoma International',             iata: 'SEA', city: 'Seattle',          lat:  47.45, lon:-122.31, country: 'USA'          },
+  { name: 'Toronto Pearson International',            iata: 'YYZ', city: 'Toronto',          lat:  43.68, lon: -79.63, country: 'Canada'       },
+  { name: 'Vancouver International',                  iata: 'YVR', city: 'Vancouver',        lat:  49.19, lon:-123.18, country: 'Canada'       },
+  { name: 'Guarulhos International',                  iata: 'GRU', city: 'São Paulo',        lat: -23.43, lon: -46.47, country: 'Brazil'       },
+  { name: 'Ezeiza International',                     iata: 'EZE', city: 'Buenos Aires',     lat: -34.82, lon: -58.54, country: 'Argentina'    },
+  { name: 'Jorge Chávez International',               iata: 'LIM', city: 'Lima',             lat: -12.02, lon: -77.11, country: 'Peru'         },
+  // Oceania
+  { name: 'Sydney Kingsford Smith',                   iata: 'SYD', city: 'Sydney',           lat: -33.94, lon: 151.18, country: 'Australia'    },
+  { name: 'Melbourne Airport',                        iata: 'MEL', city: 'Melbourne',        lat: -37.67, lon: 144.84, country: 'Australia'    },
+  { name: 'Auckland Airport',                         iata: 'AKL', city: 'Auckland',         lat: -37.01, lon: 174.79, country: 'New Zealand'  },
+];
+
+function fuzzyMatchAirports(q) {
+  const qn = normalizeQ(q);
+  if (qn.length < 2) return [];
+  const aliasTarget = AIRPORT_ALIASES[qn];
+  return MAJOR_AIRPORTS.filter(a => {
+    const an = normalizeQ(a.name);
+    const cn = normalizeQ(a.city);
+    return cn === qn || an.includes(qn) || qn.includes(cn) ||
+           (aliasTarget && normalizeQ(aliasTarget) === an);
+  }).slice(0, 2);
+}
+
 // Find the nearest major port to given coordinates
 function nearestPort(lat, lon) {
   let best = MAJOR_PORTS[0], bestDist = Infinity;
@@ -1023,10 +1139,29 @@ exports.searchLocation = async (req, res) => {
       return 0;
     });
 
-    res.json(formatted);
-    
-    // 5. Commit to Predictive Memory
-    geocoderCache.set(cacheKey, formatted);
+    // 5. Inject port + airport name matches so fuzzy queries surface correct results
+    const portHits = fuzzyMatchPorts(q).map(p => ({
+      lat: p.lat, lon: p.lon,
+      display_name: `${p.name} Port, ${p.country}`,
+      type: 'port', place_rank: 1, _isPort: true,
+    }));
+    const airportHits = fuzzyMatchAirports(q).map(a => ({
+      lat: a.lat, lon: a.lon,
+      display_name: `${a.name} (${a.iata}), ${a.country}`,
+      type: 'airport', place_rank: 1, _isAirport: true, _iata: a.iata, _city: a.city,
+    }));
+    const dedupKey = r => `${Math.round(r.lat * 10)},${Math.round(r.lon * 10)}`;
+    const seen = new Set();
+    const combined = [...portHits, ...airportHits, ...formatted].filter(r => {
+      const k = dedupKey(r);
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    }).slice(0, 7);
+
+    res.json(combined);
+
+    // 6. Commit to Predictive Memory
+    geocoderCache.set(cacheKey, combined);
   } catch (error) {
     console.error('[SEARCH PROXY CRASH-RECOVERY]:', { query: req.query?.q, message: error.message });
     res.status(200).json([]); 
@@ -1116,21 +1251,34 @@ exports.getWeather = async (req, res) => {
   }
 };
 
-// ── Port Resolver — returns nearest ports to a given coordinate ───────────────
-// Used by the frontend to validate sea-mode location selections.
+// ── Port Resolver — returns nearest ports + fuzzy name matching ───────────────
 exports.resolvePort = async (req, res) => {
   try {
-    const lat = parseFloat(req.query.lat);
-    const lon = parseFloat(req.query.lon);
+    const lat  = parseFloat(req.query.lat);
+    const lon  = parseFloat(req.query.lon);
+    const name = req.query.name || '';
     if (isNaN(lat) || isNaN(lon)) return res.status(400).json({ error: 'Missing lat/lon' });
 
-    const IS_PORT_KM = 80; // within 80 km → considered a coastal/port city
+    // Step 1: name-based fuzzy matches (prioritised at top of list)
+    const qn          = normalizeQ(name);
+    const aliasTarget = PORT_ALIASES[qn];
+    const nameMatched = qn.length > 1 ? MAJOR_PORTS.filter(p => {
+      const pn = normalizeQ(p.name);
+      return pn.startsWith(qn) || qn.startsWith(pn) || pn.includes(qn) ||
+             (aliasTarget && normalizeQ(aliasTarget) === pn);
+    }) : [];
 
-    const withDist = MAJOR_PORTS
+    // Step 2: all ports sorted by distance from the geocoded coordinate
+    const byDist = MAJOR_PORTS
       .map(p => ({ ...p, distKm: Math.round(hDist([lon, lat], [p.lon, p.lat])) }))
       .sort((a, b) => a.distKm - b.distKm);
 
-    const top4 = withDist.slice(0, 4).map(p => ({
+    // Step 3: name matches first, then distance order — deduplicated, top 4
+    const nameMatchSet = new Set(nameMatched.map(p => p.name));
+    const top = [
+      ...byDist.filter(p => nameMatchSet.has(p.name)),
+      ...byDist.filter(p => !nameMatchSet.has(p.name)),
+    ].slice(0, 4).map(p => ({
       name:         p.name,
       country:      p.country,
       lat:          p.lat,
@@ -1139,17 +1287,70 @@ exports.resolvePort = async (req, res) => {
       display_name: `${p.name} Port`,
     }));
 
-    const closest = top4[0];
-    console.log(`[RESOLVE-PORT] (${lat.toFixed(2)},${lon.toFixed(2)}) → ${closest.name} ${closest.distKm} km`);
+    const closest      = top[0];
+    const IS_COASTAL   = 80; // km — within this → considered port-adjacent
+    console.log(`[RESOLVE-PORT] (${lat.toFixed(2)},${lon.toFixed(2)}) name="${name}" → ${closest.name} ${closest.distKm}km`);
 
     res.json({
-      isPort:       closest.distKm <= IS_PORT_KM,
+      isPort:        closest.distKm <= IS_COASTAL,
+      hasNameMatch:  nameMatched.length > 0,
       closestDistKm: closest.distKm,
-      nearestPorts: top4,
+      nearestPorts:  top,
     });
   } catch (err) {
     console.error('resolvePort error:', err.message);
     res.status(500).json({ error: 'Port resolution failed' });
+  }
+};
+
+// ── Airport Resolver — returns nearest airports + fuzzy name matching ─────────
+exports.resolveAirport = async (req, res) => {
+  try {
+    const lat  = parseFloat(req.query.lat);
+    const lon  = parseFloat(req.query.lon);
+    const name = req.query.name || '';
+    if (isNaN(lat) || isNaN(lon)) return res.status(400).json({ error: 'Missing lat/lon' });
+
+    const qn          = normalizeQ(name);
+    const aliasTarget = AIRPORT_ALIASES[qn];
+    const nameMatched = qn.length > 1 ? MAJOR_AIRPORTS.filter(a => {
+      const an = normalizeQ(a.name);
+      const cn = normalizeQ(a.city);
+      return cn === qn || an.includes(qn) || qn.includes(cn) ||
+             (aliasTarget && normalizeQ(aliasTarget) === an);
+    }) : [];
+
+    const byDist = MAJOR_AIRPORTS
+      .map(a => ({ ...a, distKm: Math.round(hDist([lon, lat], [a.lon, a.lat])) }))
+      .sort((a, b) => a.distKm - b.distKm);
+
+    const nameMatchSet = new Set(nameMatched.map(a => a.name));
+    const top = [
+      ...byDist.filter(a => nameMatchSet.has(a.name)),
+      ...byDist.filter(a => !nameMatchSet.has(a.name)),
+    ].slice(0, 3).map(a => ({
+      name:         a.name,
+      iata:         a.iata,
+      city:         a.city,
+      country:      a.country,
+      lat:          a.lat,
+      lon:          a.lon,
+      distKm:       a.distKm,
+      display_name: `${a.name} (${a.iata})`,
+    }));
+
+    const closest    = top[0];
+    const IS_AIRPORT = 60;
+    console.log(`[RESOLVE-AIRPORT] (${lat.toFixed(2)},${lon.toFixed(2)}) name="${name}" → ${closest.name} ${closest.distKm}km`);
+
+    res.json({
+      isAirport:       closest.distKm <= IS_AIRPORT,
+      closestDistKm:   closest.distKm,
+      nearestAirports: top,
+    });
+  } catch (err) {
+    console.error('resolveAirport error:', err.message);
+    res.status(500).json({ error: 'Airport resolution failed' });
   }
 };
 

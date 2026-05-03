@@ -15,6 +15,7 @@ router.get('/alerts', aiRouteController.getAlerts);
 router.get('/weather', aiRouteController.getWeather);
 router.get('/search', aiRouteController.searchLocation);
 router.get('/resolve-port', aiRouteController.resolvePort);
+router.get('/resolve-airport', aiRouteController.resolveAirport);
 router.post('/routes/compare', aiRouteController.compareRoutes);
 
 module.exports = router;

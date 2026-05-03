@@ -1,0 +1,268 @@
+You must generate a COMPLETE technical audit of this project. Do NOT summarize. Provide a detailed, structured breakdown of how the system actually works internally.
+
+This is required to debug correctness issues in routing, AI interaction, and data handling.
+
+---
+
+# 1. HIGH-LEVEL ARCHITECTURE
+
+Explain:
+
+* Frontend architecture (framework, state management, key components)
+* Backend architecture (routes, services, controllers)
+* Data flow between frontend and backend
+* Any AI/LLM integration layer
+
+---
+
+# 2. AI AGENT SYSTEM (CRITICAL)
+
+Explain in detail:
+
+* How user input is processed (chat + speech)
+* Which model is used (Gemini or other)
+* How prompts are constructed
+* Whether there is:
+
+  * Intent parsing
+  * Entity extraction
+  * State management
+
+---
+
+## MUST INCLUDE:
+
+* Exact flow:
+  User input → processing → response generation
+* How missing fields are handled
+* Why it fails for:
+
+  * "Mumbai"
+  * "India to USA"
+
+---
+
+# 3. LOCATION HANDLING SYSTEM
+
+Explain:
+
+* How locations are parsed
+* Whether geocoding API is used
+* Whether fuzzy matching exists
+* How system determines:
+
+  * City vs Port vs Airport
+
+---
+
+## MUST INCLUDE:
+
+* Why "Mumbai" is not recognized
+* Whether any resolver service exists
+* How location is validated
+
+---
+
+# 4. ROUTING ENGINE (VERY IMPORTANT)
+
+Explain separately for:
+
+---
+
+## SEA ROUTES
+
+* How routes are generated
+* Data source (API or custom logic)
+* Whether ports are used
+* How maritime paths are calculated
+
+---
+
+## LAND ROUTES
+
+* Which API is used (Google Maps / Mapbox)
+* How routes are fetched
+
+---
+
+## AIR ROUTES
+
+* How flight paths are calculated
+* Whether real airway data is used or simulated
+
+---
+
+## MUST INCLUDE:
+
+* Which routing service is actually called
+* Whether fallback logic exists
+* Why SEA mode sometimes produces land routes
+
+---
+
+# 5. MAP RENDERING SYSTEM
+
+Explain:
+
+* Which map library is used (Mapbox / Leaflet / Google Maps)
+* How routes are rendered:
+
+  * polylines
+  * markers
+
+---
+
+## MUST INCLUDE:
+
+* How origin/destination markers are placed
+* Whether they use:
+
+  * raw input coordinates
+  * resolved port coordinates
+
+---
+
+# 6. PORT / AIRPORT DATA
+
+Explain:
+
+* Whether there is a port database
+* Number of ports
+* Data format
+
+---
+
+## MUST INCLUDE:
+
+* How nearest port is calculated
+* Threshold distance
+* Why inland cities are accepted/rejected
+
+---
+
+# 7. REAL-TIME DATA SYSTEM
+
+Explain:
+
+---
+
+## NEWS (Geopolitical)
+
+* Which API is used (GDELT, NewsAPI, etc.)
+* How news is fetched
+* How it is linked to routes
+
+---
+
+## WEATHER
+
+* Which API is used
+* Whether weather is fetched:
+
+  * only at origin/destination OR
+  * along entire route
+
+---
+
+## MUST INCLUDE:
+
+* Whether data is real or mocked
+* How often it updates
+
+---
+
+# 8. ROUTE SELECTION LOGIC
+
+Explain:
+
+* How multiple routes are generated
+* How "best route" is chosen
+* Whether AI is used or static logic
+
+---
+
+# 9. STATE MANAGEMENT (FRONTEND)
+
+Explain:
+
+* How route data is stored
+* How validation state is handled
+* Whether there is:
+
+  * global store
+  * local component state
+
+---
+
+# 10. VALIDATION PIPELINE
+
+Explain:
+
+* Whether system uses:
+  Validate → Transform → Route
+
+---
+
+## MUST INCLUDE:
+
+* Where validation happens
+* Why invalid inputs still pass sometimes
+
+---
+
+# 11. ERROR HANDLING
+
+Explain:
+
+* How system handles:
+
+  * invalid locations
+  * API failures
+  * routing failures
+
+---
+
+# 12. PERFORMANCE
+
+Explain:
+
+* How map rendering is optimized
+* Whether debouncing or memoization is used
+
+---
+
+# 13. IDENTIFIED ISSUES (MANDATORY)
+
+List ALL current problems in system:
+
+Examples:
+
+* Location resolution failure
+* Mode mismatch (SEA using LAND)
+* Incomplete routes
+* UI inconsistency
+* Fake data usage
+
+---
+
+# 14. FINAL SUMMARY
+
+Provide:
+
+* What is working correctly
+* What is partially working
+* What is broken
+
+---
+
+# OUTPUT FORMAT
+
+Use structured sections:
+
+* Headings
+* Bullet points
+* Code references if needed
+
+Do NOT skip any section.
+
+This is a full system audit, not a summary.
