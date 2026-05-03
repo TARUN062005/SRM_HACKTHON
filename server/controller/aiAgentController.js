@@ -313,11 +313,16 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
                 extracted: { origin: null, destination: null, mode: null, date: message.trim(), time: null, cargo: null, priority: null },
                 clarifyField: null, options: [],
             };
-        } else if (timePattern.test(msg) && currentState.date && !currentState.time) {
+        } else if (currentState.date && !currentState.time && (timePattern.test(msg) || /\d/.test(msg))) {
+            const timeText = message.trim();
+            const parsedTime = timeText
+                .replace(/\s+/g, ' ')
+                .replace(/\b([ap])\.?m\.?\b/gi, (_, a) => `${a.toUpperCase()}M`)
+                .replace(/\b([ap])\b/gi, (_, a) => `${a.toUpperCase()}M`);
             parsed = {
                 type: 'ASK',
                 message: `Perfect! What type of cargo are you shipping? (optional — just press enter to skip)`,
-                extracted: { origin: null, destination: null, mode: null, date: null, time: message.trim(), cargo: null, priority: null },
+                extracted: { origin: null, destination: null, mode: null, date: null, time: parsedTime, cargo: null, priority: null },
                 clarifyField: null, options: [],
             };
         } else {
