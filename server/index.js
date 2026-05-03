@@ -95,6 +95,11 @@ const corsOptions = {
       return callback(null, true);
     }
 
+    // Always allow Replit preview/proxy domains
+    if (origin.endsWith('.replit.dev') || origin.endsWith('.repl.co') || origin.endsWith('.sisko.replit.dev')) {
+      return callback(null, true);
+    }
+
     if (process.env.NODE_ENV === 'development') {
       console.warn(`⚠️  CORS warning: Allowing non-listed origin in development: ${origin}`);
       return callback(null, true);
