@@ -443,35 +443,42 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
     setConvState(updatedState);
     setIsThinking(true);
 
-    // Check if we have enough to generate
-    if (updatedState.origin && updatedState.destination && updatedState.mode) {
-      axios.post(`${BASE_URL}/api/ai/agent/chat`, {
-        message: `I've selected ${portName} as my ${field}`,
-        state: updatedState,
-        history: convHistory,
-      }, { timeout: 30000 }).then(res => {
-        const data = res.data;
-        const finalState = { ...updatedState, ...(data.state || {}) };
-        setConvState(finalState);
-        if (data.type === 'COMPLETE' && data.source && data.destination) {
-          addMsg('complete', data.message);
-          const saved = saveRouteToHistory({ state: finalState, source: data.source, destination: data.destination });
-          onRouteSaved?.(saved);
-          setTimeout(() => { onRouteGenerated?.({ source: data.source, destination: data.destination, mode: finalState.mode }); onClose?.(); }, 1200);
-        } else {
-          addMsg('ai', data.message);
-        }
-      }).catch(() => {
-        addMsg('ai', `Got it — ${portName} set as ${field}. ${field === 'origin' ? 'Now, where are you shipping to?' : 'Great! What transport mode would you like?'}`);
-      }).finally(() => setIsThinking(false));
-    } else {
+    // Always send to backend — let server decide next step (may need date/time still)
+    axios.post(`${BASE_URL}/api/ai/agent/chat`, {
+      message: `I've selected ${portName} as my ${field}`,
+      state: updatedState,
+      history: convHistory,
+    }, { timeout: 30000 }).then(res => {
+      const data = res.data;
+      const finalState = { ...updatedState, ...(data.state || {}) };
+      setConvState(finalState);
+      if (data.type === 'COMPLETE' && data.source && data.destination) {
+        addMsg('complete', data.message);
+        const saved = saveRouteToHistory({ state: finalState, source: data.source, destination: data.destination });
+        onRouteSaved?.(saved);
+        setTimeout(() => { onRouteGenerated?.({ source: data.source, destination: data.destination, mode: finalState.mode }); onClose?.(); }, 1200);
+      } else if (data.type === 'RESOLVE') {
+        addMsg('resolve', data.message, {
+          mode: data.mode, originName: data.originName, destName: data.destName,
+          originOptions: data.originOptions || [], destOptions: data.destOptions || [],
+          pendingState: finalState,
+        });
+      } else {
+        addMsg('ai', data.message);
+      }
+    }).catch(() => {
+      // Offline fallback — give context-aware next question
       const nextQ = !updatedState.destination
-        ? "Great choice! Now, where are you shipping to?"
+        ? 'Great choice! Now, where are you shipping to?'
         : !updatedState.mode
-        ? "Almost there! Which transport mode — Sea, Air, Rail, or Road?"
-        : "Let me calculate your route now...";
-      setTimeout(() => { addMsg('ai', nextQ); setIsThinking(false); }, 400);
-    }
+        ? 'Which transport mode — Sea, Air, Rail, or Road?'
+        : !updatedState.date
+        ? 'What date would you like to ship?'
+        : !updatedState.time
+        ? "What's the preferred departure time?"
+        : 'Almost there — let me calculate your route.';
+      addMsg('ai', nextQ);
+    }).finally(() => setIsThinking(false));
   }, [convState, convHistory, addMsg, onRouteGenerated, onClose, onRouteSaved]);
 
   const handleConfirmResolve = useCallback(async (pickedOrigin, pickedDest, pendingState) => {
@@ -554,7 +561,7 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
 
   const handleReset = useCallback(() => {
     const initMode = MODE_MAP[freightMode] || 'sea';
-    setConvState({ origin: null, destination: null, mode: initMode, date: null, cargo: null, priority: null });
+    setConvState({ origin: null, destination: null, mode: initMode, date: null, time: null, cargo: null, priority: null, confirmedSource: null, confirmedDest: null });
     setConvHistory([]);
     setMessages([WELCOME]);
     setMsgId(1);

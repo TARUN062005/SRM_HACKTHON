@@ -187,6 +187,8 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
   "options": ["Port Name, Country", "Port Name, Country", "Port Name, Country", "Port Name, Country"]
 }`;
 
+    console.log('[AGENT] STATE IN:', JSON.stringify(currentState));
+
     let parsed = null;
     const aiRes = await runGemini(prompt);
 
@@ -194,29 +196,95 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
         parsed = extractJSON(aiRes.text);
     }
 
-    // Fallback: simple regex parse
+    // ── Fallback parser (runs when Gemini is unavailable or returns invalid JSON) ──
     if (!parsed) {
-        const routeMatch = message.match(/(.+?)\s+(?:to|till|2|→|->)\s+(.+)/i);
-        if (routeMatch) {
+        const msg = message.toLowerCase().trim();
+
+        // Mode keyword map
+        const MODE_KEYWORDS = {
+            sea: 'sea', ship: 'sea', maritime: 'sea', ocean: 'sea', shipping: 'sea',
+            air: 'air', flight: 'air', plane: 'air', fly: 'air',
+            rail: 'rail', train: 'rail', railway: 'rail',
+            truck: 'truck', road: 'truck', ground: 'truck', land: 'truck',
+        };
+        const modeWord = Object.keys(MODE_KEYWORDS).find(k =>
+            msg === k || msg.startsWith(k + ' ') || msg.endsWith(' ' + k)
+        );
+        const detectedMode = modeWord ? MODE_KEYWORDS[modeWord] : null;
+
+        // Route pattern "X to Y" (optionally "by mode")
+        const routeMatch = message.match(/^(.+?)\s+(?:to|till|→|->)\s+(.+)$/i);
+
+        // Date/time patterns
+        const datePattern = /(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{1,2}[\/\-]\d{1,2}|monday|tuesday|wednesday|thursday|friday|saturday|sunday|asap|today|tomorrow|next\s+\w+)/i;
+        const timePattern = /(?:\d{1,2}:\d{2}|morning|afternoon|evening|night|\d{1,2}\s*am|\d{1,2}\s*pm|any\s*time)/i;
+
+        if (detectedMode && !currentState.mode) {
+            // User answered a "which mode?" question
+            const modeLabels = { sea: 'Maritime', air: 'Air freight', rail: 'Rail', truck: 'Road' };
+            const nextQ = !currentState.date
+                ? `${modeLabels[detectedMode]} it is! What date would you like to ship? (e.g. June 15, next Monday, or ASAP)`
+                : !currentState.time
+                ? `Great! What's the preferred departure time? (e.g. 09:00, morning, any time)`
+                : `All set — let me put your route together.`;
             parsed = {
                 type: 'ASK',
-                message: `I see you want to route from ${routeMatch[1].trim()} to ${routeMatch[2].trim()}. What transport mode? Sea, Air, Rail, or Road?`,
-                extracted: { origin: routeMatch[1].trim(), destination: routeMatch[2].trim(), mode: null, date: null, cargo: null, priority: null },
-                clarifyField: null,
-                options: [],
+                message: nextQ,
+                extracted: { origin: null, destination: null, mode: detectedMode, date: null, time: null, cargo: null, priority: null },
+                clarifyField: null, options: [],
+            };
+        } else if (routeMatch) {
+            const originText = routeMatch[1].trim();
+            const rawDest    = routeMatch[2].trim();
+            // Detect trailing "by <mode>" / "via <mode>"
+            const byMatch   = rawDest.match(/^(.+?)\s+(?:by|via|using|through)\s+(\w+)$/i);
+            const cleanDest  = byMatch ? byMatch[1].trim() : rawDest;
+            const inlineMode = byMatch ? (MODE_KEYWORDS[byMatch[2].toLowerCase()] || null) : null;
+            parsed = {
+                type: 'ASK',
+                message: inlineMode
+                    ? `Got it — ${originText} to ${cleanDest} by ${inlineMode}. What date would you like to ship?`
+                    : `Got it — ${originText} to ${cleanDest}. What transport mode? Sea, Air, Rail, or Road?`,
+                extracted: { origin: originText, destination: cleanDest, mode: inlineMode, date: null, time: null, cargo: null, priority: null },
+                clarifyField: null, options: [],
+            };
+        } else if (datePattern.test(msg) && !currentState.date) {
+            parsed = {
+                type: 'ASK',
+                message: `Got it! What's the preferred departure time? (e.g. 09:00, morning, any time)`,
+                extracted: { origin: null, destination: null, mode: null, date: message.trim(), time: null, cargo: null, priority: null },
+                clarifyField: null, options: [],
+            };
+        } else if (timePattern.test(msg) && currentState.date && !currentState.time) {
+            parsed = {
+                type: 'ASK',
+                message: `Perfect! What type of cargo are you shipping? (optional — just press enter to skip)`,
+                extracted: { origin: null, destination: null, mode: null, date: null, time: message.trim(), cargo: null, priority: null },
+                clarifyField: null, options: [],
             };
         } else {
+            // Context-aware fallback — never show the generic welcome when state has data
+            const nextPrompt = !currentState.origin
+                ? `Where would you like to ship from?`
+                : !currentState.destination
+                ? `And where is it going?`
+                : !currentState.mode
+                ? `Which transport mode — Sea, Air, Rail, or Road?`
+                : !currentState.date
+                ? `What date would you like to ship?`
+                : !currentState.time
+                ? `What's the preferred departure time?`
+                : `Got it! What type of cargo are you shipping? (optional)`;
             parsed = {
-                type: 'CHAT',
-                message: "I'm Routy, your logistics AI. Tell me where you want to ship — e.g. \"Shanghai to Rotterdam by sea\".",
-                extracted: { origin: null, destination: null, mode: null, date: null, cargo: null, priority: null },
-                clarifyField: null,
-                options: [],
+                type: currentState.origin ? 'ASK' : 'CHAT',
+                message: nextPrompt,
+                extracted: { origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
+                clarifyField: null, options: [],
             };
         }
     }
 
-    // Merge extracted fields into state (only update non-null values)
+    // Merge extracted fields into state (only update non-null values — never clobber existing state)
     const extracted = parsed.extracted || {};
     const newState = { ...currentState };
     if (extracted.origin)      newState.origin      = extracted.origin;
@@ -226,6 +294,8 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
     if (extracted.time)        newState.time        = extracted.time;
     if (extracted.cargo)       newState.cargo       = extracted.cargo;
     if (extracted.priority)    newState.priority    = extracted.priority;
+
+    console.log('[AGENT] STATE OUT:', JSON.stringify(newState));
 
     // ── HANDLE CLARIFY ────────────────────────────────────────────
     if (parsed.type === 'CLARIFY') {
