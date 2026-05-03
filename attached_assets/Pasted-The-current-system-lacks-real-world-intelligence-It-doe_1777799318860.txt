@@ -1,0 +1,235 @@
+The current system lacks real-world intelligence. It does not use real-time geopolitical, weather, or disruption data, and fails to explain *why* a route is dangerous.
+
+You must upgrade the platform into a **live intelligence-driven routing system** with explainable risk insights.
+
+---
+
+## Core Objective
+
+Integrate **real-time external data sources** and build a UI that clearly explains:
+
+* WHY a route is dangerous
+* WHAT is causing the risk
+* HOW the system is predicting disruption
+
+This is NOT just data display — this is **decision intelligence**.
+
+---
+
+## 1. Real-Time Data Integration (MANDATORY)
+
+Integrate live data from:
+
+### Geopolitical / News Data
+
+* Fetch real-time global news (conflicts, wars, trade disruptions)
+* Use APIs (e.g., GDELT, NewsAPI, or similar)
+
+Detect:
+
+* War zones
+* Trade route blockages
+* Political instability
+
+Example:
+
+* Strait of Hormuz conflict → flag as CRITICAL risk
+
+---
+
+### Weather Data
+
+* Integrate live weather APIs
+* Detect:
+
+  * Storms (sea)
+  * Cyclones
+  * Heavy rainfall (land)
+  * Turbulence (air)
+
+---
+
+### Traffic / Logistics Data
+
+* Road congestion (for land)
+* Port congestion (for sea)
+* Airspace restrictions (for air)
+
+---
+
+## 2. AI Risk Detection Layer
+
+Build a risk engine that:
+
+* Combines:
+
+  * News signals
+  * Weather data
+  * Route location
+
+* Outputs:
+
+  * Risk score (0–100)
+  * Risk type (weather / war / congestion)
+  * Severity (Low / Medium / High / Critical)
+
+---
+
+## 3. Explainable Risk UI (VERY IMPORTANT)
+
+When a route is flagged:
+
+Display a **detailed explanation panel**:
+
+### Must include:
+
+* 🚨 Risk Title:
+  Example:
+  "Critical Risk: Conflict near Strait of Hormuz"
+
+* 📍 Affected Region (highlight on map)
+
+* 🧠 AI Explanation:
+  Example:
+  "Recent geopolitical escalation detected from multiple news sources indicating potential disruption to oil shipping lanes."
+
+* 📰 Related News Articles:
+
+  * Show headlines
+  * Show source
+  * Clickable links
+
+* 🖼 Optional Visual Context:
+
+  * Images from news (if available)
+
+* 🌦 Weather Impact (if applicable)
+
+---
+
+## 4. Map Integration (Live Risk Overlay)
+
+Enhance map with:
+
+* Risk zones:
+
+  * Red (Critical)
+  * Orange (High)
+  * Yellow (Moderate)
+
+* Clicking a zone → opens full explanation panel
+
+* Animate or highlight dangerous regions
+
+---
+
+## 5. Live Alerts System
+
+Create a **real-time alert feed**:
+
+* Show:
+
+  * New risks detected
+  * Escalating threats
+
+Example alerts:
+
+* "⚠️ Storm forming in Bay of Bengal — potential delay"
+* "🚨 Conflict escalation near Strait of Hormuz — rerouting advised"
+
+---
+
+## 6. AI-Based Prediction (NOT JUST REACTIVE)
+
+System must:
+
+* Predict risks BEFORE they happen
+* Use:
+
+  * Trend analysis from news frequency
+  * Weather forecasts
+
+Example:
+
+* Increasing conflict mentions → predict route instability
+
+---
+
+## 7. Rerouting Intelligence
+
+When risk detected:
+
+* Automatically:
+
+  * Suggest safer alternative route
+  * Show comparison:
+
+    * Old route risk
+    * New route safety
+
+---
+
+## 8. UI/UX Requirements
+
+* Clean dashboard
+* No clutter
+* Focus on:
+
+  * Clarity
+  * Urgency
+  * Explainability
+
+Use:
+
+* Cards
+* Panels
+* Highlighted alerts
+
+---
+
+## 9. Performance Constraints
+
+* Do NOT block UI while fetching data
+* Use async loading
+* Cache API responses when possible
+
+---
+
+## 10. Code Quality
+
+* Modular services:
+
+  * newsService
+  * weatherService
+  * riskEngine
+
+* No hardcoded fake data
+
+* Clean separation:
+
+  * data ingestion
+  * processing
+  * UI rendering
+
+---
+
+## 11. Deliverables
+
+* Integrated real-time data APIs
+* Risk scoring system
+* Explainable UI panels
+* Map risk overlays
+* Live alerts system
+
+---
+
+## Final Goal
+
+Transform the platform into a **real-time intelligent logistics system** that:
+
+* Detects global disruptions
+* Explains risks clearly
+* Predicts problems early
+* Recommends safe routes
+
+This should feel like a **mission-critical supply chain control tower**, not a demo.

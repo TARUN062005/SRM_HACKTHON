@@ -487,9 +487,27 @@ export const RouteMap = ({
     return isNaN(lat) || isNaN(lng) ? null : [lat, lng];
   }, [selectedDestination]);
 
-  const activeColor = freightMode === 'ship'  ? '#0d47a1'
-                    : freightMode === 'air'   ? '#0288d1'
-                    : freightMode === 'rail'  ? '#7b1fa2' : '#e65100';
+  // ── Per-mode visual strategy ──────────────────────────────────────
+  const MODE_STYLE = {
+    ship:  { activeColor: '#0d47a1', altColor: '#1565c0', glowColor: 'rgba(13,71,161,0.28)', weight: 6, altWeight: 4, dashArray: null,    glowW: 14 },
+    air:   { activeColor: '#0288d1', altColor: '#039be5', glowColor: 'rgba(2,136,209,0.22)',  weight: 4, altWeight: 3, dashArray: '12 8',  glowW: 10 },
+    rail:  { activeColor: '#6d28d9', altColor: '#7c3aed', glowColor: 'rgba(109,40,217,0.22)', weight: 5, altWeight: 4, dashArray: '14 5',  glowW: 11 },
+    truck: { activeColor: '#c2410c', altColor: '#ea580c', glowColor: 'rgba(194,65,12,0.22)',  weight: 5, altWeight: 4, dashArray: null,    glowW: 11 },
+  };
+  const modeStyle = MODE_STYLE[freightMode] || MODE_STYLE.truck;
+
+  // Duration formatter: show in hours/days for ship, minutes for land/air
+  const formatDuration = (seconds) => {
+    if (freightMode === 'ship') {
+      const days = seconds / 86400;
+      return days >= 1 ? `${days.toFixed(1)} days` : `${(seconds / 3600).toFixed(0)} hrs`;
+    }
+    if (freightMode === 'air') {
+      const hrs = seconds / 3600;
+      return hrs >= 1 ? `${hrs.toFixed(1)} hrs` : `${(seconds / 60).toFixed(0)} min`;
+    }
+    return `${(seconds / 60).toFixed(0)} min`;
+  };
 
   const mapLayers = useMemo(() => {
     return [...allRoutes]
@@ -498,39 +516,100 @@ export const RouteMap = ({
         if (!route.coords?.length) return null;
         const isActive = route.id === activeRouteIndex;
         const isHov    = hoveredRoute === route.id && !isActive;
-        const color = isActive ? activeColor : '#9aa0a6';
-        const weight = isActive ? 6 : (isHov ? 5 : 4);
-        const opacity = isActive ? 1 : (isHov ? 0.75 : 0.5);
+        const color    = isActive ? modeStyle.activeColor : (isHov ? modeStyle.altColor : '#94a3b8');
+        const weight   = isActive ? modeStyle.weight : (isHov ? modeStyle.altWeight + 1 : modeStyle.altWeight);
+        const opacity  = isActive ? 1 : (isHov ? 0.72 : 0.42);
+        const dash     = !isActive && (freightMode === 'air' || freightMode === 'rail') ? modeStyle.dashArray : (isActive ? null : modeStyle.dashArray);
+
+        // Duration label
+        const durLabel = freightMode === 'ship'
+          ? `${(route.duration / 86400).toFixed(1)}d · ${(route.distance / 1000).toFixed(0)} km`
+          : freightMode === 'air'
+          ? `${(route.duration / 3600).toFixed(1)}h · ${(route.distance / 1000).toFixed(0)} km`
+          : `${(route.duration / 60).toFixed(0)} min · ${(route.distance / 1000).toFixed(1)} km`;
+
         return (
           <React.Fragment key={route.id}>
-            <Polyline positions={route.coords} color="white" weight={isActive ? 12 : 8} opacity={isActive ? 0.75 : 0.4} lineCap="round" lineJoin="round" />
-            <Polyline positions={route.coords} color={color} weight={weight} opacity={opacity} lineCap="round" lineJoin="round"
+            {/* Glow halo (active only) */}
+            {isActive && (
+              <Polyline
+                positions={route.coords}
+                color={modeStyle.glowColor}
+                weight={modeStyle.glowW}
+                opacity={1}
+                lineCap="round"
+                lineJoin="round"
+              />
+            )}
+            {/* White outline */}
+            <Polyline
+              positions={route.coords}
+              color="white"
+              weight={isActive ? modeStyle.glowW - 2 : modeStyle.altWeight + 3}
+              opacity={isActive ? 0.85 : 0.35}
+              lineCap="round"
+              lineJoin="round"
+            />
+            {/* Main route line */}
+            <Polyline
+              positions={route.coords}
+              color={color}
+              weight={weight}
+              opacity={opacity}
+              lineCap="round"
+              lineJoin="round"
+              dashArray={dash}
               eventHandlers={{
-                click: () => onSetActiveRoute?.(route.id),
+                click:     () => onSetActiveRoute?.(route.id),
                 mouseover: () => setHoveredRoute(route.id),
-                mouseout: () => setHoveredRoute(null),
-              }}>
+                mouseout:  () => setHoveredRoute(null),
+              }}
+            >
               <Tooltip sticky direction="top" opacity={1} className="!border-0 !shadow-none !p-0 !bg-transparent">
-                <div className="bg-slate-900 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-xl pointer-events-none whitespace-nowrap">
-                  {(route.duration / 60).toFixed(0)} min · {(route.distance / 1000).toFixed(1)} km
+                <div
+                  className="text-white px-3 py-2 rounded-xl text-xs font-bold shadow-xl pointer-events-none whitespace-nowrap"
+                  style={{ background: modeStyle.activeColor }}
+                >
+                  {durLabel}
+                  {route.summary && <span className="ml-2 opacity-70 font-normal">· {route.summary}</span>}
                 </div>
               </Tooltip>
             </Polyline>
-            <NavigationSimulator coords={route.coords} isActive={isActive} isNavigating={isNavigating} speedMultiplier={simSpeed} freightMode={freightMode} />
+
+            {/* Navigation simulator dot */}
+            <NavigationSimulator
+              coords={route.coords}
+              isActive={isActive}
+              isNavigating={isNavigating}
+              speedMultiplier={simSpeed}
+              freightMode={freightMode}
+            />
+
+            {/* Waypoint intelligence markers (active route only) */}
             {isActive && route.intelligence?.waypointReports?.map((wp, idx) => {
               const total = route.intelligence.waypointReports.length;
               const pos = route.coords[Math.floor(idx * (route.coords.length - 1) / Math.max(total - 1, 1))];
               if (!isValidCoord(pos)) return null;
               return (
                 <Marker key={`wp-${idx}`} position={pos} icon={makeWaypointIcon(idx + 1, wp.severity === 'CRITICAL')}>
-                  <Popup><div className="p-1 text-xs"><div className="font-black text-blue-600 mb-0.5">{wp.place}</div><div className="text-slate-600">{wp.weather}</div></div></Popup>
+                  <Popup>
+                    <div className="p-1 text-xs">
+                      <div className="font-black mb-0.5" style={{ color: modeStyle.activeColor }}>{wp.place}</div>
+                      <div className="text-slate-600">{wp.weather}</div>
+                      {wp.severity !== 'STABLE' && (
+                        <div className={`mt-1 text-[10px] font-bold uppercase ${wp.severity === 'CRITICAL' ? 'text-red-600' : 'text-amber-600'}`}>
+                          ⚠ {wp.severity}
+                        </div>
+                      )}
+                    </div>
+                  </Popup>
                 </Marker>
               );
             })}
           </React.Fragment>
         );
       });
-  }, [allRoutes, activeRouteIndex, isNavigating, simSpeed, hoveredRoute, onSetActiveRoute, activeColor, freightMode]);
+  }, [allRoutes, activeRouteIndex, isNavigating, simSpeed, hoveredRoute, onSetActiveRoute, modeStyle, freightMode]);
 
   const isMaritime = freightMode === 'ship';
   const srcIcon = isMaritime ? portOriginIcon : startPin;
@@ -556,16 +635,28 @@ export const RouteMap = ({
         )}
       </AnimatePresence>
 
-      {/* Maritime badge */}
-      {isMaritime && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1050] pointer-events-none">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-900/90 backdrop-blur-sm rounded-full shadow-lg border border-blue-700/50">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] font-black text-white uppercase tracking-widest">Maritime Route Intelligence</span>
-            {showSeamarks && <span className="text-[8px] font-bold text-blue-300">· OpenSeaMap</span>}
-          </div>
-        </div>
-      )}
+      {/* Mode badge — always visible */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1050] pointer-events-none">
+        <AnimatePresence mode="wait">
+          <motion.div key={freightMode}
+            initial={{ opacity: 0, y: -8, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-center gap-2 px-3.5 py-1.5 backdrop-blur-sm rounded-full shadow-lg border"
+            style={{
+              background: `${modeStyle.activeColor}e6`,
+              borderColor: `${modeStyle.activeColor}99`,
+            }}>
+            <div className="w-1.5 h-1.5 rounded-full bg-white/80 animate-pulse" />
+            <span className="text-[10px] font-black text-white uppercase tracking-widest">
+              {freightMode === 'ship'  ? 'Maritime Route Intelligence'
+             : freightMode === 'air'  ? 'Air Route · Great-Circle Path'
+             : freightMode === 'rail' ? 'Rail Route Intelligence'
+             : 'Road Route Intelligence'}
+            </span>
+            {isMaritime && showSeamarks && <span className="text-[8px] font-bold text-white/60">· OpenSeaMap</span>}
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
       {/* Layer picker — top right */}
       <div className="absolute top-3 right-3 z-[1050] flex flex-col items-end gap-2">

@@ -314,6 +314,291 @@ const fetchRoutesFromProvider = async (start, end, profile = 'driving') => {
   return response.data.routes || [];
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ── MARITIME & AIR ROUTING ENGINE ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+const R2D = 180 / Math.PI;
+const D2R = Math.PI / 180;
+
+// Great-circle interpolation between two [lon, lat] points → returns array of [lon, lat]
+function gcInterp(p1, p2, steps = 30) {
+  const [lo1, la1] = [p1[0] * D2R, p1[1] * D2R];
+  const [lo2, la2] = [p2[0] * D2R, p2[1] * D2R];
+  const d = 2 * Math.asin(Math.sqrt(
+    Math.sin((la2 - la1) / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin((lo2 - lo1) / 2) ** 2
+  ));
+  if (d < 0.001) return [p1.slice(), p2.slice()];
+  const pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const f = i / steps;
+    const A = Math.sin((1 - f) * d) / Math.sin(d);
+    const B = Math.sin(f * d) / Math.sin(d);
+    const x = A * Math.cos(la1) * Math.cos(lo1) + B * Math.cos(la2) * Math.cos(lo2);
+    const y = A * Math.cos(la1) * Math.sin(lo1) + B * Math.cos(la2) * Math.sin(lo2);
+    const z = A * Math.sin(la1) + B * Math.sin(la2);
+    pts.push([Math.atan2(y, x) * R2D, Math.atan2(z, Math.sqrt(x * x + y * y)) * R2D]);
+  }
+  return pts;
+}
+
+// Build smooth path from array of [lon, lat] waypoints
+function buildPath(waypoints, stepsPerSeg = 30) {
+  if (waypoints.length < 2) return waypoints;
+  const path = [];
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const seg = gcInterp(waypoints[i], waypoints[i + 1], stepsPerSeg);
+    path.push(...(i === 0 ? seg : seg.slice(1)));
+  }
+  return path;
+}
+
+// Haversine distance in km between two [lon, lat] points
+function hDist(p1, p2) {
+  const dLa = (p2[1] - p1[1]) * D2R, dLo = (p2[0] - p1[0]) * D2R;
+  const a = Math.sin(dLa / 2) ** 2 + Math.cos(p1[1] * D2R) * Math.cos(p2[1] * D2R) * Math.sin(dLo / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function pathDistKm(coords) {
+  let d = 0;
+  for (let i = 1; i < coords.length; i++) d += hDist(coords[i - 1], coords[i]);
+  return d;
+}
+
+// Major maritime chokepoints [lon, lat]
+const CP = {
+  suezN:   [32.36, 31.26],  suezS:   [32.56, 29.94],
+  babel:   [43.40, 11.60],  hormuz:  [56.55, 26.57],
+  malacca: [103.83, 1.33],  sunda:   [106.05, -5.95],
+  panP:    [-79.55, 8.93],  panA:    [-79.92, 9.36],
+  capGood: [18.48, -34.37], capHorn: [-67.17, -55.98],
+  gibr:    [-5.36, 36.14],  dover:   [1.30, 51.09],
+};
+
+// Ocean waypoints [lon, lat]
+const OW = {
+  arabSea:  [65.0, 18.0],   bayBeng:  [87.0, 13.0],
+  ioW:      [58.0, -10.0],  ioC:      [75.0, -8.0],
+  ioE:      [88.0, -8.0],   ioSW:     [45.0, -30.0],
+  gulfAden: [48.0, 12.5],   redSea:   [38.0, 22.0],
+  medW:     [-1.0, 38.0],   medC:     [14.0, 37.0],
+  medE:     [28.0, 35.5],   atNW:     [-60.0, 48.0],
+  atNE:     [-20.0, 45.0],  atNC:     [-35.0, 30.0],
+  atC:      [-25.0, 5.0],   atSW:     [-30.0, -25.0],
+  atSE:     [-10.0, -28.0], atFar:    [-30.0, -50.0],
+  pacNW:    [162.0, 38.0],  pacNC:    [-175.0, 42.0],
+  pacNE:    [-150.0, 35.0], pacC:     [-160.0, 5.0],
+  pacSW:    [170.0, -28.0], schina:   [114.0, 14.0],
+  eChina:   [125.0, 30.0],  carib:    [-70.0, 16.0],
+  wAfrica:  [5.0, -12.0],   eAfrica:  [47.0, -8.0],
+};
+
+// Classify ocean zone from [lon, lat]
+function oZone(lon, lat) {
+  if (lon >= -82 && lon <= -55 && lat >= 0) return 'ATL_W_N';
+  if (lon >= -82 && lon <= -30 && lat < 0) return 'ATL_W_S';
+  if (lon >= -55 && lon <= -5 && lat >= 0) return 'ATL_E_N';
+  if (lon >= -30 && lon <= 15 && lat < 0) return 'ATL_E_S';
+  if (lon >= -10 && lon <= 40 && lat >= 35) return 'EUROPE';
+  if (lon > -6 && lon < 37 && lat > 29 && lat < 47) return 'MED';
+  if (lon >= 30 && lon <= 45 && lat >= 10 && lat <= 30) return 'RED_SEA';
+  if (lon >= 45 && lon <= 62 && lat >= 20 && lat <= 32) return 'GULF';
+  if (lon >= 55 && lon <= 78 && lat >= 5 && lat <= 25) return 'ARAB_SEA';
+  if (lon >= 78 && lon <= 100 && lat >= 5 && lat <= 25) return 'BAY_BENG';
+  if (lon >= 25 && lon <= 55 && lat >= -35 && lat < 10) return 'E_AFR';
+  if (lon >= -20 && lon <= 25 && lat >= -40 && lat < 15) return 'W_AFR';
+  if (lon >= 40 && lon <= 100 && lat < 5) return 'IO_C';
+  if (lon >= 95 && lon <= 120 && lat >= -10 && lat <= 22) return 'SE_ASIA';
+  if (lon >= 105 && lon <= 150 && lat >= 20 && lat <= 50) return 'E_ASIA';
+  if (lon >= 100 && lon <= 160 && lat >= -45 && lat < -5) return 'AUSTRALIA';
+  if (lon >= 130 && lat > 0) return 'PAC_W_N';
+  if (lon >= 130 && lat <= 0) return 'PAC_W_S';
+  if (lon <= -80 && lat >= 0) return 'PAC_E_N';
+  if (lon <= -65 && lat < 0) return 'PAC_E_S';
+  return 'OPEN';
+}
+
+function pickMarineWaypoints(sLon, sLat, eLon, eLat) {
+  const oz = oZone(sLon, sLat);
+  const dz = oZone(eLon, eLat);
+  const isAsian  = z => ['E_ASIA', 'SE_ASIA', 'PAC_W_N', 'PAC_W_S', 'AUSTRALIA'].includes(z);
+  const isIndian = z => ['ARAB_SEA', 'BAY_BENG', 'IO_C', 'E_AFR', 'GULF', 'RED_SEA'].includes(z);
+  const isEU     = z => ['EUROPE', 'MED'].includes(z);
+  const isAtlW   = z => ['ATL_W_N', 'ATL_W_S'].includes(z);
+  const isAtlE   = z => ['ATL_E_N', 'ATL_E_S', 'W_AFR'].includes(z);
+  const isAtl    = z => isAtlW(z) || isAtlE(z);
+  const isPacE   = z => ['PAC_E_N', 'PAC_E_S'].includes(z);
+
+  // Asia → Europe/Atlantic via Suez
+  if (isAsian(oz) && (isEU(dz) || isAtl(dz))) {
+    const wps = [OW.schina, CP.malacca, OW.ioC, OW.arabSea, CP.babel, OW.redSea, CP.suezS, CP.suezN, OW.medC, CP.gibr];
+    if (isAtl(dz)) wps.push(OW.atNC);
+    return wps;
+  }
+  // Europe/Atlantic → Asia via Suez
+  if ((isEU(oz) || isAtl(oz)) && isAsian(dz)) {
+    const wps = [];
+    if (isAtl(oz)) wps.push(OW.atNC);
+    wps.push(CP.gibr, OW.medC, CP.suezN, CP.suezS, OW.redSea, CP.babel, OW.arabSea, OW.ioC, CP.malacca, OW.schina);
+    return wps;
+  }
+  // Indian Ocean → Europe/Atlantic via Suez
+  if (isIndian(oz) && (isEU(dz) || isAtl(dz))) {
+    const wps = [];
+    if (oz === 'ARAB_SEA') wps.push(OW.arabSea, CP.babel);
+    else if (oz === 'BAY_BENG') wps.push(OW.bayBeng, OW.ioC, OW.arabSea, CP.babel);
+    else if (oz === 'IO_C') wps.push(OW.ioC, OW.arabSea, CP.babel);
+    else if (oz === 'E_AFR') wps.push(OW.eAfrica, OW.gulfAden, CP.babel);
+    else if (oz === 'GULF') wps.push(CP.hormuz, OW.arabSea, CP.babel);
+    else if (oz === 'RED_SEA') wps.push(OW.redSea, CP.suezS);
+    else wps.push(OW.arabSea, CP.babel);
+    if (oz !== 'RED_SEA') wps.push(OW.redSea, CP.suezS);
+    wps.push(CP.suezN, OW.medC, CP.gibr);
+    if (isAtl(dz)) wps.push(OW.atNC);
+    return wps;
+  }
+  // Europe/Atlantic → Indian Ocean via Suez
+  if ((isEU(oz) || isAtl(oz)) && isIndian(dz)) {
+    const wps = [];
+    if (isAtl(oz)) wps.push(OW.atNC);
+    wps.push(CP.gibr, OW.medC, CP.suezN, CP.suezS, OW.redSea, CP.babel, OW.arabSea);
+    if (dz === 'BAY_BENG') wps.push(OW.ioC, OW.bayBeng);
+    else if (dz === 'IO_C') wps.push(OW.ioC);
+    else if (dz === 'GULF') wps.push(CP.hormuz);
+    else if (dz === 'E_AFR') wps.push(OW.ioW, OW.eAfrica);
+    return wps;
+  }
+  // Pacific East → Atlantic via Panama
+  if (isPacE(oz) && (isAtl(dz) || isEU(dz))) {
+    const wps = [CP.panP, CP.panA, OW.carib];
+    if (isAtlE(dz) || isEU(dz)) wps.push(OW.atNC);
+    if (isEU(dz)) wps.push(CP.gibr);
+    return wps;
+  }
+  // Atlantic → Pacific East via Panama
+  if ((isAtl(oz) || isEU(oz)) && isPacE(dz)) {
+    const wps = [];
+    if (isEU(oz)) wps.push(CP.gibr, OW.atNC);
+    wps.push(OW.carib, CP.panA, CP.panP);
+    return wps;
+  }
+  // Asia Pacific → Pacific East (trans-Pacific)
+  if ((isAsian(oz) || oz === 'PAC_W_N') && isPacE(dz)) {
+    return [OW.eChina, OW.pacNW, OW.pacNC, OW.pacNE];
+  }
+  // Pacific East → Asia (trans-Pacific reverse)
+  if (isPacE(oz) && (isAsian(dz) || dz === 'PAC_W_N')) {
+    return [OW.pacNE, OW.pacNC, OW.pacNW, OW.eChina];
+  }
+  // Pacific East → Indian Ocean via Panama + Malacca
+  if (isPacE(oz) && isIndian(dz)) {
+    return [CP.panP, OW.pacC, CP.malacca, OW.ioC];
+  }
+  // Indian Ocean → Pacific East via Malacca + Panama
+  if (isIndian(oz) && isPacE(dz)) {
+    return [OW.ioC, CP.malacca, OW.pacC, CP.panP];
+  }
+  // Indian Ocean → Asia
+  if (isIndian(oz) && isAsian(dz)) return [OW.ioC, CP.malacca, OW.schina];
+  // Asia → Indian Ocean
+  if (isAsian(oz) && isIndian(dz)) return [OW.schina, CP.malacca, OW.ioC];
+  // Within Atlantic
+  if (isAtl(oz) && isAtl(dz)) return [OW.atC];
+  if (isAtl(oz) && isEU(dz)) return [OW.atNC, CP.gibr];
+  if (isEU(oz) && isAtl(dz)) return [CP.gibr, OW.atNC];
+  // Within Indian Ocean / nearby zones — be precise, avoid far southern waypoints
+  if (isIndian(oz) && isIndian(dz)) {
+    if (oz === dz) return [];                                                      // same zone: direct
+    const has = (...z) => z.includes(oz) || z.includes(dz);
+    if (has('GULF') && has('ARAB_SEA')) return [CP.hormuz];                        // Gulf ↔ Arabian Sea via Hormuz
+    if (has('GULF') && has('BAY_BENG')) return [CP.hormuz, OW.arabSea, OW.ioE];   // Gulf ↔ Bay of Bengal
+    if (has('GULF') && has('IO_C'))     return [CP.hormuz, OW.arabSea, OW.ioC];   // Gulf ↔ IO center
+    if (has('RED_SEA') && has('GULF'))  return [CP.babel, OW.arabSea, CP.hormuz]; // Red Sea ↔ Gulf
+    if (has('RED_SEA') && has('ARAB_SEA')) return [CP.babel, OW.arabSea];         // Red Sea ↔ Arabian Sea
+    if (has('RED_SEA') && has('BAY_BENG')) return [CP.babel, OW.arabSea, OW.ioE]; // Red Sea ↔ Bay of Bengal
+    if (has('ARAB_SEA') && has('BAY_BENG')) return [OW.ioE];                      // Arabian Sea ↔ Bay of Bengal
+    if (has('E_AFR') && has('ARAB_SEA')) return [OW.eAfrica, OW.gulfAden];        // E Africa ↔ Arabian Sea
+    if (has('E_AFR') && has('GULF'))    return [OW.eAfrica, OW.gulfAden, CP.babel, OW.arabSea, CP.hormuz];
+    return [];
+  }
+  return [];
+}
+
+// Cape of Good Hope alternative (for Asia→Europe)
+function pickCapeWaypoints(sLon, sLat, eLon, eLat) {
+  const oz = oZone(sLon, sLat);
+  const dz = oZone(eLon, eLat);
+  const isAsian  = z => ['E_ASIA', 'SE_ASIA', 'PAC_W_N', 'PAC_W_S', 'AUSTRALIA'].includes(z);
+  const isIndian = z => ['ARAB_SEA', 'BAY_BENG', 'IO_C', 'E_AFR', 'GULF', 'RED_SEA'].includes(z);
+  const isEU     = z => ['EUROPE', 'MED'].includes(z);
+  const isAtl    = z => ['ATL_W_N', 'ATL_W_S', 'ATL_E_N', 'ATL_E_S', 'W_AFR'].includes(z);
+
+  if ((isAsian(oz) || isIndian(oz)) && (isEU(dz) || isAtl(dz))) {
+    const wps = [];
+    if (isAsian(oz)) wps.push(OW.schina, CP.malacca);
+    wps.push(OW.ioC, OW.ioSW, CP.capGood, OW.wAfrica, OW.atSE, OW.atNC);
+    if (isEU(dz)) wps.push(CP.gibr, OW.medC);
+    return wps;
+  }
+  if ((isEU(oz) || isAtl(oz)) && (isAsian(dz) || isIndian(dz))) {
+    const wps = [];
+    if (isEU(oz)) wps.push(OW.medC, CP.gibr);
+    wps.push(OW.atNC, OW.atSE, OW.wAfrica, CP.capGood, OW.ioSW, OW.ioC);
+    if (isAsian(dz)) wps.push(CP.malacca, OW.schina);
+    return wps;
+  }
+  return pickMarineWaypoints(sLon, sLat, eLon, eLat);
+}
+
+function buildMaritimeRoutes(sLat, sLon, eLat, eLon) {
+  const start = [sLon, sLat], end = [eLon, eLat];
+  const oz = oZone(sLon, sLat), dz = oZone(eLon, eLat);
+  const isAsian  = z => ['E_ASIA', 'SE_ASIA', 'PAC_W_N', 'PAC_W_S', 'AUSTRALIA'].includes(z);
+  const isIndian = z => ['ARAB_SEA', 'BAY_BENG', 'IO_C', 'E_AFR', 'GULF', 'RED_SEA'].includes(z);
+  const isEU     = z => ['EUROPE', 'MED'].includes(z);
+  const isAtl    = z => ['ATL_W_N', 'ATL_W_S', 'ATL_E_N', 'ATL_E_S', 'W_AFR'].includes(z);
+
+  const suezNeeded = ((isAsian(oz) || isIndian(oz)) && (isEU(dz) || isAtl(dz)))
+    || ((isAsian(dz) || isIndian(dz)) && (isEU(oz) || isAtl(oz)));
+
+  const coreMid  = pickMarineWaypoints(sLon, sLat, eLon, eLat);
+  const capeMid  = suezNeeded ? pickCapeWaypoints(sLon, sLat, eLon, eLat) : coreMid.map(w => [w[0] - 2, w[1] - 1]);
+  const var1Mid  = coreMid.map(w => [w[0] + 1.8, w[1] + 1.2]);
+
+  const primaryCoords = buildPath([start, ...coreMid, end], 32);
+  const alt1Coords    = buildPath([start, ...var1Mid, end], 32);
+  const alt2Coords    = buildPath([start, ...capeMid, end], 32);
+
+  const SHIP_KMH = 26; // ~14 knots average container ship
+  const d0 = pathDistKm(primaryCoords), d1 = pathDistKm(alt1Coords), d2 = pathDistKm(alt2Coords);
+
+  return [
+    { coords: primaryCoords, distKm: d0, durationH: d0 / SHIP_KMH, label: suezNeeded ? 'Suez Canal Route' : 'Primary Route', type: 'Optimal' },
+    { coords: alt1Coords,    distKm: d1, durationH: d1 / SHIP_KMH, label: 'Alternate Lane',  type: 'Balanced' },
+    { coords: alt2Coords,    distKm: d2, durationH: d2 / SHIP_KMH, label: suezNeeded ? 'Cape of Good Hope' : 'Alternate Route 2', type: 'Alternative' },
+  ];
+}
+
+function buildAirRoutes(sLat, sLon, eLat, eLon) {
+  const start = [sLon, sLat], end = [eLon, eLat];
+  const mid1 = [(sLon + eLon) / 2 + 3, (sLat + eLat) / 2 + 2.5];
+  const mid2 = [(sLon + eLon) / 2 - 3, (sLat + eLat) / 2 - 2.5];
+
+  const p0 = gcInterp(start, end, 80);
+  const p1 = [...gcInterp(start, mid1, 40), ...gcInterp(mid1, end, 40).slice(1)];
+  const p2 = [...gcInterp(start, mid2, 40), ...gcInterp(mid2, end, 40).slice(1)];
+
+  const AIR_KMH = 900;
+  const d0 = pathDistKm(p0), d1 = pathDistKm(p1), d2 = pathDistKm(p2);
+
+  return [
+    { coords: p0, distKm: d0, durationH: d0 / AIR_KMH, label: 'Direct Airway',   type: 'Optimal' },
+    { coords: p1, distKm: d1, durationH: d1 / AIR_KMH, label: 'Alternate Airway 1', type: 'Balanced' },
+    { coords: p2, distKm: d2, durationH: d2 / AIR_KMH, label: 'Alternate Airway 2', type: 'Alternative' },
+  ];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // --- API HANDLERS ---
 
 exports.getDirections = async (req, res) => {
@@ -321,81 +606,104 @@ exports.getDirections = async (req, res) => {
     const { startLat, startLng, endLat, endLng, vehicle = 'driving', sourceName, destName } = req.query;
     if (!startLat || !startLng || !endLat || !endLng) return res.status(400).json({ error: 'Missing coords' });
 
-    const cacheKey = `v18-${startLat}-${startLng}-${endLat}-${endLng}-${vehicle}`;
+    const sLat = parseFloat(startLat), sLon = parseFloat(startLng);
+    const eLat = parseFloat(endLat),   eLon = parseFloat(endLng);
+
+    const cacheKey = `v20-${sLat.toFixed(2)}-${sLon.toFixed(2)}-${eLat.toFixed(2)}-${eLon.toFixed(2)}-${vehicle}`;
     if (routeCache.has(cacheKey)) return res.json({ success: true, routes: routeCache.get(cacheKey) });
 
-    const vehicleProfileMap = { 'car': 'driving', 'bike': 'cycling', 'foot': 'walking', 'bus': 'driving', 'truck': 'driving' };
-    const speedScaleMap = { 'car': 1, 'bike': 3, 'foot': 8, 'bus': 1.5, 'truck': 1.3 };
+    const isShip = vehicle === 'ship';
+    const isAir  = vehicle === 'air';
+
+    // ── MARITIME / AIR ROUTING ───────────────────────────────
+    if (isShip || isAir) {
+      console.log(`[ROUTING] Mode: ${vehicle.toUpperCase()} | ${sLat},${sLon} → ${eLat},${eLon}`);
+
+      let sourceEn = sourceName || 'Origin Port';
+      let destEn   = destName   || 'Destination';
+      try {
+        const [sRes, dRes] = await Promise.all([
+          axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${sLat}&lon=${sLon}&zoom=8&accept-language=en`, { headers: { 'User-Agent': 'RouteGuardian/2.0' }, timeout: 4000 }),
+          axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${eLat}&lon=${eLon}&zoom=8&accept-language=en`, { headers: { 'User-Agent': 'RouteGuardian/2.0' }, timeout: 4000 }),
+        ]);
+        const sA = sRes.data?.address, dA = dRes.data?.address;
+        sourceEn = sanitizeEn(sA?.city || sA?.state || sA?.country, sourceEn);
+        destEn   = sanitizeEn(dA?.city || dA?.state || dA?.country, destEn);
+      } catch (e) {}
+
+      const rawRoutes = isShip
+        ? buildMaritimeRoutes(sLat, sLon, eLat, eLon)
+        : buildAirRoutes(sLat, sLon, eLat, eLon);
+
+      const processedRoutes = await Promise.all(rawRoutes.map(async (r, i) => {
+        const intelligence = await getRouteIntelligence(r.coords, sourceEn, destEn, r.distKm * 1000);
+        return {
+          id: i,
+          type: r.type,
+          geometry: { type: 'LineString', coordinates: r.coords },
+          distance: Math.round(r.distKm * 1000),
+          duration: Math.round(r.durationH * 3600),
+          summary: r.label,
+          intelligence,
+          vehicle,
+          steps: [],
+        };
+      }));
+
+      routeCache.set(cacheKey, processedRoutes);
+      return res.json({ success: true, routes: processedRoutes });
+    }
+
+    // ── LAND ROUTING via OSRM ────────────────────────────────
+    const vehicleProfileMap = { 'car': 'driving', 'bike': 'cycling', 'foot': 'walking', 'bus': 'driving', 'truck': 'driving', 'rail': 'driving' };
+    const speedScaleMap     = { 'car': 1, 'bike': 3, 'foot': 8, 'bus': 1.5, 'truck': 1.3, 'rail': 0.9 };
 
     const profile = vehicleProfileMap[vehicle] || 'driving';
-    const scale = speedScaleMap[vehicle] || 1;
+    const scale   = speedScaleMap[vehicle] || 1;
 
     let paths = await fetchRoutesFromProvider([startLat, startLng], [endLat, endLng], profile);
 
-    // --- GEOGRAPHICAL ANCHORING FOR INTELLIGENCE (GLOBAL-READY) ---
-    let sourceEn = sourceName || "Mission Alpha";
-    let destEn = destName || "Mission Beta";
-
-    // Auto-Resolve names in English (Essential for NewsData.io)
+    let sourceEn = sourceName || 'Origin';
+    let destEn   = destName   || 'Destination';
     try {
-        const [sRes, dRes] = await Promise.all([
-            axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${startLat}&lon=${startLng}&zoom=14&accept-language=en&namedetails=1`, { 
-                headers: { 'User-Agent': 'RouteGuardian/1.1' } 
-            }),
-            axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${endLat}&lon=${endLng}&zoom=14&accept-language=en&namedetails=1`, { 
-                headers: { 'User-Agent': 'RouteGuardian/1.1' } 
-            })
-        ]);
-        const sAddr = sRes.data?.address;
-        const dAddr = dRes.data?.address;
-        const sDetails = sRes.data?.namedetails || {};
-        const dDetails = dRes.data?.namedetails || {};
-        
-        // Use name:en or specific address components
-        sourceEn = sanitizeEn(sDetails["name:en"] || sAddr?.city || sAddr?.town || sAddr?.suburb || sAddr?.state || sAddr?.country, "Origin Node");
-        destEn = sanitizeEn(dDetails["name:en"] || dAddr?.city || dAddr?.town || dAddr?.suburb || dAddr?.state || dAddr?.country, "Target Point");
-        
-        console.log(`[GEO-ANCHOR] Global Reset (EN): ${sourceEn} -> ${destEn}`);
-    } catch (e) {
-        console.warn("[GEO-ANCHOR] Fallback to legacy names.");
-    }
+      const [sRes, dRes] = await Promise.all([
+        axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${startLat}&lon=${startLng}&zoom=14&accept-language=en&namedetails=1`, { headers: { 'User-Agent': 'RouteGuardian/1.1' } }),
+        axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${endLat}&lon=${endLng}&zoom=14&accept-language=en&namedetails=1`,   { headers: { 'User-Agent': 'RouteGuardian/1.1' } }),
+      ]);
+      const sAddr = sRes.data?.address, dAddr = dRes.data?.address;
+      sourceEn = sanitizeEn(sRes.data?.namedetails?.['name:en'] || sAddr?.city || sAddr?.town || sAddr?.state || sAddr?.country, sourceEn);
+      destEn   = sanitizeEn(dRes.data?.namedetails?.['name:en'] || dAddr?.city || dAddr?.town || dAddr?.state || dAddr?.country, destEn);
+      console.log(`[GEO-ANCHOR] ${sourceEn} -> ${destEn}`);
+    } catch (e) {}
 
-    // --- ARTIFICIAL MISSION CORRIDOR DISCOVERY ---
+    // Fill up to 3 route alternatives with via-point offsets
     if (paths.length < 3 && paths.length > 0) {
       const primary = paths[0];
       const distanceKm = (primary.distance || 0) / 1000;
       const midIdx = Math.floor(primary.geometry.coordinates.length / 2);
       const mid = primary.geometry.coordinates[midIdx];
-      
       const offsetScale = distanceKm > 100 ? 0.08 : 0.02;
-      const offsets = [[offsetScale, -offsetScale], [-offsetScale, offsetScale]];
-
-      for (const [latOff, lngOff] of offsets) {
+      for (const [latOff, lngOff] of [[offsetScale, -offsetScale], [-offsetScale, offsetScale]]) {
         if (paths.length >= 3) break;
-        const viaUrl = `https://router.project-osrm.org/route/v1/${profile}/${startLng},${startLat};${mid[0] + lngOff},${mid[1] + latOff};${endLng},${endLat}?geometries=geojson&overview=full`;
         try {
-          const vRes = await axios.get(viaUrl);
-          if (vRes.data.routes?.length > 0 && isUniqueRoute(vRes.data.routes[0], paths)) {
-            paths.push(vRes.data.routes[0]);
-          }
-        } catch (e) { }
+          const vRes = await axios.get(`https://router.project-osrm.org/route/v1/${profile}/${startLng},${startLat};${mid[0] + lngOff},${mid[1] + latOff};${endLng},${endLat}?geometries=geojson&overview=full`);
+          if (vRes.data.routes?.length > 0 && isUniqueRoute(vRes.data.routes[0], paths)) paths.push(vRes.data.routes[0]);
+        } catch (e) {}
       }
     }
 
     const processedRoutes = await Promise.all(paths.slice(0, 3).map(async (route, i) => {
-      const correctedDuration = route.duration * scale;
       const intelligence = await getRouteIntelligence(route.geometry.coordinates, sourceEn, destEn, route.distance);
-      
       return {
         id: i,
         type: i === 0 ? 'Optimal' : i === 1 ? 'Balanced' : 'Alternative',
         geometry: route.geometry,
         distance: route.distance,
-        duration: correctedDuration,
-        summary: route.legs?.[0]?.summary || 'Primary Roadways',
-        intelligence: intelligence,
-        vehicle: vehicle,
-        steps: route.legs?.[0]?.steps?.map(s => ({ instruction: s.maneuver.instruction, distance: s.distance })) || []
+        duration: route.duration * scale,
+        summary: route.legs?.[0]?.summary || 'Primary Roadway',
+        intelligence,
+        vehicle,
+        steps: route.legs?.[0]?.steps?.map(s => ({ instruction: s.maneuver?.instruction, distance: s.distance })) || [],
       };
     }));
 

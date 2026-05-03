@@ -13,9 +13,9 @@ import {
 } from 'lucide-react';
 
 const FREIGHT_MODES = [
-  { label: 'Sea',  value: 'ship',  Icon: Anchor, vehicle: 'truck' },
-  { label: 'Air',  value: 'air',   Icon: Plane,  vehicle: 'car'   },
-  { label: 'Rail', value: 'rail',  Icon: Train,  vehicle: 'truck' },
+  { label: 'Sea',  value: 'ship',  Icon: Anchor, vehicle: 'ship'  },
+  { label: 'Air',  value: 'air',   Icon: Plane,  vehicle: 'air'   },
+  { label: 'Rail', value: 'rail',  Icon: Train,  vehicle: 'rail'  },
   { label: 'Road', value: 'truck', Icon: Truck,  vehicle: 'truck' },
 ];
 
@@ -253,16 +253,34 @@ const Dashboard = () => {
                             <div className={`w-1 h-10 rounded-full flex-shrink-0 ${isActive ? 'bg-blue-500' : 'bg-slate-200'}`} />
                             <div className="flex-1 min-w-0">
                               <p className={`text-[10px] font-black uppercase tracking-wider mb-0.5 ${isActive ? 'text-blue-600' : 'text-slate-400'}`}>
-                                {ROUTE_LABELS[idx] || `Route ${idx + 1}`}
+                                {route.summary || ROUTE_LABELS[idx] || `Route ${idx + 1}`}
                               </p>
                               <div className="flex items-baseline gap-2">
-                                <span className={`text-xl font-black ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>
-                                  {(route.duration / 60).toFixed(0)}
-                                </span>
-                                <span className="text-xs text-slate-400 font-semibold">min</span>
+                                {freightMode === 'ship' ? (
+                                  <>
+                                    <span className={`text-xl font-black ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>
+                                      {(route.duration / 86400).toFixed(1)}
+                                    </span>
+                                    <span className="text-xs text-slate-400 font-semibold">days</span>
+                                  </>
+                                ) : freightMode === 'air' ? (
+                                  <>
+                                    <span className={`text-xl font-black ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>
+                                      {(route.duration / 3600).toFixed(1)}
+                                    </span>
+                                    <span className="text-xs text-slate-400 font-semibold">hrs</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className={`text-xl font-black ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>
+                                      {(route.duration / 60).toFixed(0)}
+                                    </span>
+                                    <span className="text-xs text-slate-400 font-semibold">min</span>
+                                  </>
+                                )}
                                 <span className="text-slate-200">·</span>
                                 <span className={`text-sm font-semibold ${isActive ? 'text-slate-600' : 'text-slate-400'}`}>
-                                  {(route.distance / 1000).toFixed(1)} km
+                                  {(route.distance / 1000).toFixed(0)} km
                                 </span>
                               </div>
                             </div>
