@@ -9,6 +9,17 @@ import { registerFCMServiceWorker } from "./lib/push/registerServiceWorker";
 
 registerFCMServiceWorker();
 
+const savedTheme = localStorage.getItem("theme") || "dark";
+if (
+  savedTheme === "dark" ||
+  (savedTheme === "system" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches)
+) {
+  document.documentElement.classList.add("dark");
+} else {
+  document.documentElement.classList.remove("dark");
+}
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>

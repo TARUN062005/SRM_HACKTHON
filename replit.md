@@ -83,6 +83,49 @@ This is a fullstack web application with a React frontend and an Express.js back
   - `client/src/components/RiskIntelPanel.jsx` — NEW: explainable risk panel component
   - `server/controller/aiRouteController.js` — GLOBAL_RISK_ZONES, routePassesNear, enhanced getRouteIntelligence, getAlerts
 
+## Design System (v2 — Dark Control Tower)
+
+Dark-first design language across the entire app shell and all pages.
+
+### Color Tokens
+- Background: `#0B1220` (root canvas)
+- Surface: `#111827` (sidebar, navbar, panels)
+- Card: `#1F2937` (page cards, modals)
+- Border: `#374151`
+- Primary: `#3B82F6` (blue — CTAs, active nav, highlights)
+- Success: `#22C55E` | Warning: `#F59E0B` | Danger: `#EF4444` | Info: `#38BDF8`
+- Text Primary: `#F9FAFB` | Secondary: `#9CA3AF` | Muted: `#6B7280`
+
+### App Shell (`DashboardLayout.jsx`)
+- Fixed **240px dark sidebar** (always visible): Logo → Nav → bottom Settings/Logout
+- Nav items: Dashboard, Routes Map, Risk Alerts (with unread badge), Shipments
+- Active nav state: blue highlight + blue dot
+- Fixed **64px dark top navbar**: live status dot + page title, New Route button (dashboard only), Bell with dropdown, Profile avatar + dropdown
+- Content area: `overflow-hidden` for /dashboard (full-height map), `overflow-y-auto p-6` for all other pages
+- Dark mode initialized in `main.jsx` before first render (default: dark, respects localStorage)
+
+### Dashboard (`Dashboard.jsx`)
+- Always-visible **380px left control panel** (no collapse/toggle):
+  - Dark segmented mode selector (Sea / Air / Rail / Road)
+  - Route inputs (ShipmentCreationFlow)
+  - Route cards with dark styling, blue active state
+  - Simulation controls
+  - Route Intelligence collapsible (weather waypoints + risk news)
+  - Empty state: KPI cards (colored glow), Live Threat Feed (colored by severity), Getting Started steps
+- Map takes `flex-1` remaining width at full height
+
+### NotificationsPage (`NotificationsPage.jsx`)
+- Timeline-style list: colored left border by priority, icon in colored circle
+- Stats bar: Total / Unread (red) / Read (green)
+- Filter bar: type + priority toggles
+- Click-to-open detail modal with full message, banner image, CTA
+
+### SettingsPage (`SettingsPage.jsx`)
+- Left tab nav: Appearance / Profile / Notifications / Security
+- Dark cards with dark inputs (`background: #0B1220`)
+- Notifications tab: push toggle + 4 alert category toggles (UI preview)
+- Default theme changed to 'dark'
+
 ## Project Structure
 
 ```

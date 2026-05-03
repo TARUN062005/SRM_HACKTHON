@@ -1,0 +1,252 @@
+The current system lacks true AI interaction. You must implement an **agentic AI assistant** that can interact with users via chat or speech, collect logistics details step-by-step, and generate intelligent routes.
+
+This is NOT a simple chatbot. It must behave like a **task-oriented autonomous agent with memory and structured output**.
+
+---
+
+# 1. CORE OBJECTIVE
+
+Build an AI agent that:
+
+* Interacts conversationally (text + speech)
+* Dynamically asks for missing inputs
+* Extracts structured route data
+* Automatically creates a route
+* Displays it on the map with risk intelligence
+* Saves it for future access
+
+---
+
+# 2. INPUT MODES (MANDATORY)
+
+Support:
+
+### Chat Input
+
+* Text-based conversation UI
+
+### Voice Input
+
+* Speech-to-text integration
+* Convert voice → structured query
+
+---
+
+# 3. AGENT BEHAVIOR (CRITICAL)
+
+The AI must:
+
+1. Understand user intent
+2. Detect missing fields
+3. Ask follow-up questions dynamically
+
+---
+
+## REQUIRED FIELDS
+
+The agent must collect:
+
+* Origin
+* Destination
+* Transport Mode (SEA / LAND / AIR)
+* Date
+* Time
+* Optional:
+
+  * Cargo type
+  * Priority
+
+---
+
+## Example Flow
+
+User:
+"I want to send goods from India to Dubai"
+
+Agent:
+
+* Ask: "Which transport mode? (Ship, Air, Land)"
+* Ask: "Select origin port/airport/city"
+* Ask: "Select destination port/airport/city"
+* Ask: "Preferred date and time?"
+
+---
+
+## SEA MODE SPECIAL CASE
+
+If mode = SEA:
+
+* Show list of **ports (not cities)**
+* Example:
+
+  * Mumbai Port
+  * Chennai Port
+
+Same for destination:
+
+* Dubai Port (Jebel Ali)
+
+DO NOT allow city-level routing for sea.
+
+---
+
+# 4. STATE MANAGEMENT (VERY IMPORTANT)
+
+Maintain a **conversation state object**:
+
+Example:
+{
+origin: null,
+destination: null,
+mode: null,
+date: null,
+time: null
+}
+
+Update progressively as user responds.
+
+---
+
+# 5. AUTO ROUTE GENERATION
+
+Once all required fields are collected:
+
+* Automatically:
+
+  * Generate route
+  * Compute risk score
+  * Fetch:
+
+    * Weather data
+    * News data
+    * Risk zones
+
+---
+
+# 6. OUTPUT UI (AFTER COMPLETION)
+
+Display:
+
+### Map
+
+* Route path
+* Risk zones
+* Alerts overlay
+
+---
+
+### Route Summary Panel
+
+* Origin → Destination
+* Mode
+* ETA
+* Risk score
+* Delay prediction
+
+---
+
+### Risk Insights
+
+* Weather conditions
+* Geopolitical risks
+* News articles
+
+---
+
+# 7. ROUTE HISTORY (PERSISTENCE)
+
+Every completed route must be saved.
+
+---
+
+## Add “My Routes” Section
+
+Each saved route should show:
+
+* Origin → Destination
+* Mode
+* Date
+* Status (Safe / Risky)
+
+Click → reopen full details
+
+---
+
+# 8. MULTIPLE ROUTES SUPPORT
+
+User must be able to:
+
+* Create multiple routes
+* View history
+* Re-analyze old routes
+
+---
+
+# 9. UI FOR AGENT
+
+Create a **chat panel**:
+
+* Messages (user + AI)
+* Input field
+* Mic button 🎤
+* Send button
+
+---
+
+# 10. SPEECH HANDLING
+
+* Use browser speech API or equivalent
+* Show:
+
+  * “Listening…” state
+  * Transcribed text
+
+---
+
+# 11. AI RESPONSE STYLE
+
+* Clear and short
+* Ask one thing at a time
+* Avoid dumping everything at once
+
+---
+
+# 12. ERROR HANDLING
+
+* If invalid input:
+
+  * Ask again
+* If unclear location:
+
+  * Suggest options
+
+---
+
+# 13. ARCHITECTURE (IMPORTANT)
+
+Separate:
+
+* agentController
+* stateManager
+* routeService
+* riskEngine
+* mapRenderer
+
+DO NOT mix logic with UI components.
+
+---
+
+# 14. PERFORMANCE
+
+* Do not block UI during AI processing
+* Show loading indicators
+
+---
+
+# FINAL GOAL
+
+Build a system where:
+
+User → Talks naturally → AI collects info → Route auto-generated → Risks explained → Saved for reuse
+
+This should feel like a **logistics AI assistant**, not a form or chatbot.

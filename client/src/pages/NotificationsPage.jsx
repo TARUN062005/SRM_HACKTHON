@@ -1,599 +1,393 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  Bell,
-  Loader2,
-  ShieldAlert,
-  Megaphone,
-  CheckCircle,
-  X,
-  AlertTriangle,
-  Mail,
-  ExternalLink,
-  Clock,
-  Link2,
-  AlertCircle,
-  Image as ImageIcon,
+  Bell, Loader2, ShieldAlert, Megaphone, CheckCircle,
+  AlertTriangle, Mail, ExternalLink, Clock, X, Filter,
+  AlertCircle, RefreshCw,
 } from "lucide-react";
 
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
+
+const TYPE_CONFIG = {
+  SECURITY:     { icon: ShieldAlert,  color: "#EF4444", bg: "rgba(239,68,68,0.12)",    label: "Security"     },
+  ANNOUNCEMENT: { icon: Megaphone,    color: "#A78BFA", bg: "rgba(167,139,250,0.12)",  label: "Announcement" },
+  MARKETING:    { icon: Mail,         color: "#22C55E", bg: "rgba(34,197,94,0.12)",    label: "Marketing"    },
+  SYSTEM:       { icon: Bell,         color: "#38BDF8", bg: "rgba(56,189,248,0.12)",   label: "System"       },
+};
+
+const PRIORITY_CONFIG = {
+  URGENT: { color: "#EF4444", bg: "rgba(239,68,68,0.15)",   border: "rgba(239,68,68,0.35)"   },
+  HIGH:   { color: "#F59E0B", bg: "rgba(245,158,11,0.15)",  border: "rgba(245,158,11,0.35)"  },
+  NORMAL: { color: "#38BDF8", bg: "rgba(56,189,248,0.12)",  border: "rgba(56,189,248,0.25)"  },
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return "-";
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "-";
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
 const NotificationsPage = () => {
-  const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
   const token = localStorage.getItem("token");
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]         = useState(true);
   const [markingRead, setMarkingRead] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [openNotif, setOpenNotif]     = useState(null);
+  const [stats, setStats]             = useState({ total: 0, unread: 0, read: 0 });
+  const [filters, setFilters]         = useState({ type: "all", priority: "all" });
 
-  // ✅ modal
-  const [openNotif, setOpenNotif] = useState(null);
-
-  const [stats, setStats] = useState({
-    total: 0,
-    unread: 0,
-    read: 0,
-  });
-
-  // ✅ filters
-  const [filters, setFilters] = useState({
-    type: "all",
-    priority: "all",
-  });
-
-  // ---------------------------
-  // Helpers
-  // ---------------------------
-  const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) return "-";
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const getTypeIcon = (type) => {
-    switch (type) {
-      case "SECURITY":
-        return <ShieldAlert className="text-rose-500" size={18} />;
-      case "ANNOUNCEMENT":
-        return <Megaphone className="text-indigo-500" size={18} />;
-      case "MARKETING":
-        return <Mail className="text-emerald-500" size={18} />;
-      case "SYSTEM":
-      default:
-        return <Bell className="text-blue-500" size={18} />;
-    }
-  };
-
-  const getPriorityBadge = (priority) => {
-    switch (priority) {
-      case "URGENT":
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-black bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-            URGENT
-          </span>
-        );
-      case "HIGH":
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-black bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
-            HIGH
-          </span>
-        );
-      case "NORMAL":
-      default:
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-black bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-            NORMAL
-          </span>
-        );
-    }
-  };
-
-  // ✅ Banner avatar (round thumbnail)
-  const BannerAvatar = ({ bannerUrl, fallbackIcon }) => {
-    const [broken, setBroken] = useState(false);
-
-    // if banner exists and not broken => show image
-    if (bannerUrl && !broken) {
-      return (
-        <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0">
-          <img
-            src={bannerUrl}
-            alt="Notification banner"
-            className="w-full h-full object-cover"
-            onError={() => setBroken(true)}
-          />
-        </div>
-      );
-    }
-
-    // fallback => icon block
-    return (
-      <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center flex-shrink-0">
-        {fallbackIcon || <ImageIcon size={18} className="text-slate-500" />}
-      </div>
-    );
-  };
-
-  // ---------------------------
-  // API
-  // ---------------------------
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-
       const params = new URLSearchParams();
       if (filters.type !== "all") params.append("type", filters.type);
-      if (filters.priority !== "all")
-        params.append("priority", filters.priority);
-
-      const url = `${BASE_URL}/api/user/notifications?${params.toString()}`;
-
-      const res = await axios.get(url, {
+      if (filters.priority !== "all") params.append("priority", filters.priority);
+      const res = await axios.get(`${BASE_URL}/api/user/notifications?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (res.data?.success) {
         const list = res.data.notifications || [];
         setNotifications(list);
-
         setStats({
-          total: res.data.total || list.length || 0,
-          unread: list.filter((n) => !n.isRead).length,
-          read: list.filter((n) => n.isRead).length,
+          total: res.data.total || list.length,
+          unread: list.filter(n => !n.isRead).length,
+          read: list.filter(n => n.isRead).length,
         });
-      } else {
-        toast.error("Failed to load notifications");
       }
     } catch (err) {
-      toast.error(
-        err.response?.data?.message || "Failed to load notifications"
-      );
+      toast.error(err.response?.data?.message || "Failed to load notifications");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchUnreadCount = async () => {
-    try {
-      const res = await axios.get(
-        `${BASE_URL}/api/user/notifications?mode=unreadCount`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (res.data?.success) {
-        setStats((prev) => ({
-          ...prev,
-          unread: res.data.unreadCount || 0,
-        }));
-      }
-    } catch (err) {
-      console.error("Failed to fetch unread count:", err);
     }
   };
 
   const markAllRead = async () => {
     try {
       setMarkingRead(true);
-
-      const res = await axios.patch(
-        `${BASE_URL}/api/user/notifications/read-all`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (res.data?.success) {
-        toast.success("All notifications marked as read");
-        await fetchNotifications();
-        await fetchUnreadCount();
-      } else {
-        toast.error("Failed to mark read");
-      }
-    } catch (err) {
-      toast.error(
-        err.response?.data?.message || "Failed to mark notifications read"
-      );
+      await axios.patch(`${BASE_URL}/api/user/notifications/read-all`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("All marked as read");
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setStats(prev => ({ ...prev, unread: 0, read: prev.total }));
+    } catch {
+      toast.error("Failed to mark all as read");
     } finally {
       setMarkingRead(false);
     }
   };
 
-  const markOneRead = async (userNotificationId) => {
+  const markOneRead = async (id) => {
     try {
-      await axios.patch(
-        `${BASE_URL}/api/user/notifications/${userNotificationId}/read`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === userNotificationId
-            ? { ...n, isRead: true, readAt: new Date().toISOString() }
-            : n
-        )
-      );
-
-      setStats((prev) => ({
-        ...prev,
-        unread: Math.max(0, prev.unread - 1),
-        read: prev.read + 1,
-      }));
+      await axios.patch(`${BASE_URL}/api/user/notifications/${id}/read`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      setStats(prev => ({ ...prev, unread: Math.max(0, prev.unread - 1), read: prev.read + 1 }));
     } catch (err) {
-      console.error("markOneRead failed:", err?.response?.data || err.message);
+      console.error("Failed to mark as read:", err);
     }
   };
 
-  const trackCTAClick = async (notificationId, ctaUrl) => {
-    try {
-      await axios.post(
-        `${BASE_URL}/api/user/notifications/${notificationId}/click`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (ctaUrl) window.open(ctaUrl, "_blank");
-    } catch (err) {
-      console.error("Failed to track click:", err);
-      if (ctaUrl) window.open(ctaUrl, "_blank");
-    }
-  };
-
-  // ---------------------------
-  // Effects
-  // ---------------------------
-  useEffect(() => {
-    fetchNotifications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
-
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.isRead).length,
-    [notifications]
-  );
-
-  const filteredNotifications = notifications.filter((n) => {
-    if (filters.type !== "all" && n.type !== filters.type) return false;
-    if (filters.priority !== "all" && n.priority !== filters.priority)
-      return false;
-    return true;
-  });
-
-  const handleOpenNotification = async (n) => {
-    setOpenNotif(n);
-
-    if (!n.isRead) {
-      // optimistic: mark read
-      await markOneRead(n.id);
-    }
-  };
+  useEffect(() => { fetchNotifications(); }, [filters]);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* ✅ Modal */}
-      {openNotif && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <button
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setOpenNotif(null)}
-            aria-label="Close notification modal"
-          />
-
-          <div className="relative w-full max-w-2xl rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
-            {/* Header */}
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                {/* ✅ In modal also show round avatar icon/banner - BUT NOT big banner section */}
-                <BannerAvatar
-                  bannerUrl={openNotif.bannerUrl}
-                  fallbackIcon={getTypeIcon(openNotif.type)}
-                />
-
-                <div className="min-w-0">
-                  <p className="font-black text-slate-900 dark:text-white truncate">
-                    {openNotif.title}
-                  </p>
-                  <p className="text-xs font-bold text-slate-400 mt-1">
-                    {openNotif.sender?.name || "System"} •{" "}
-                    {formatDate(openNotif.createdAt)}
-                  </p>
-                </div>
-              </div>
-
-              {/* ✅ Right side: read time at top-right */}
-              <div className="flex items-start gap-3">
-                {openNotif.isRead && (
-                  <div className="hidden sm:flex flex-col items-end text-xs font-bold text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <Clock size={12} />
-                      Read
-                    </span>
-                    <span>{formatDate(openNotif.readAt)}</span>
-                  </div>
-                )}
-
-                <button
-                  onClick={() => setOpenNotif(null)}
-                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-
-            {/* ✅ IMPORTANT: Removed banner section completely */}
-
-            {/* Content */}
-            <div className="p-6 space-y-5">
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
-                {openNotif.message}
-              </p>
-
-              {/* ✅ CTA Button */}
-              {openNotif.ctaLabel && openNotif.ctaUrl && (
-                <div className="pt-2">
-                  <button
-                    onClick={() =>
-                      trackCTAClick(
-                        openNotif.notificationId,
-                        openNotif.ctaUrl
-                      )
-                    }
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-black border-2 border-black bg-black text-white hover:bg-slate-800 transition"
-                  >
-                    {openNotif.ctaLabel}
-                    <ExternalLink size={16} />
-                  </button>
-
-                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-2">
-                    URL: {openNotif.ctaUrl}
-                  </p>
-                </div>
-              )}
-
-              {/* ✅ Type/Priority removed (you explicitly asked) */}
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="space-y-6">
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white">
-            Notifications
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 font-bold mt-1">
-            Latest system updates, alerts, and announcements.
+          <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: "#3B82F6" }}>
+            Inbox
+          </p>
+          <h1 className="text-2xl font-black" style={{ color: "#F9FAFB" }}>Risk Alerts</h1>
+          <p className="text-sm mt-0.5" style={{ color: "#6B7280" }}>
+            Real-time security, route, and supply chain notifications
           </p>
         </div>
-
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
-            onClick={markAllRead}
-            disabled={markingRead || unreadCount === 0}
-            className="px-5 py-3 rounded-2xl font-black border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-60"
+            onClick={fetchNotifications}
+            className="p-2 rounded-xl transition-all"
+            style={{ color: "#6B7280", background: "#1F2937", border: "1px solid #374151" }}
+            onMouseEnter={e => e.currentTarget.style.color = "#F9FAFB"}
+            onMouseLeave={e => e.currentTarget.style.color = "#6B7280"}
           >
-            {markingRead ? "Marking..." : "Mark all as read"}
+            <RefreshCw size={15} />
           </button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/30">
-              <Bell className="text-blue-600 dark:text-blue-400" size={20} />
-            </div>
-            <div>
-              <p className="text-2xl font-black text-slate-900 dark:text-white">
-                {stats.total}
-              </p>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
-                Total
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/30">
-              <CheckCircle
-                className="text-green-600 dark:text-green-400"
-                size={20}
-              />
-            </div>
-            <div>
-              <p className="text-2xl font-black text-slate-900 dark:text-white">
-                {stats.read}
-              </p>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
-                Read
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/30">
-              <AlertCircle
-                className="text-red-600 dark:text-red-400"
-                size={20}
-              />
-            </div>
-            <div>
-              <p className="text-2xl font-black text-slate-900 dark:text-white">
-                {stats.unread}
-              </p>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
-                Unread
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <span className="font-bold text-slate-700 dark:text-slate-300">
-              Filter by:
-            </span>
-
-            <select
-              value={filters.type}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, type: e.target.value }))
-              }
-              className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm"
+          {stats.unread > 0 && (
+            <button
+              onClick={markAllRead}
+              disabled={markingRead}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+              style={{ background: "rgba(59,130,246,0.15)", color: "#3B82F6", border: "1px solid rgba(59,130,246,0.3)" }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(59,130,246,0.25)"}
+              onMouseLeave={e => e.currentTarget.style.background = "rgba(59,130,246,0.15)"}
             >
-              <option value="all">All Types</option>
-              <option value="SYSTEM">System</option>
-              <option value="SECURITY">Security</option>
-              <option value="ANNOUNCEMENT">Announcement</option>
-              <option value="MARKETING">Marketing</option>
-            </select>
-
-            <select
-              value={filters.priority}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, priority: e.target.value }))
-              }
-              className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm"
-            >
-              <option value="all">All Priorities</option>
-              <option value="NORMAL">Normal</option>
-              <option value="HIGH">High</option>
-              <option value="URGENT">Urgent</option>
-            </select>
-          </div>
-
-          <button
-            onClick={() => setFilters({ type: "all", priority: "all" })}
-            className="px-3 py-2 rounded-xl font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-          >
-            Clear Filters
-          </button>
-        </div>
-      </div>
-
-      {/* List */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800">
-          <p className="text-lg font-black">Recent Notifications</p>
-          <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
-            {filteredNotifications.length} notifications found
-          </p>
-        </div>
-
-        <div className="p-6">
-          {loading ? (
-            <div className="flex items-center gap-2 text-slate-500 font-bold">
-              <Loader2 className="animate-spin" size={18} />
-              Loading notifications...
-            </div>
-          ) : filteredNotifications.length === 0 ? (
-            <div className="text-center py-12">
-              <Bell
-                className="mx-auto text-slate-300 dark:text-slate-700"
-                size={48}
-              />
-              <p className="text-slate-500 dark:text-slate-400 font-bold mt-4">
-                No notifications found
-              </p>
-              {filters.type !== "all" || filters.priority !== "all" ? (
-                <button
-                  onClick={() => setFilters({ type: "all", priority: "all" })}
-                  className="mt-2 px-4 py-2 rounded-xl font-bold text-primary-600 hover:text-primary-700"
-                >
-                  Clear filters to see all notifications
-                </button>
-              ) : null}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredNotifications.map((n) => (
-                <button
-                  type="button"
-                  key={n.id}
-                  onClick={() => handleOpenNotification(n)}
-                  className={[
-                    "w-full text-left p-4 rounded-2xl border flex items-start gap-4 transition",
-                    "hover:scale-[1.005] active:scale-[0.995]",
-                    n.isRead
-                      ? "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
-                      : "border-primary-300 dark:border-primary-500/30 bg-primary-50 dark:bg-primary-500/10",
-                  ].join(" ")}
-                >
-                  {/* ✅ Left side: show banner in round OR icon */}
-                  <BannerAvatar
-                    bannerUrl={n.bannerUrl}
-                    fallbackIcon={getTypeIcon(n.type)}
-                  />
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-black text-slate-900 dark:text-white truncate">
-                          {n.title}
-                        </p>
-                        {getPriorityBadge(n.priority)}
-                      </div>
-
-                      {!n.isRead && (
-                        <span className="px-3 py-1 rounded-full text-xs font-black bg-red-600 text-white">
-                          NEW
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-sm font-bold text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
-                      {n.message}
-                    </p>
-
-                    {/* CTA Preview */}
-                    {n.ctaLabel && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <Link2 size={12} className="text-slate-400" />
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                          CTA: {n.ctaLabel}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between gap-3 mt-2">
-                      <p className="text-xs font-bold text-slate-400">
-                        {n.sender?.name || "System"} • {formatDate(n.createdAt)}
-                      </p>
-                      {n.isRead ? (
-                        <span className="text-xs font-bold text-green-600 dark:text-green-400">
-                          Read
-                        </span>
-                      ) : (
-                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
-                          Unread
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
+              {markingRead ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+              Mark all read
+            </button>
           )}
         </div>
       </div>
+
+      {/* Stats bar */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Total",  value: stats.total,  color: "#9CA3AF", bg: "#1F2937"                     },
+          { label: "Unread", value: stats.unread, color: "#EF4444", bg: "rgba(239,68,68,0.1)"         },
+          { label: "Read",   value: stats.read,   color: "#22C55E", bg: "rgba(34,197,94,0.1)"         },
+        ].map(({ label, value, color, bg }) => (
+          <div key={label} className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: bg, border: "1px solid #374151" }}>
+            <p className="text-2xl font-black" style={{ color }}>{value}</p>
+            <p className="text-xs font-semibold" style={{ color: "#6B7280" }}>{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Filter size={13} style={{ color: "#6B7280" }} />
+          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#6B7280" }}>Filter</span>
+        </div>
+
+        <div className="flex gap-1 p-1 rounded-xl" style={{ background: "#1F2937" }}>
+          {["all", "SYSTEM", "SECURITY", "ANNOUNCEMENT", "MARKETING"].map(t => (
+            <button
+              key={t}
+              onClick={() => setFilters(f => ({ ...f, type: t }))}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+              style={{
+                background: filters.type === t ? "#374151" : "transparent",
+                color: filters.type === t ? "#F9FAFB" : "#6B7280",
+              }}
+            >
+              {t === "all" ? "All Types" : t.charAt(0) + t.slice(1).toLowerCase()}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-1 p-1 rounded-xl" style={{ background: "#1F2937" }}>
+          {["all", "URGENT", "HIGH", "NORMAL"].map(p => (
+            <button
+              key={p}
+              onClick={() => setFilters(f => ({ ...f, priority: p }))}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+              style={{
+                background: filters.priority === p ? "#374151" : "transparent",
+                color: filters.priority === p ? "#F9FAFB" : "#6B7280",
+              }}
+            >
+              {p === "all" ? "All Priorities" : p.charAt(0) + p.slice(1).toLowerCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Notification list */}
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="animate-spin" size={28} style={{ color: "#374151" }} />
+        </div>
+      ) : notifications.length === 0 ? (
+        <div
+          className="flex flex-col items-center justify-center py-16 rounded-2xl"
+          style={{ background: "#1F2937", border: "1px solid #374151" }}
+        >
+          <Bell size={40} style={{ color: "#374151" }} />
+          <p className="text-base font-bold mt-3" style={{ color: "#6B7280" }}>No notifications</p>
+          <p className="text-sm mt-1" style={{ color: "#374151" }}>You're all caught up</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <AnimatePresence>
+            {notifications.map((n, idx) => {
+              const typeConf   = TYPE_CONFIG[n.type] || TYPE_CONFIG.SYSTEM;
+              const prioConf   = PRIORITY_CONFIG[n.priority] || PRIORITY_CONFIG.NORMAL;
+              const TypeIcon   = typeConf.icon;
+
+              return (
+                <motion.div
+                  key={n.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ delay: idx * 0.02 }}
+                  onClick={() => {
+                    setOpenNotif(n);
+                    if (!n.isRead) markOneRead(n.id);
+                  }}
+                  className="flex items-start gap-4 p-4 rounded-2xl cursor-pointer transition-all"
+                  style={{
+                    background: !n.isRead ? "rgba(59,130,246,0.05)" : "#1F2937",
+                    border: `1px solid ${!n.isRead ? "rgba(59,130,246,0.2)" : "#374151"}`,
+                    borderLeft: `3px solid ${!n.isRead ? prioConf.color : "#374151"}`,
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+                  onMouseLeave={e => e.currentTarget.style.background = !n.isRead ? "rgba(59,130,246,0.05)" : "#1F2937"}
+                >
+                  {/* Icon */}
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: typeConf.bg }}
+                  >
+                    <TypeIcon size={18} style={{ color: typeConf.color }} />
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-bold line-clamp-1" style={{ color: "#F9FAFB" }}>
+                        {n.title}
+                      </p>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {n.priority && n.priority !== "NORMAL" && (
+                          <span
+                            className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full"
+                            style={{ background: prioConf.bg, color: prioConf.color }}
+                          >
+                            {n.priority}
+                          </span>
+                        )}
+                        <span className="text-[10px] font-medium" style={{ color: "#6B7280" }}>
+                          {formatDate(n.createdAt)}
+                        </span>
+                        {!n.isRead && (
+                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#3B82F6" }} />
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs mt-1 line-clamp-2" style={{ color: "#9CA3AF" }}>
+                      {n.message}
+                    </p>
+                    <div className="flex items-center gap-3 mt-2">
+                      <span
+                        className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded"
+                        style={{ background: typeConf.bg, color: typeConf.color }}
+                      >
+                        {n.type}
+                      </span>
+                      {n.ctaUrl && (
+                        <a
+                          href={n.ctaUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="flex items-center gap-1 text-[10px] font-semibold hover:underline"
+                          style={{ color: "#3B82F6" }}
+                        >
+                          View <ExternalLink size={9} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* Detail modal */}
+      <AnimatePresence>
+        {openNotif && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+            onClick={() => setOpenNotif(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 16 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 16 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-lg rounded-2xl overflow-hidden"
+              style={{ background: "#1F2937", border: "1px solid #374151" }}
+            >
+              {/* Modal header */}
+              <div className="flex items-start justify-between p-5" style={{ borderBottom: "1px solid #374151" }}>
+                <div className="flex items-start gap-3">
+                  {(() => {
+                    const tc = TYPE_CONFIG[openNotif.type] || TYPE_CONFIG.SYSTEM;
+                    const TI = tc.icon;
+                    return (
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: tc.bg }}>
+                        <TI size={18} style={{ color: tc.color }} />
+                      </div>
+                    );
+                  })()}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#6B7280" }}>
+                      {openNotif.type} · {openNotif.priority}
+                    </p>
+                    <h3 className="text-base font-bold mt-0.5" style={{ color: "#F9FAFB" }}>
+                      {openNotif.title}
+                    </h3>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setOpenNotif(null)}
+                  className="p-1.5 rounded-lg transition-all"
+                  style={{ color: "#6B7280" }}
+                  onMouseEnter={e => e.currentTarget.style.color = "#F9FAFB"}
+                  onMouseLeave={e => e.currentTarget.style.color = "#6B7280"}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Modal body */}
+              <div className="p-5 space-y-4">
+                {openNotif.bannerUrl && (
+                  <img
+                    src={openNotif.bannerUrl}
+                    alt="Banner"
+                    className="w-full h-40 object-cover rounded-xl"
+                    style={{ border: "1px solid #374151" }}
+                  />
+                )}
+                <p className="text-sm leading-relaxed" style={{ color: "#9CA3AF" }}>
+                  {openNotif.message}
+                </p>
+                <div className="flex items-center gap-2" style={{ color: "#6B7280" }}>
+                  <Clock size={12} />
+                  <span className="text-xs">{formatDate(openNotif.createdAt)}</span>
+                </div>
+                {openNotif.ctaUrl && (
+                  <a
+                    href={openNotif.ctaUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold transition-all"
+                    style={{ background: "#3B82F6", color: "#fff" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#2563EB"}
+                    onMouseLeave={e => e.currentTarget.style.background = "#3B82F6"}
+                  >
+                    {openNotif.ctaLabel || "View Details"} <ExternalLink size={13} />
+                  </a>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
