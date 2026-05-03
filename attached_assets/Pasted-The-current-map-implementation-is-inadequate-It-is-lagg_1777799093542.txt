@@ -1,0 +1,182 @@
+The current map implementation is inadequate. It is laggy, not mode-aware, and does not behave like a modern navigation system. This must be fully refactored.
+
+---
+
+### Core Problems (must fix)
+
+1. Map does NOT adapt based on transport type (SEA / LAND / AIR)
+2. Ship mode still shows incorrect or unrealistic routes
+3. Map rendering is slow and laggy
+4. UX is not intuitive (not comparable to Google Maps-level usability)
+5. Route visualization is unclear and inconsistent
+
+---
+
+### Objective
+
+Rebuild the map system to be:
+
+* **Transport-mode aware**
+* **High performance (no lag)**
+* **Intuitive like Google Maps**
+* **Visually clear and interactive**
+* **Scalable for real-time updates**
+
+---
+
+### 1. Replace / Upgrade Map Engine (CRITICAL)
+
+If current implementation is basic or inefficient:
+
+* Use **Mapbox GL JS or Leaflet with performance optimizations**
+* Avoid heavy re-renders
+* Use vector-based rendering where possible
+
+---
+
+### 2. Mode-Based Map Behavior (MANDATORY)
+
+Map must change behavior based on selected transport mode:
+
+#### SEA (Ship 🚢)
+
+* Show ocean-focused map styling
+* Render:
+
+  * Shipping lanes
+  * Sea routes (curved, realistic paths)
+* Avoid:
+
+  * Roads, highways, land overlays
+* Use blue-themed styling
+
+#### LAND (Car/Truck 🚛)
+
+* Show road network
+* Use standard navigation routes
+* Include traffic-style overlays (if available)
+
+#### AIR (Airplane ✈️)
+
+* Minimal map (less clutter)
+* Show:
+
+  * Straight or curved flight paths
+* No road or sea constraints
+
+Switching modes must:
+
+* Instantly update map style
+* Clear previous routes
+* Re-render correctly without lag
+
+---
+
+### 3. Performance Optimization (NON-NEGOTIABLE)
+
+Fix lag completely:
+
+* Use:
+
+  * Memoization (React.memo, useMemo)
+  * Debounced updates
+  * Lazy loading for map components
+* Avoid:
+
+  * Re-rendering entire map on state change
+* Use efficient layers instead of re-drawing elements
+
+---
+
+### 4. Route Rendering Improvements
+
+* Use separate layers for:
+
+  * Routes
+  * Risk zones
+  * Alerts
+
+* Improve visuals:
+
+  * Smooth curves for sea routes
+  * Clean polylines for land
+  * Arc lines for air
+
+* Add:
+
+  * Hover interaction
+  * Click to inspect route details
+
+---
+
+### 5. UX Improvements (Google Maps-like behavior)
+
+Implement:
+
+* Smooth zoom and pan
+* Click to set origin/destination
+* Auto-fit route bounds
+* Clear loading indicators
+* Reset / recenter button
+
+---
+
+### 6. Data Handling
+
+* Do NOT use same routing data for all modes
+
+* Separate:
+
+  * seaRoutes
+  * landRoutes
+  * airRoutes
+
+* Ensure correct dataset is used per mode
+
+---
+
+### 7. Error Handling
+
+* If route cannot be generated:
+
+  * Show clear UI message
+  * Do NOT freeze or break map
+
+---
+
+### 8. Code Quality
+
+* Modularize:
+
+  * Map component
+  * Route layers
+  * Mode controller
+
+* No hardcoded logic scattered across files
+
+* Use clean abstractions for:
+
+  * Map rendering
+  * Route calculation
+
+---
+
+### 9. Deliverables
+
+* Fully refactored map system
+* Smooth performance (no visible lag)
+* Correct behavior for SEA / LAND / AIR
+* Clean, maintainable code
+
+---
+
+### Final Goal
+
+The map should behave like a **lightweight Google Maps for logistics**, with:
+
+* Accurate mode-based routing
+* Fast rendering
+* Clear visuals
+* Professional UX
+
+This is a core system component—do not patch, rebuild properly.

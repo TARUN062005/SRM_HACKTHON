@@ -1,0 +1,153 @@
+The current application incorrectly shows land routes for all transport types. This is a critical logic and UX issue.
+
+You must refactor the system so that **routing behavior dynamically changes based on the selected transport mode**.
+
+---
+
+### Core Requirement
+
+Implement strict routing separation for:
+
+* **Ship → Sea routes only**
+* **Car/Truck → Land routes only**
+* **Airplane → Air routes only**
+
+At no point should a transport mode display routes from another domain.
+
+---
+
+### 1. Transport Mode Architecture
+
+Introduce a centralized transport mode system:
+
+* Create a `transportMode` state (global or scoped properly)
+* Allowed values:
+
+  * `"SEA"`
+  * `"LAND"`
+  * `"AIR"`
+
+All routing, map rendering, and AI decisions must depend on this value.
+
+---
+
+### 2. Routing Logic Enforcement
+
+Refactor routing logic:
+
+* SEA:
+
+  * Use maritime paths (no roads)
+  * Prefer predefined shipping lanes or ocean paths
+* LAND:
+
+  * Use road networks only
+* AIR:
+
+  * Use straight-line (great-circle) or airway simulation
+
+Add validation:
+
+* If mode = SEA → block any road-based routing API
+* If mode = LAND → block maritime routes
+* If mode = AIR → no ground constraints
+
+---
+
+### 3. Map Visualization Rules
+
+Update map rendering:
+
+* SEA routes:
+
+  * Blue curved lines over oceans
+  * Avoid land masses
+* LAND routes:
+
+  * Follow road geometry
+* AIR routes:
+
+  * Straight or arc lines between points
+
+Each mode must visually look different.
+
+---
+
+### 4. UI Changes
+
+Add a **Transport Selector (critical UX element)**:
+
+Options:
+
+* Ship 🚢
+* Truck/Car 🚛
+* Airplane ✈️
+
+On change:
+
+* Instantly update routes
+* Reset incompatible data
+* Trigger rerouting
+
+---
+
+### 5. AI Agent Integration
+
+Ensure AI routing agents respect mode:
+
+* Weather agent:
+
+  * SEA → storms, ocean currents
+  * LAND → traffic, roadblocks
+  * AIR → turbulence, airspace restrictions
+
+* Risk analysis must be mode-aware
+
+---
+
+### 6. Data Layer Fix
+
+If using mock or API data:
+
+* Separate datasets:
+
+  * `seaRoutes`
+  * `landRoutes`
+  * `airRoutes`
+
+Do NOT reuse the same dataset across modes.
+
+---
+
+### 7. Edge Cases (must handle)
+
+* Switching modes mid-session:
+
+  * Clear previous route
+  * Recompute new route
+* Invalid coordinates (e.g., land-only route for ship)
+  → show error or auto-adjust to nearest valid port
+
+---
+
+### 8. Code Quality
+
+* No hardcoded conditions scattered across files
+* Use a clean strategy pattern or mapping:
+  e.g.:
+  routeStrategy[mode].calculate()
+  routeStrategy[mode].render()
+
+---
+
+### 9. Deliverables
+
+* Updated components
+* Routing logic refactor
+* Clear separation of transport strategies
+* No regression in existing features
+
+---
+
+Goal:
+Make routing **mode-aware, accurate, and domain-correct**, ensuring ships never use roads and airplanes never follow ground paths.
