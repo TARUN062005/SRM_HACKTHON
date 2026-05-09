@@ -1,0 +1,425 @@
+[SECURITY] GEMINI_API_KEY environment variable not set — AI features will be degraded
+[SECURITY] GEMINI_API_KEY not set — Routy AI features will be degraded
+✅ Allowed CORS origins: [ [32m'http://localhost:5000'[39m ]
+✅ Database connected successfully
+✅ Database connection test completed
+✅ Database connected successfully
+✅ EmailService initialized
+Broadcast scheduler started
+✅ BroadcastScheduler started
+🔄 Checking/creating admin user...
+🔄 Checking/creating admin user...
+❌ Error seeding admin: Illegal arguments: undefined, number
+⚠️  Admin user already exists or could not be created
+
+======================================================================
+🚀 SERVER STARTED SUCCESSFULLY!
+======================================================================
+📍 Port: 8000
+🌐 Host: 0.0.0.0
+🔄 Environment: production
+🔗 Allowed Origins: http://localhost:5000
+
+📊 FEATURES:
+   • ✅ Complete Broadcast System with Scheduling
+   • ✅ Email Templates (EJS support)
+   • ✅ Push Notifications (Web/Android/iOS)
+   • ✅ Delivery Tracking & Analytics
+   • ✅ Rate Limiting & Security
+
+🔗 ENDPOINTS:
+   • API: http://0.0.0.0:8000/api
+   • Auth: http://0.0.0.0:8000/api/auth
+   • User: http://0.0.0.0:8000/api/user
+   • Push: http://0.0.0.0:8000/api/user/push
+   • Admin: http://0.0.0.0:8000/api/admin
+   • Broadcast Scheduler: ACTIVE
+   • Health: http://0.0.0.0:8000/health
+   • Docs: http://0.0.0.0:8000/api/docs
+======================================================================
+
+ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false (default). This could indicate a misconfiguration which would prevent express-rate-limit from accurately identifying users. See https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/ for more information.
+    at Object.xForwardedForHeader [90m(/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:185:13[90m)[39m
+    at wrappedValidations.<computed> [as xForwardedForHeader] [90m(/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:397:22[90m)[39m
+    at Object.keyGenerator [90m(/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:658:20[90m)[39m
+    at [90m/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:710:32
+    at async [90m/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:691:5 {
+  code: [32m'ERR_ERL_UNEXPECTED_X_FORWARDED_FOR'[39m,
+  help: [32m'https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/'[39m
+}
+ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false (default). This could indicate a misconfiguration which would prevent express-rate-limit from accurately identifying users. See https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/ for more information.
+    at Object.xForwardedForHeader [90m(/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:185:13[90m)[39m
+    at wrappedValidations.<computed> [as xForwardedForHeader] [90m(/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:397:22[90m)[39m
+    at Object.keyGenerator [90m(/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:658:20[90m)[39m
+    at [90m/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:710:32
+    at async [90m/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:691:5 {
+  code: [32m'ERR_ERL_UNEXPECTED_X_FORWARDED_FOR'[39m,
+  help: [32m'https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/'[39m
+}
+[2026-05-03T11:49:03.316Z] 📥 POST /api/auth/login {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[2026-05-03T11:49:03.740Z] ✅ POST /api/auth/login 200 424ms
+[2026-05-03T11:49:03.892Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:49:03.899Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 7ms
+[2026-05-03T11:49:03.917Z] 📥 GET /api/user/notifications?limit=5 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:49:03.923Z] ⚠️ GET /api/user/notifications?limit=5 304 6ms
+[2026-05-03T11:49:10.266Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":null,"destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"Shanghai","destination":"Rotterdam","mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: date
+[2026-05-03T11:49:11.053Z] ✅ POST /api/ai/agent/chat 200 787ms
+[2026-05-03T11:49:26.846Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"Shanghai","destination":"Rotterdam","mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"Shanghai","destination":"Rotterdam","mode":"sea","date":"3-5-2026","time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: time
+[2026-05-03T11:49:27.290Z] ✅ POST /api/ai/agent/chat 200 444ms
+[2026-05-03T11:49:33.914Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:49:33.920Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 6ms
+[2026-05-03T11:49:40.162Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"Shanghai","destination":"Rotterdam","mode":"sea","date":"3-5-2026","time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"Shanghai","destination":"Rotterdam","mode":"sea","date":"3-5-2026","time":"5 AM","cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[2026-05-03T11:49:40.605Z] 📥 GET /api/ai/search?q=Shanghai&limit=1 { ip: [32m'127.0.0.1'[39m, userAgent: [32m'axios/1.12.2'[39m, origin: [32m'No origin'[39m }
+[2026-05-03T11:49:40.609Z] 📥 GET /api/ai/search?q=Rotterdam&limit=1 { ip: [32m'127.0.0.1'[39m, userAgent: [32m'axios/1.12.2'[39m, origin: [32m'No origin'[39m }
+[2026-05-03T11:49:41.308Z] ✅ GET /api/ai/search?q=Rotterdam&limit=1 200 699ms
+[2026-05-03T11:49:41.712Z] ✅ GET /api/ai/search?q=Shanghai&limit=1 200 1107ms
+[2026-05-03T11:49:41.716Z] 📥 GET /api/ai/resolve-port?lat=31.22&lon=121.63&name=Shanghai { ip: [32m'127.0.0.1'[39m, userAgent: [32m'axios/1.12.2'[39m, origin: [32m'No origin'[39m }
+[RESOLVE-PORT] (31.22,121.63) name="Shanghai" → Shanghai 0km
+[2026-05-03T11:49:41.718Z] ✅ GET /api/ai/resolve-port?lat=31.22&lon=121.63&name=Shanghai 200 2ms
+[2026-05-03T11:49:41.718Z] 📥 GET /api/ai/resolve-port?lat=51.9&lon=4.48&name=Rotterdam { ip: [32m'127.0.0.1'[39m, userAgent: [32m'axios/1.12.2'[39m, origin: [32m'No origin'[39m }
+[RESOLVE-PORT] (51.90,4.48) name="Rotterdam" → Rotterdam 0km
+[2026-05-03T11:49:41.720Z] ✅ GET /api/ai/resolve-port?lat=51.9&lon=4.48&name=Rotterdam 200 2ms
+[2026-05-03T11:49:41.721Z] ✅ POST /api/ai/agent/chat 200 1559ms
+[2026-05-03T11:49:47.851Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[2026-05-03T11:49:47.852Z] ✅ POST /api/ai/agent/chat 200 1ms
+[2026-05-03T11:49:49.520Z] 📥 GET /api/ai/directions?startLat=29.87&startLng=121.7&endLat=51.23&endLng=4.42&vehicle=ship&sourceName=Ningbo+Port,+China&destName=Antwerp+Port,+Belgium {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[ROUTING] MODE RECEIVED: "ship" → normalised to: "ship"
+[ROUTING] MARITIME mode confirmed — using dedicated routing engine
+[ROUTING] Mode: SHIP | 29.87,121.7 → 51.23,4.42
+[MARITIME] Port snap: Ningbo (China) → Antwerp (Belgium)
+[MARITIME] Zones: E_ASIA → EUROPE
+[MARITIME] Route: Ningbo Port → Antwerp Port | 3 variants
+[2026-05-03T11:50:01.522Z] ✅ GET /api/ai/directions?startLat=29.87&startLng=121.7&endLat=51.23&endLng=4.42&vehicle=ship&sourceName=Ningbo+Port,+China&destName=Antwerp+Port,+Belgium 200 12002ms
+[2026-05-03T11:50:01.933Z] 📥 POST /api/ai/routes/compare {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+compareRoutes error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [403 Forbidden] Method doesn't allow unregistered callers (callers without established identity). Please use API Key or other form of API consumer identity to call this API.
+[2026-05-03T11:50:02.311Z] ❌ POST /api/ai/routes/compare 500 378ms
+[2026-05-03T11:50:03.901Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:50:03.910Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 9ms
+[2026-05-03T11:50:33.937Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:50:33.942Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T11:50:36.120Z] 📥 GET /api/user/notifications {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:50:36.125Z] ⚠️ GET /api/user/notifications 304 5ms
+[2026-05-03T11:50:49.462Z] 📥 GET /api/user/notifications {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:50:49.470Z] ⚠️ GET /api/user/notifications 304 8ms
+[2026-05-03T11:51:04.174Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:51:04.177Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T11:51:33.897Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:51:33.900Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T11:51:49.366Z] 📥 GET /api/ai/directions?startLat=29.87&startLng=121.7&endLat=51.23&endLng=4.42&vehicle=ship&sourceName=Ningbo+Port,+China&destName=Antwerp+Port,+Belgium {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[ROUTING] MODE RECEIVED: "ship" → normalised to: "ship"
+[ROUTING] MARITIME mode confirmed — using dedicated routing engine
+[ROUTING] Mode: SHIP | 29.87,121.7 → 51.23,4.42
+[MARITIME] Port snap: Ningbo (China) → Antwerp (Belgium)
+[MARITIME] Zones: E_ASIA → EUROPE
+[MARITIME] Route: Ningbo Port → Antwerp Port | 3 variants
+[2026-05-03T11:51:49.373Z] ⚠️ GET /api/ai/directions?startLat=29.87&startLng=121.7&endLat=51.23&endLng=4.42&vehicle=ship&sourceName=Ningbo+Port,+China&destName=Antwerp+Port,+Belgium 304 7ms
+[2026-05-03T11:51:49.478Z] 📥 POST /api/ai/routes/compare {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+compareRoutes error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [403 Forbidden] Method doesn't allow unregistered callers (callers without established identity). Please use API Key or other form of API consumer identity to call this API.
+[2026-05-03T11:51:49.859Z] ❌ POST /api/ai/routes/compare 500 381ms
+[2026-05-03T11:52:03.930Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:52:03.934Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:52:25.606Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":null,"destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"india","destination":"usa","mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: date
+[2026-05-03T11:52:26.345Z] ✅ POST /api/ai/agent/chat 200 739ms
+[2026-05-03T11:52:31.229Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"india","destination":"usa","mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"india","destination":"usa","mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: date
+[2026-05-03T11:52:31.376Z] ✅ POST /api/ai/agent/chat 200 147ms
+[2026-05-03T11:52:33.909Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:52:33.913Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:52:40.437Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"india","destination":"usa","mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"india","destination":"usa","mode":"sea","date":"5-5-2026","time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: time
+[2026-05-03T11:52:40.881Z] ✅ POST /api/ai/agent/chat 200 444ms
+[2026-05-03T11:52:44.443Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"india","destination":"usa","mode":"sea","date":"5-5-2026","time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"india","destination":"usa","mode":"sea","date":"5-5-2026","time":"7 pm","cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[2026-05-03T11:52:44.586Z] 📥 GET /api/ai/search?q=india&limit=1 { ip: [32m'127.0.0.1'[39m, userAgent: [32m'axios/1.12.2'[39m, origin: [32m'No origin'[39m }
+[2026-05-03T11:52:44.588Z] 📥 GET /api/ai/search?q=usa&limit=1 { ip: [32m'127.0.0.1'[39m, userAgent: [32m'axios/1.12.2'[39m, origin: [32m'No origin'[39m }
+[GEOSYNC SATURATION] for "usa": Returning silent empty cache.
+[2026-05-03T11:52:46.442Z] ✅ GET /api/ai/search?q=usa&limit=1 200 1854ms
+[GEOSYNC SATURATION] for "india": Returning silent empty cache.
+[2026-05-03T11:52:46.532Z] ✅ GET /api/ai/search?q=india&limit=1 200 1946ms
+[2026-05-03T11:52:47.964Z] ✅ POST /api/ai/agent/chat 200 3521ms
+[2026-05-03T11:52:54.405Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":null,"destination":"usa","mode":"sea","date":"5-5-2026","time":"7 pm","cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":null,"destination":"usa","mode":"sea","date":"5-5-2026","time":"7 pm","cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: origin
+[2026-05-03T11:52:54.838Z] ✅ POST /api/ai/agent/chat 200 433ms
+[2026-05-03T11:53:02.883Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":null,"destination":"usa","mode":"sea","date":"5-5-2026","time":"7 pm","cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":null,"destination":"usa","mode":"sea","date":"5-5-2026","time":"7 pm","cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: origin
+[2026-05-03T11:53:03.326Z] ✅ POST /api/ai/agent/chat 200 443ms
+[2026-05-03T11:53:03.889Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:53:03.892Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T11:53:06.722Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":null,"destination":"usa","mode":"sea","date":"5-5-2026","time":"7 pm","cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":null,"destination":"usa","mode":"sea","date":"5-5-2026","time":"7 pm","cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: origin
+[2026-05-03T11:53:06.864Z] ✅ POST /api/ai/agent/chat 200 142ms
+[2026-05-03T11:53:34.167Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:53:34.170Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T11:54:03.871Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:54:03.876Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T11:54:33.885Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:54:33.890Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T11:55:03.900Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:55:03.904Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:55:33.933Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:55:33.937Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:56:03.851Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:56:03.856Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T11:56:34.360Z] 📥 GET /api/auth/profile {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:56:34.366Z] ✅ GET /api/auth/profile 200 6ms
+[2026-05-03T11:56:34.490Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:56:34.494Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:56:34.499Z] 📥 GET /api/user/notifications?limit=5 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:56:34.504Z] ⚠️ GET /api/user/notifications?limit=5 304 5ms
+[2026-05-03T11:57:04.511Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:57:04.514Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T11:57:34.486Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:57:34.489Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T11:58:04.498Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:58:04.502Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:58:34.704Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:58:34.707Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T11:59:04.476Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:59:04.492Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 16ms
+[2026-05-03T11:59:07.339Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":null,"destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"india","destination":"usa","mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: date
+[2026-05-03T11:59:08.077Z] ✅ POST /api/ai/agent/chat 200 738ms
+[2026-05-03T11:59:11.904Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"india","destination":"usa","mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"india","destination":"usa","mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: date
+[2026-05-03T11:59:12.350Z] ✅ POST /api/ai/agent/chat 200 446ms
+[2026-05-03T11:59:18.129Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"india","destination":"usa","mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"india","destination":"usa","mode":"sea","date":"5-5-2026","time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: time
+[2026-05-03T11:59:18.582Z] ✅ POST /api/ai/agent/chat 200 453ms
+[2026-05-03T11:59:22.388Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"india","destination":"usa","mode":"sea","date":"5-5-2026","time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"india","destination":"usa","mode":"sea","date":"5-5-2026","time":"6 pm","cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[2026-05-03T11:59:22.834Z] 📥 GET /api/ai/search?q=india&limit=1 { ip: [32m'127.0.0.1'[39m, userAgent: [32m'axios/1.12.2'[39m, origin: [32m'No origin'[39m }
+[2026-05-03T11:59:22.836Z] 📥 GET /api/ai/search?q=usa&limit=1 { ip: [32m'127.0.0.1'[39m, userAgent: [32m'axios/1.12.2'[39m, origin: [32m'No origin'[39m }
+[GEOSYNC SATURATION] for "usa": Returning silent empty cache.
+[2026-05-03T11:59:24.301Z] ✅ GET /api/ai/search?q=usa&limit=1 200 1465ms
+[GEOSYNC SATURATION] for "india": Returning silent empty cache.
+[2026-05-03T11:59:24.909Z] ✅ GET /api/ai/search?q=india&limit=1 200 2075ms
+[2026-05-03T11:59:26.670Z] ✅ POST /api/ai/agent/chat 200 4282ms
+[2026-05-03T11:59:34.479Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:59:34.483Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+Cleanup completed
+[2026-05-03T12:00:04.480Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T12:00:04.485Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+🔄 Received shutdown signal, closing server gracefully...
+🔄 Stopping broadcast scheduler...
+✅ HTTP server closed

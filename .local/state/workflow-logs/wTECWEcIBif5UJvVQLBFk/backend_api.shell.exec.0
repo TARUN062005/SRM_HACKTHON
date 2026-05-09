@@ -1,0 +1,230 @@
+[SECURITY] GEMINI_API_KEY environment variable not set — AI features will be degraded
+[SECURITY] GEMINI_API_KEY not set — Routy AI features will be degraded
+✅ Allowed CORS origins: [ [32m'http://localhost:5000'[39m ]
+✅ Database connected successfully
+✅ Database connection test completed
+✅ Database connected successfully
+✅ EmailService initialized
+Broadcast scheduler started
+✅ BroadcastScheduler started
+🔄 Checking/creating admin user...
+🔄 Checking/creating admin user...
+❌ Error seeding admin: Illegal arguments: undefined, number
+⚠️  Admin user already exists or could not be created
+
+======================================================================
+🚀 SERVER STARTED SUCCESSFULLY!
+======================================================================
+📍 Port: 8000
+🌐 Host: 0.0.0.0
+🔄 Environment: production
+🔗 Allowed Origins: http://localhost:5000
+
+📊 FEATURES:
+   • ✅ Complete Broadcast System with Scheduling
+   • ✅ Email Templates (EJS support)
+   • ✅ Push Notifications (Web/Android/iOS)
+   • ✅ Delivery Tracking & Analytics
+   • ✅ Rate Limiting & Security
+
+🔗 ENDPOINTS:
+   • API: http://0.0.0.0:8000/api
+   • Auth: http://0.0.0.0:8000/api/auth
+   • User: http://0.0.0.0:8000/api/user
+   • Push: http://0.0.0.0:8000/api/user/push
+   • Admin: http://0.0.0.0:8000/api/admin
+   • Broadcast Scheduler: ACTIVE
+   • Health: http://0.0.0.0:8000/health
+   • Docs: http://0.0.0.0:8000/api/docs
+======================================================================
+
+ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false (default). This could indicate a misconfiguration which would prevent express-rate-limit from accurately identifying users. See https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/ for more information.
+    at Object.xForwardedForHeader [90m(/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:185:13[90m)[39m
+    at wrappedValidations.<computed> [as xForwardedForHeader] [90m(/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:397:22[90m)[39m
+    at Object.keyGenerator [90m(/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:658:20[90m)[39m
+    at [90m/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:710:32
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at async [90m/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:691:5 {
+  code: [32m'ERR_ERL_UNEXPECTED_X_FORWARDED_FOR'[39m,
+  help: [32m'https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/'[39m
+}
+[2026-05-03T11:21:57.274Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:21:57.292Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 18ms
+[2026-05-03T11:22:27.247Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:22:27.255Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 8ms
+[2026-05-03T11:22:57.266Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:22:57.271Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T11:30:25.464Z] 📥 GET /api/auth/profile {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:30:25.473Z] ⚠️ GET /api/auth/profile 304 9ms
+[2026-05-03T11:30:25.619Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:30:25.621Z] 📥 GET /api/user/notifications?limit=5 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:30:25.630Z] ⚠️ GET /api/user/notifications?limit=5 304 9ms
+[2026-05-03T11:30:25.640Z] ✅ GET /api/user/notifications?mode=unreadCount 200 21ms
+[2026-05-03T11:30:31.742Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[2026-05-03T11:30:32.030Z] ✅ POST /api/ai/agent/chat 200 288ms
+[2026-05-03T11:30:41.382Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[2026-05-03T11:30:41.862Z] ✅ POST /api/ai/agent/chat 200 480ms
+[2026-05-03T11:31:14.768Z] [PID: 15108] [32m[NODE-CRON][32m [33m[WARN][0m missed execution at Sun May 03 2026 11:31:00 GMT+0000 (Coordinated Universal Time)! Possible blocking IO or high CPU user at the same process used by node-cron.
+[2026-05-03T11:31:15.485Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[2026-05-03T11:31:15.892Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:31:16.979Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 1087ms
+[2026-05-03T11:31:17.681Z] ✅ POST /api/ai/agent/chat 200 2196ms
+[2026-05-03T11:31:25.639Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:31:25.659Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 20ms
+[2026-05-03T11:31:25.685Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[2026-05-03T11:31:25.844Z] ✅ POST /api/ai/agent/chat 200 159ms
+[2026-05-03T11:31:55.659Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:31:55.661Z] 📥 GET /api/ai/search?q=mub&limit=6 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:31:55.665Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 6ms
+[2026-05-03T11:31:56.680Z] ✅ GET /api/ai/search?q=mub&limit=6 200 1019ms
+[2026-05-03T11:31:56.698Z] 📥 GET /api/ai/search?q=mu&limit=6 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:31:56.699Z] ✅ GET /api/ai/search?q=mu&limit=6 200 1ms
+[2026-05-03T11:31:57.173Z] 📥 GET /api/ai/search?q=mumab&limit=6 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:31:57.459Z] 📥 GET /api/ai/search?q=mumabi&limit=6 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:31:57.530Z] ✅ GET /api/ai/search?q=mumab&limit=6 200 357ms
+[2026-05-03T11:31:58.039Z] ✅ GET /api/ai/search?q=mumabi&limit=6 200 580ms
+[2026-05-03T11:31:58.384Z] 📥 GET /api/ai/search?q=mum&limit=6 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:31:58.385Z] ✅ GET /api/ai/search?q=mum&limit=6 200 1ms
+[2026-05-03T11:31:58.740Z] 📥 GET /api/ai/search?q=mumb&limit=6 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:31:59.138Z] ✅ GET /api/ai/search?q=mumb&limit=6 200 398ms
+[2026-05-03T11:31:59.172Z] 📥 GET /api/ai/search?q=mumbai&limit=6 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:31:59.203Z] ✅ GET /api/ai/search?q=mumbai&limit=6 200 31ms
+[2026-05-03T11:32:03.007Z] 📥 GET /api/ai/search?q=dubai&limit=6 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:32:03.655Z] ✅ GET /api/ai/search?q=dubai&limit=6 200 648ms
+[2026-05-03T11:32:05.447Z] 📥 GET /api/ai/resolve-port?lat=25.0742823&lon=55.1885387&name=Dubai+Emirate {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[RESOLVE-PORT] (25.07,55.19) name="Dubai Emirate" → Jebel Ali 16km
+[2026-05-03T11:32:05.449Z] ✅ GET /api/ai/resolve-port?lat=25.0742823&lon=55.1885387&name=Dubai+Emirate 200 2ms
+[2026-05-03T11:32:08.070Z] 📥 GET /api/ai/directions?startLat=18.93&startLng=72.84&endLat=24.99&endLng=55.06&vehicle=ship&sourceName=Mumbai+Port,+India&destName=Jebel+Ali+Port,+UAE {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[ROUTING] MODE RECEIVED: "ship" → normalised to: "ship"
+[ROUTING] MARITIME mode confirmed — using dedicated routing engine
+[ROUTING] Mode: SHIP | 18.93,72.84 → 24.99,55.06
+[MARITIME] Port snap: Mumbai (India) → Jebel Ali (UAE)
+[MARITIME] Zones: ARAB_SEA → GULF
+[MARITIME] Route: Mumbai Port → Jebel Ali Port | 3 variants
+[2026-05-03T11:32:21.511Z] ✅ GET /api/ai/directions?startLat=18.93&startLng=72.84&endLat=24.99&endLng=55.06&vehicle=ship&sourceName=Mumbai+Port,+India&destName=Jebel+Ali+Port,+UAE 200 13441ms
+[2026-05-03T11:32:21.781Z] 📥 POST /api/ai/routes/compare {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+compareRoutes error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [403 Forbidden] Method doesn't allow unregistered callers (callers without established identity). Please use API Key or other form of API consumer identity to call this API.
+[2026-05-03T11:32:21.859Z] ❌ POST /api/ai/routes/compare 500 78ms
+[2026-05-03T11:32:25.633Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:32:25.637Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:32:56.201Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:32:56.205Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:33:26.210Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:33:26.213Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T11:33:55.646Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:33:55.650Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+🔄 Received shutdown signal, closing server gracefully...
+🔄 Stopping broadcast scheduler...
+✅ HTTP server closed

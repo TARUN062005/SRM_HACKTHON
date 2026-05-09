@@ -1,0 +1,209 @@
+[SECURITY] GEMINI_API_KEY environment variable not set — AI features will be degraded
+[SECURITY] GEMINI_API_KEY not set — Routy AI features will be degraded
+✅ Allowed CORS origins: [ [32m'http://localhost:5000'[39m ]
+✅ Database connected successfully
+✅ Database connection test completed
+✅ Database connected successfully
+✅ EmailService initialized
+Broadcast scheduler started
+✅ BroadcastScheduler started
+🔄 Checking/creating admin user...
+🔄 Checking/creating admin user...
+❌ Error seeding admin: Illegal arguments: undefined, number
+⚠️  Admin user already exists or could not be created
+
+======================================================================
+🚀 SERVER STARTED SUCCESSFULLY!
+======================================================================
+📍 Port: 8000
+🌐 Host: 0.0.0.0
+🔄 Environment: production
+🔗 Allowed Origins: http://localhost:5000
+
+📊 FEATURES:
+   • ✅ Complete Broadcast System with Scheduling
+   • ✅ Email Templates (EJS support)
+   • ✅ Push Notifications (Web/Android/iOS)
+   • ✅ Delivery Tracking & Analytics
+   • ✅ Rate Limiting & Security
+
+🔗 ENDPOINTS:
+   • API: http://0.0.0.0:8000/api
+   • Auth: http://0.0.0.0:8000/api/auth
+   • User: http://0.0.0.0:8000/api/user
+   • Push: http://0.0.0.0:8000/api/user/push
+   • Admin: http://0.0.0.0:8000/api/admin
+   • Broadcast Scheduler: ACTIVE
+   • Health: http://0.0.0.0:8000/health
+   • Docs: http://0.0.0.0:8000/api/docs
+======================================================================
+
+ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false (default). This could indicate a misconfiguration which would prevent express-rate-limit from accurately identifying users. See https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/ for more information.
+    at Object.xForwardedForHeader [90m(/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:185:13[90m)[39m
+    at wrappedValidations.<computed> [as xForwardedForHeader] [90m(/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:397:22[90m)[39m
+    at Object.keyGenerator [90m(/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:658:20[90m)[39m
+    at [90m/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:710:32
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+    at async [90m/home/runner/workspace/server/[39mnode_modules/[4mexpress-rate-limit[24m/dist/index.cjs:691:5 {
+  code: [32m'ERR_ERL_UNEXPECTED_X_FORWARDED_FOR'[39m,
+  help: [32m'https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/'[39m
+}
+[2026-05-03T12:01:57.256Z] 📥 GET /api/auth/profile {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T12:01:57.268Z] ⚠️ GET /api/auth/profile 304 12ms
+[2026-05-03T12:01:57.371Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T12:01:57.376Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T12:01:57.394Z] 📥 GET /api/user/notifications?limit=5 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T12:01:57.400Z] ⚠️ GET /api/user/notifications?limit=5 304 6ms
+[2026-05-03T12:02:04.152Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":null,"destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":null,"destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[2026-05-03T12:02:04.935Z] ✅ POST /api/ai/agent/chat 200 783ms
+[2026-05-03T12:02:06.783Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"Chennai Port, India","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"Chennai Port, India","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: destination
+[2026-05-03T12:02:06.930Z] ✅ POST /api/ai/agent/chat 200 147ms
+[2026-05-03T12:02:16.099Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"Chennai Port, India","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"Chennai Port, India","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: destination
+[2026-05-03T12:02:16.547Z] ✅ POST /api/ai/agent/chat 200 448ms
+[2026-05-03T12:02:20.280Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"Chennai Port, India","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"Chennai Port, India","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: destination
+[2026-05-03T12:02:20.707Z] ✅ POST /api/ai/agent/chat 200 427ms
+[2026-05-03T12:02:24.404Z] 📥 GET /api/auth/profile {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T12:02:24.410Z] ⚠️ GET /api/auth/profile 304 5ms
+[2026-05-03T12:02:24.520Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T12:02:24.524Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T12:02:24.540Z] 📥 GET /api/user/notifications?limit=5 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T12:02:24.545Z] ⚠️ GET /api/user/notifications?limit=5 304 5ms
+[2026-05-03T12:02:34.209Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":null,"destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":null,"destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[2026-05-03T12:02:34.639Z] ✅ POST /api/ai/agent/chat 200 430ms
+[2026-05-03T12:02:36.550Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"Chennai Port, India","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"Chennai Port, India","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: destination
+[2026-05-03T12:02:36.692Z] ✅ POST /api/ai/agent/chat 200 142ms
+[2026-05-03T12:02:40.245Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"Chennai Port, India","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"Chennai Port, India","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: destination
+[2026-05-03T12:02:40.391Z] ✅ POST /api/ai/agent/chat 200 146ms
+[2026-05-03T12:02:46.647Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"Chennai Port, India","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"Chennai Port, India","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: destination
+[2026-05-03T12:02:46.802Z] ✅ POST /api/ai/agent/chat 200 155ms
+[2026-05-03T12:02:54.505Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T12:02:54.510Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T12:02:55.694Z] 📥 GET /api/auth/profile {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T12:02:55.699Z] ⚠️ GET /api/auth/profile 304 5ms
+[2026-05-03T12:02:55.809Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T12:02:55.813Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T12:02:55.816Z] 📥 GET /api/user/notifications?limit=5 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T12:02:55.821Z] ⚠️ GET /api/user/notifications?limit=5 304 5ms
+[2026-05-03T12:03:00.176Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":null,"destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":null,"destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[2026-05-03T12:03:00.895Z] ✅ POST /api/ai/agent/chat 200 719ms
+[2026-05-03T12:03:01.950Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"Port Rashid, UAE","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"Port Rashid, UAE","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: destination
+[2026-05-03T12:03:02.087Z] ✅ POST /api/ai/agent/chat 200 137ms
+[2026-05-03T12:03:05.295Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[AGENT] STATE IN: {"origin":"Port Rashid, UAE","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] STATE OUT: {"origin":"Port Rashid, UAE","destination":null,"mode":"sea","date":null,"time":null,"cargo":null,"priority":null,"confirmedSource":null,"confirmedDest":null}
+[AGENT] MISSING FIELD: destination
+[2026-05-03T12:03:05.436Z] ✅ POST /api/ai/agent/chat 200 141ms
+🔄 Received shutdown signal, closing server gracefully...
+🔄 Stopping broadcast scheduler...
+✅ HTTP server closed

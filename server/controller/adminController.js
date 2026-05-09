@@ -12,7 +12,7 @@ const { sendPushToTokens } = require('../utils/push/fcm');
 const userService = new UserService();
 const emailService = new EmailService();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
 const ADMIN_JWT_EXPIRES = process.env.ADMIN_JWT_EXPIRES || '1d';
 
 class AdminController {
@@ -83,6 +83,12 @@ class AdminController {
 
   async login(req, res) {
     try {
+      if (!JWT_SECRET) {
+        return res.status(500).json({
+          success: false,
+          message: 'Server misconfiguration: JWT_SECRET missing',
+        });
+      }
       const { email, password } = req.body;
 
       if (!email || !password) {

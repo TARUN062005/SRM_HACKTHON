@@ -1,0 +1,361 @@
+✅ Allowed CORS origins: [ [32m'http://localhost:5000'[39m ]
+✅ Database connected successfully
+✅ Database connection test completed
+✅ Database connected successfully
+✅ EmailService initialized
+Broadcast scheduler started
+✅ BroadcastScheduler started
+🔄 Checking/creating admin user...
+🔄 Checking/creating admin user...
+❌ Error seeding admin: Illegal arguments: undefined, number
+⚠️  Admin user already exists or could not be created
+
+======================================================================
+🚀 SERVER STARTED SUCCESSFULLY!
+======================================================================
+📍 Port: 8000
+🌐 Host: 0.0.0.0
+🔄 Environment: production
+🔗 Allowed Origins: http://localhost:5000
+
+📊 FEATURES:
+   • ✅ Complete Broadcast System with Scheduling
+   • ✅ Email Templates (EJS support)
+   • ✅ Push Notifications (Web/Android/iOS)
+   • ✅ Delivery Tracking & Analytics
+   • ✅ Rate Limiting & Security
+
+🔗 ENDPOINTS:
+   • API: http://0.0.0.0:8000/api
+   • Auth: http://0.0.0.0:8000/api/auth
+   • User: http://0.0.0.0:8000/api/user
+   • Push: http://0.0.0.0:8000/api/user/push
+   • Admin: http://0.0.0.0:8000/api/admin
+   • Broadcast Scheduler: ACTIVE
+   • Health: http://0.0.0.0:8000/health
+   • Docs: http://0.0.0.0:8000/api/docs
+======================================================================
+
+[2026-05-03T10:54:21.360Z] 📥 GET / {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/140.0.0.0 Safa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:54:21.365Z] ✅ GET / 200 5ms
+[2026-05-03T10:54:21.433Z] 📥 GET /favicon.ico {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/140.0.0.0 Safa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:54:21.434Z] ❌ GET /favicon.ico 404 1ms
+[2026-05-03T10:54:31.782Z] 📥 GET /api/ai/search?q=vizag&limit=6 { ip: [32m'127.0.0.1'[39m, userAgent: [32m'curl/8.14.1'[39m, origin: [32m'No origin'[39m }
+[2026-05-03T10:54:32.658Z] ✅ GET /api/ai/search?q=vizag&limit=6 200 876ms
+[2026-05-03T10:54:35.467Z] 📥 GET /api/ai/search?q=bombay&limit=6 { ip: [32m'127.0.0.1'[39m, userAgent: [32m'curl/8.14.1'[39m, origin: [32m'No origin'[39m }
+[2026-05-03T10:54:35.913Z] ✅ GET /api/ai/search?q=bombay&limit=6 200 446ms
+[2026-05-03T10:54:35.991Z] 📥 GET /api/ai/search?q=mumbai&limit=6 { ip: [32m'127.0.0.1'[39m, userAgent: [32m'curl/8.14.1'[39m, origin: [32m'No origin'[39m }
+[2026-05-03T10:54:37.238Z] ✅ GET /api/ai/search?q=mumbai&limit=6 200 1247ms
+[2026-05-03T10:54:39.511Z] 📥 GET /api/ai/resolve-port?lat=18.93&lon=72.84&name=Mumbai { ip: [32m'127.0.0.1'[39m, userAgent: [32m'curl/8.14.1'[39m, origin: [32m'No origin'[39m }
+[RESOLVE-PORT] (18.93,72.84) name="Mumbai" → Mumbai 0km
+[2026-05-03T10:54:39.513Z] ✅ GET /api/ai/resolve-port?lat=18.93&lon=72.84&name=Mumbai 200 2ms
+[2026-05-03T10:54:39.613Z] 📥 GET /api/ai/resolve-airport?lat=19.09&lon=72.86&name=Mumbai { ip: [32m'127.0.0.1'[39m, userAgent: [32m'curl/8.14.1'[39m, origin: [32m'No origin'[39m }
+[RESOLVE-AIRPORT] (19.09,72.86) name="Mumbai" → Chhatrapati Shivaji International 0km
+[2026-05-03T10:54:39.615Z] ✅ GET /api/ai/resolve-airport?lat=19.09&lon=72.86&name=Mumbai 200 2ms
+[2026-05-03T10:54:39.712Z] 📥 GET /api/ai/resolve-port?lat=16.50&lon=80.62&name=Vijayawada { ip: [32m'127.0.0.1'[39m, userAgent: [32m'curl/8.14.1'[39m, origin: [32m'No origin'[39m }
+[RESOLVE-PORT] (16.50,80.62) name="Vijayawada" → Visakhapatnam 313km
+[2026-05-03T10:54:39.714Z] ✅ GET /api/ai/resolve-port?lat=16.50&lon=80.62&name=Vijayawada 200 2ms
+[2026-05-03T10:54:43.358Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:54:43.366Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 8ms
+[2026-05-03T10:55:13.357Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:55:13.362Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T10:55:43.372Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:55:43.377Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T10:56:13.343Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:56:13.347Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T10:56:43.358Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:56:43.362Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T10:57:13.341Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:57:13.345Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T10:57:43.332Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:57:43.336Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T10:58:13.358Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:58:13.361Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T10:58:43.343Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:58:43.347Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T10:59:13.353Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:59:13.357Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T10:59:43.363Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:59:43.377Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 14ms
+Cleanup completed
+[2026-05-03T11:00:13.381Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:00:13.385Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:00:43.339Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:00:43.343Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:01:13.362Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:01:13.366Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:01:43.390Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:01:43.395Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T11:02:13.331Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:02:13.335Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:02:43.319Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:02:43.323Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:03:13.359Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:03:13.363Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:03:43.360Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:03:43.364Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:04:21.429Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:04:21.433Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:05:21.355Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:05:21.360Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T11:06:21.335Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:06:21.339Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:07:21.377Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:07:21.380Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T11:07:42.035Z] 📥 GET /api/auth/profile {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:07:42.043Z] ⚠️ GET /api/auth/profile 304 8ms
+[2026-05-03T11:07:42.254Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:07:42.258Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:07:42.273Z] 📥 GET /api/user/notifications?limit=5 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:07:42.278Z] ⚠️ GET /api/user/notifications?limit=5 304 5ms
+[2026-05-03T11:08:12.281Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:08:12.285Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:08:42.272Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:08:42.275Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T11:09:12.262Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:09:12.265Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T11:09:41.371Z] 📥 GET /api/auth/profile {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:09:41.386Z] ⚠️ GET /api/auth/profile 304 15ms
+[2026-05-03T11:09:41.500Z] 📥 GET /api/user/notifications?limit=5 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:09:41.506Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:09:41.535Z] ⚠️ GET /api/user/notifications?limit=5 304 35ms
+[2026-05-03T11:09:41.541Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 35ms
+[2026-05-03T11:09:55.795Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[2026-05-03T11:09:56.351Z] 📥 GET /api/ai/search?q=Shanghai&limit=1 { ip: [32m'127.0.0.1'[39m, userAgent: [32m'axios/1.12.2'[39m, origin: [32m'No origin'[39m }
+[2026-05-03T11:09:56.357Z] 📥 GET /api/ai/search?q=Rotterdam%20by%20sea&limit=1 { ip: [32m'127.0.0.1'[39m, userAgent: [32m'axios/1.12.2'[39m, origin: [32m'No origin'[39m }
+[2026-05-03T11:09:56.439Z] ✅ GET /api/ai/search?q=Shanghai&limit=1 200 88ms
+[2026-05-03T11:09:56.444Z] ✅ GET /api/ai/search?q=Rotterdam%20by%20sea&limit=1 200 87ms
+[2026-05-03T11:09:56.478Z] ✅ POST /api/ai/agent/chat 200 683ms
+[2026-05-03T11:10:10.089Z] 📥 GET /api/auth/profile {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:10:10.104Z] ⚠️ GET /api/auth/profile 304 15ms
+[2026-05-03T11:10:10.410Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:10:10.416Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 6ms
+[2026-05-03T11:10:10.450Z] 📥 GET /api/user/notifications?limit=5 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:10:10.457Z] ⚠️ GET /api/user/notifications?limit=5 304 7ms
+[2026-05-03T11:10:18.480Z] 📥 GET /api/auth/profile {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:10:18.484Z] ⚠️ GET /api/auth/profile 304 4ms
+[2026-05-03T11:10:18.595Z] 📥 GET /api/user/notifications?limit=5 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:10:18.597Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:10:18.600Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T11:10:18.603Z] ⚠️ GET /api/user/notifications?limit=5 304 8ms
+[2026-05-03T11:10:24.548Z] 📥 GET /api/auth/profile {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:10:24.553Z] ⚠️ GET /api/auth/profile 304 5ms
+[2026-05-03T11:10:24.683Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:10:24.687Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T11:10:24.700Z] 📥 GET /api/user/notifications?limit=5 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:10:24.704Z] ⚠️ GET /api/user/notifications?limit=5 304 4ms
+[2026-05-03T11:10:40.445Z] 📥 GET /api/auth/profile {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:10:40.450Z] ⚠️ GET /api/auth/profile 304 5ms
+[2026-05-03T11:10:40.560Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:10:40.563Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T11:10:40.564Z] 📥 GET /api/user/notifications?limit=5 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:10:40.568Z] ⚠️ GET /api/user/notifications?limit=5 304 4ms
+[2026-05-03T11:11:08.800Z] 📥 GET /api/auth/profile {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:11:09.041Z] ⚠️ GET /api/auth/profile 304 241ms
+[2026-05-03T11:11:09.137Z] 📥 GET /api/user/notifications?limit=5 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:11:09.143Z] ⚠️ GET /api/user/notifications?limit=5 304 6ms
+[2026-05-03T11:11:09.145Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T11:11:09.154Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 9ms
+🔄 Received shutdown signal, closing server gracefully...
+🔄 Stopping broadcast scheduler...
+✅ HTTP server closed

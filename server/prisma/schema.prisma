@@ -1,6 +1,6 @@
 // ----------------- Datasource & Generator -----------------
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
@@ -102,7 +102,7 @@ enum EmailTemplateType {
 // ----------------- Models -----------------
 
 model User {
-  id   String   @id @default(cuid())
+  id   String   @id @default(auto()) @map("_id") @db.ObjectId
   role UserRole @default(USER)
 
   // Authentication
@@ -177,8 +177,8 @@ model User {
 }
 
 model ActivityLog {
-  id        String   @id @default(cuid())
-  userId    String
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   action    String
   details   String?
@@ -190,8 +190,8 @@ model ActivityLog {
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  userId    String
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   token     String   @unique
   userAgent String?
@@ -206,8 +206,8 @@ model Session {
 }
 
 model LinkedAccount {
-  id         String      @id @default(cuid())
-  userId     String
+  id         String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String      @db.ObjectId
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   type       AccountType
   email      String?
@@ -222,8 +222,8 @@ model LinkedAccount {
 }
 
 model Address {
-  id        String   @id @default(cuid())
-  userId    String
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   line1     String
   line2     String?
@@ -239,8 +239,8 @@ model Address {
 }
 
 model Otp {
-  id         String   @id @default(cuid())
-  userId     String?
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String?  @db.ObjectId
   user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   identifier String
   code       String
@@ -256,8 +256,8 @@ model Otp {
 // ----------------- PUSH TOKENS -----------------
 
 model PushToken {
-  id     String @id @default(cuid())
-  userId String
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   token     String       @unique
@@ -277,7 +277,7 @@ model PushToken {
 // ----------------- NOTIFICATIONS -----------------
 
 model Notification {
-  id      String @id @default(cuid())
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
   title   String
   message String
 
@@ -318,11 +318,11 @@ model Notification {
   status       String @default("DRAFT")
 
   // If target = SINGLE_USER
-  userId String?
+  userId String? @db.ObjectId
   user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Admin creator reference
-  createdById String?
+  createdById String? @db.ObjectId
   createdBy   User?   @relation("AdminNotifications", fields: [createdById], references: [id])
 
   createdAt DateTime @default(now())
@@ -344,9 +344,9 @@ model Notification {
 }
 
 model UserNotification {
-  id             String @id @default(cuid())
-  userId         String
-  notificationId String
+  id             String @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String @db.ObjectId
+  notificationId String @db.ObjectId
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
@@ -364,7 +364,7 @@ model UserNotification {
 // ----------------- EMAIL TEMPLATES -----------------
 
 model EmailTemplate {
-  id          String            @id @default(cuid())
+  id          String            @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   subject     String
   htmlContent String
@@ -372,7 +372,7 @@ model EmailTemplate {
   variables   String[]
 
   isActive    Boolean @default(true)
-  createdById String?
+  createdById String? @db.ObjectId
   createdBy   User?   @relation(fields: [createdById], references: [id])
 
   createdAt DateTime @default(now())
@@ -386,11 +386,11 @@ model EmailTemplate {
 // ----------------- DELIVERY TRACKING -----------------
 
 model DeliveryTracking {
-  id             String       @id @default(cuid())
-  notificationId String
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  notificationId String       @db.ObjectId
   notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
 
-  userId String
+  userId String   @db.ObjectId
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   channel String
@@ -420,12 +420,12 @@ model DeliveryTracking {
 // ----------------- ADMIN AUDIT LOG -----------------
 
 model AdminAuditLog {
-  id      String @id @default(cuid())
-  adminId String
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  adminId String @db.ObjectId
   admin   User   @relation("AdminAudit", fields: [adminId], references: [id], onDelete: Cascade)
 
   actionType   AdminActionType
-  targetUserId String?
+  targetUserId String? @db.ObjectId
   details      String?
   ip           String?
   metadata     Json?
@@ -440,8 +440,8 @@ model AdminAuditLog {
 // ----------------- ADMIN PROFILE -----------------
 
 model AdminProfile {
-  id      String @id @default(cuid())
-  adminId String @unique
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  adminId String @unique @db.ObjectId
   admin   User   @relation("AdminProfile", fields: [adminId], references: [id], onDelete: Cascade)
 
   title          String?
@@ -473,12 +473,12 @@ model AdminProfile {
 // ----------------- ADMIN PERMISSIONS -----------------
 
 model AdminPermissionMapping {
-  id         String          @id @default(cuid())
-  adminId    String
+  id         String          @id @default(auto()) @map("_id") @db.ObjectId
+  adminId    String          @db.ObjectId
   admin      User            @relation("AdminPermissions", fields: [adminId], references: [id], onDelete: Cascade)
   permission AdminPermission
   grantedAt  DateTime        @default(now())
-  grantedBy  String?
+  grantedBy  String?         @db.ObjectId
 
   @@unique([adminId, permission])
 }

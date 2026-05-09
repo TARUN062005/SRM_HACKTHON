@@ -1,0 +1,11 @@
+/.agents
+/.cache
+/.config
+/.local
+/.python_history
+/.vscode
+/.vscode-server
+/.vscode-server-insiders
+/.vscode-test
+/.vscode-test-insiders
+/.vscode-remote

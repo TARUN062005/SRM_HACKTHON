@@ -1,0 +1,145 @@
+✅ Allowed CORS origins: [ [32m'http://localhost:5000'[39m ]
+✅ Database connected successfully
+✅ Database connection test completed
+✅ Database connected successfully
+✅ EmailService initialized
+Broadcast scheduler started
+✅ BroadcastScheduler started
+🔄 Checking/creating admin user...
+🔄 Checking/creating admin user...
+❌ Error seeding admin: Illegal arguments: undefined, number
+⚠️  Admin user already exists or could not be created
+
+======================================================================
+🚀 SERVER STARTED SUCCESSFULLY!
+======================================================================
+📍 Port: 8000
+🌐 Host: 0.0.0.0
+🔄 Environment: production
+🔗 Allowed Origins: http://localhost:5000
+
+📊 FEATURES:
+   • ✅ Complete Broadcast System with Scheduling
+   • ✅ Email Templates (EJS support)
+   • ✅ Push Notifications (Web/Android/iOS)
+   • ✅ Delivery Tracking & Analytics
+   • ✅ Rate Limiting & Security
+
+🔗 ENDPOINTS:
+   • API: http://0.0.0.0:8000/api
+   • Auth: http://0.0.0.0:8000/api/auth
+   • User: http://0.0.0.0:8000/api/user
+   • Push: http://0.0.0.0:8000/api/user/push
+   • Admin: http://0.0.0.0:8000/api/admin
+   • Broadcast Scheduler: ACTIVE
+   • Health: http://0.0.0.0:8000/health
+   • Docs: http://0.0.0.0:8000/api/docs
+======================================================================
+
+[2026-05-03T10:38:34.504Z] 📥 GET /api/ai/directions?startLat=18.93&startLng=72.84&endLat=33.75&endLng=-118.27&vehicle=ship { ip: [32m'127.0.0.1'[39m, userAgent: [32m'curl/8.14.1'[39m, origin: [32m'No origin'[39m }
+[ROUTING] Mode: SHIP | 18.93,72.84 → 33.75,-118.27
+[MARITIME] Port snap: Mumbai (India) → Los Angeles (USA)
+[MARITIME] Zones: ARAB_SEA → PAC_E_N
+[MARITIME] Route: Mumbai Port → Los Angeles Port | 3 variants
+[2026-05-03T10:38:43.428Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:38:43.439Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 11ms
+[2026-05-03T10:38:50.621Z] 📥 GET /api/ai/directions?startLat=18.93&startLng=72.84&endLat=51.90&endLng=4.48&vehicle=ship { ip: [32m'127.0.0.1'[39m, userAgent: [32m'curl/8.14.1'[39m, origin: [32m'No origin'[39m }
+[ROUTING] Mode: SHIP | 18.93,72.84 → 51.9,4.48
+[MARITIME] Port snap: Mumbai (India) → Rotterdam (Netherlands)
+[MARITIME] Zones: ARAB_SEA → EUROPE
+[MARITIME] Route: Mumbai Port → Rotterdam Port | 3 variants
+[2026-05-03T10:38:54.644Z] ✅ GET /api/ai/directions?startLat=18.93&startLng=72.84&endLat=33.75&endLng=-118.27&vehicle=ship 200 20140ms
+[2026-05-03T10:39:09.588Z] ✅ GET /api/ai/directions?startLat=18.93&startLng=72.84&endLat=51.90&endLng=4.48&vehicle=ship 200 18967ms
+[2026-05-03T10:39:13.479Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:39:13.483Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T10:39:23.534Z] 📥 GET /api/ai/directions?startLat=18.93&startLng=72.84&endLat=33.75&endLng=-118.27&vehicle=ship { ip: [32m'127.0.0.1'[39m, userAgent: [32m'curl/8.14.1'[39m, origin: [32m'No origin'[39m }
+[2026-05-03T10:39:23.538Z] ✅ GET /api/ai/directions?startLat=18.93&startLng=72.84&endLat=33.75&endLng=-118.27&vehicle=ship 200 4ms
+[2026-05-03T10:39:43.484Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:39:43.488Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T10:40:13.393Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:40:13.397Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T10:41:21.512Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:41:21.517Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T10:41:41.843Z] 📥 POST /api/ai/agent/chat {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'https://4276ba48-108e-4ec5-973a-55bc8f0cc9ba-00-zau8qbugzk0g.sisko.replit.dev'[39m
+}
+[2026-05-03T10:41:42.746Z] 📥 GET /api/ai/search?q=Mumbai&limit=1 { ip: [32m'127.0.0.1'[39m, userAgent: [32m'axios/1.12.2'[39m, origin: [32m'No origin'[39m }
+[2026-05-03T10:41:42.753Z] 📥 GET /api/ai/search?q=Dubai&limit=1 { ip: [32m'127.0.0.1'[39m, userAgent: [32m'axios/1.12.2'[39m, origin: [32m'No origin'[39m }
+[2026-05-03T10:41:43.600Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:41:43.604Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[GEOSYNC SATURATION] for "Mumbai": Returning silent empty cache.
+[2026-05-03T10:41:44.495Z] ✅ GET /api/ai/search?q=Mumbai&limit=1 200 1749ms
+[GEOSYNC SATURATION] for "Dubai": Returning silent empty cache.
+[2026-05-03T10:41:44.561Z] ✅ GET /api/ai/search?q=Dubai&limit=1 200 1808ms
+[2026-05-03T10:41:46.563Z] ✅ POST /api/ai/agent/chat 200 4720ms
+[2026-05-03T10:42:13.471Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:42:13.475Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 4ms
+[2026-05-03T10:42:43.496Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:42:43.499Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 3ms
+[2026-05-03T10:43:13.522Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:43:13.527Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T10:44:21.452Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:44:21.457Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T10:44:57.546Z] 📥 GET /api/auth/profile {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:44:57.552Z] ⚠️ GET /api/auth/profile 304 6ms
+[2026-05-03T10:44:57.695Z] 📥 GET /api/user/notifications?limit=5 {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:44:57.697Z] 📥 GET /api/user/notifications?mode=unreadCount {
+  ip: [32m'127.0.0.1'[39m,
+  userAgent: [32m'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Sa'[39m,
+  origin: [32m'No origin'[39m
+}
+[2026-05-03T10:44:57.702Z] ⚠️ GET /api/user/notifications?mode=unreadCount 304 5ms
+[2026-05-03T10:44:57.714Z] ⚠️ GET /api/user/notifications?limit=5 304 19ms
+🔄 Received shutdown signal, closing server gracefully...
+🔄 Stopping broadcast scheduler...
+✅ HTTP server closed
