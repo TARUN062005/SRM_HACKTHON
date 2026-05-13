@@ -43,11 +43,7 @@ const DashboardLayout = () => {
   const fetchUnreadCount = useCallback(async () => {
     try {
       setNotifLoading(true);
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      const res = await axios.get(`${BASE_URL}/api/user/notifications?mode=unreadCount`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(`${BASE_URL}/api/user/notifications?mode=unreadCount`, { withCredentials: true });
       if (res.data?.success) setUnreadCount(res.data?.unreadCount || 0);
     } catch (err) {
       console.error("Unread count fetch failed:", err.message);
@@ -58,11 +54,7 @@ const DashboardLayout = () => {
 
   const fetchRecentNotifs = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      const res = await axios.get(`${BASE_URL}/api/user/notifications?limit=5`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(`${BASE_URL}/api/user/notifications?limit=5`, { withCredentials: true });
       if (res.data?.success) setRecentNotifs(res.data.notifications || []);
     } catch (err) {
       console.error("Failed to fetch recent notifications:", err.message);
@@ -71,9 +63,7 @@ const DashboardLayout = () => {
 
   const markRead = useCallback(async (id) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      await axios.patch(`${BASE_URL}/api/user/notifications/${id}/read`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.patch(`${BASE_URL}/api/user/notifications/${id}/read`, {}, { withCredentials: true });
       setRecentNotifs(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch {}
@@ -81,9 +71,7 @@ const DashboardLayout = () => {
 
   const markAllRead = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      const res = await axios.patch(`${BASE_URL}/api/user/notifications/read-all`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.patch(`${BASE_URL}/api/user/notifications/read-all`, {}, { withCredentials: true });
       if (res.data?.success) {
         toast.success("All notifications marked as read");
         setRecentNotifs(prev => prev.map(n => ({ ...n, isRead: true })));

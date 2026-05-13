@@ -19,12 +19,9 @@ const ProfilePage = () => {
   useEffect(() => {
     const fetchFullProfile = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
-
         const [profileRes, activityRes] = await Promise.all([
-          axios.get(`${BASE_URL}/api/user/profile`, { headers }),
-          axios.get(`${BASE_URL}/api/user/activity`, { headers }),
+          axios.get(`${BASE_URL}/api/user/profile`, { withCredentials: true }),
+          axios.get(`${BASE_URL}/api/user/activity`, { withCredentials: true }),
         ]);
 
         setProfileData(profileRes.data.user);

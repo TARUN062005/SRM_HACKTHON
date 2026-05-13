@@ -40,8 +40,6 @@ const formatDate = (dateString) => {
 };
 
 const NotificationsPage = () => {
-  const token = localStorage.getItem("token");
-
   const [loading, setLoading]         = useState(true);
   const [markingRead, setMarkingRead] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -55,9 +53,7 @@ const NotificationsPage = () => {
       const params = new URLSearchParams();
       if (filters.type !== "all") params.append("type", filters.type);
       if (filters.priority !== "all") params.append("priority", filters.priority);
-      const res = await axios.get(`${BASE_URL}/api/user/notifications?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(`${BASE_URL}/api/user/notifications?${params}`, { withCredentials: true });
       if (res.data?.success) {
         const list = res.data.notifications || [];
         setNotifications(list);
@@ -77,9 +73,7 @@ const NotificationsPage = () => {
   const markAllRead = async () => {
     try {
       setMarkingRead(true);
-      await axios.patch(`${BASE_URL}/api/user/notifications/read-all`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.patch(`${BASE_URL}/api/user/notifications/read-all`, {}, { withCredentials: true });
       toast.success("All marked as read");
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       setStats(prev => ({ ...prev, unread: 0, read: prev.total }));
@@ -92,9 +86,7 @@ const NotificationsPage = () => {
 
   const markOneRead = async (id) => {
     try {
-      await axios.patch(`${BASE_URL}/api/user/notifications/${id}/read`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.patch(`${BASE_URL}/api/user/notifications/${id}/read`, {}, { withCredentials: true });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
       setStats(prev => ({ ...prev, unread: Math.max(0, prev.unread - 1), read: prev.read + 1 }));
     } catch (err) {

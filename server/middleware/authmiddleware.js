@@ -3,6 +3,12 @@ const { prisma } = require('../utils/dbConnector');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+function getTokenFromRequest(req) {
+  const authHeader = req.headers['authorization'];
+  const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+  return req.cookies?.access_token || bearerToken || null;
+}
+
 /**
  * verifyToken: Main protection for user routes
  * - Validates JWT
@@ -19,8 +25,7 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const token = getTokenFromRequest(req);
 
     if (!token) {
       return res.status(401).json({
@@ -115,8 +120,7 @@ const isAdmin = (req, res, next) => {
  */
 const optionalAuth = (req, res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const token = getTokenFromRequest(req);
 
     if (token && JWT_SECRET) {
       const decoded = jwt.verify(token, JWT_SECRET);

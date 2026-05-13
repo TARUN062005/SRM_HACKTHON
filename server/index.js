@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -178,15 +179,8 @@ const generalLimiter = rateLimit({
 });
 
 // Apply strict limits to auth actions
-app.use('/api/auth/login', authActionLimiter);
-app.use('/api/auth/register', authActionLimiter);
 app.use('/api/auth/google', authActionLimiter);
 app.use('/api/auth/github', authActionLimiter);
-app.use('/api/auth/facebook', authActionLimiter);
-app.use('/api/auth/magic-link', authActionLimiter);
-app.use('/api/auth/verify-magic', authActionLimiter);
-app.use('/api/auth/forgot-password', authActionLimiter);
-app.use('/api/auth/reset-password', authActionLimiter);
 
 // Apply admin limiter
 app.use('/api/admin', adminLimiter);
@@ -214,6 +208,8 @@ app.use(
     parameterLimit: 10000,
   })
 );
+
+app.use(cookieParser());
 
 /**
  * ------------------ REQUEST LOGGING ------------------
@@ -357,20 +353,11 @@ app.get('/api/docs', (req, res) => {
     endpoints: {
       auth: {
         public: [
-          { method: 'POST', path: '/api/auth/register', description: 'Register a new user' },
-          { method: 'POST', path: '/api/auth/login', description: 'Login user' },
-          { method: 'POST', path: '/api/auth/magic-link', description: 'Request magic link' },
-          { method: 'POST', path: '/api/auth/verify-magic', description: 'Verify magic link' },
           { method: 'GET', path: '/api/auth/google', description: 'Google OAuth' },
           { method: 'GET', path: '/api/auth/github', description: 'GitHub OAuth' },
-          { method: 'GET', path: '/api/auth/facebook', description: 'Facebook OAuth' },
-          { method: 'POST', path: '/api/auth/forgot-password', description: 'Forgot password' },
-          { method: 'POST', path: '/api/auth/reset-password', description: 'Reset password' },
-          { method: 'POST', path: '/api/auth/refresh', description: 'Refresh token' },
         ],
         protected: [
           { method: 'POST', path: '/api/auth/logout', description: 'Logout user' },
-          { method: 'POST', path: '/api/auth/change-password', description: 'Change password' },
           { method: 'GET', path: '/api/auth/profile', description: 'Get auth profile' },
         ],
       },
@@ -433,7 +420,7 @@ app.get('/api/docs', (req, res) => {
       },
     },
     authentication: {
-      user: 'Use Authorization: Bearer <token> header',
+      user: 'OAuth session via httpOnly access_token cookie (Bearer header also accepted)',
       admin: 'Use same token format, role must be ADMIN',
     },
     rateLimits: {

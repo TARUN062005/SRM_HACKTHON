@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import axios from "axios";
 import App from "./App.jsx";
 import { AuthProvider } from "./lib/auth/hooks/useAuth";
 import "./index.css";
@@ -25,6 +26,8 @@ const applyTheme = (themeId) => {
 
 const savedTheme = localStorage.getItem("theme") || "dark";
 applyTheme(savedTheme);
+
+axios.defaults.withCredentials = true;
 
 // Expose globally so Settings can use same function
 window.__applyTheme = applyTheme;

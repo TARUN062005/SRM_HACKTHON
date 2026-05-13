@@ -14,11 +14,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 
-const getAuthHeader = () => {
-  const token = localStorage.getItem('token');
-  return { Authorization: `Bearer ${token}` };
-};
-
 const THEMES = [
   { id: 'light',  label: 'Light',  Icon: Sun     },
   { id: 'dark',   label: 'Dark',   Icon: Moon    },
@@ -112,7 +107,8 @@ const SettingsPage = () => {
       Object.entries(formData).forEach(([k, v]) => fd.append(k, v || ''));
       if (profileImageFile) fd.append('profileImage', profileImageFile);
       const res = await axios.patch(`${BASE_URL}/api/user/settings`, fd, {
-        headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' },
+        headers: { 'Content-Type': 'multipart/form-data' },
+        withCredentials: true,
       });
       if (res.data?.success) toast.success('Profile updated');
       else toast.error(res.data?.message || 'Update failed');
@@ -134,7 +130,7 @@ const SettingsPage = () => {
       const fcmToken = await getToken(messaging, { vapidKey });
       if (!fcmToken) { toast.error('Failed to generate push token'); return; }
       const res = await axios.post(`${BASE_URL}/api/user/notifications/push-token`,
-        { token: fcmToken, platform: 'WEB' }, { headers: getAuthHeader() });
+        { token: fcmToken, platform: 'WEB' }, { withCredentials: true });
       if (res.data?.success) { toast.success('Push notifications enabled'); setPushEnabled(true); }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to enable push');
@@ -146,7 +142,7 @@ const SettingsPage = () => {
   const disablePush = async () => {
     setPushLoading(true);
     try {
-      await axios.delete(`${BASE_URL}/api/user/notifications/push-token`, { headers: getAuthHeader() });
+      await axios.delete(`${BASE_URL}/api/user/notifications/push-token`, { withCredentials: true });
       toast.success('Push notifications disabled');
       setPushEnabled(false);
     } catch {
@@ -159,10 +155,10 @@ const SettingsPage = () => {
   const handleAccountAction = async (type) => {
     const msg = type === 'permanent'
       ? 'This will permanently delete your account and all data. This cannot be undone!'
-      : 'This will suspend your account. You can reactivate it later.';
+      : 'This will suspend your account. You can restore access later.';
     if (!window.confirm(msg)) return;
     try {
-      await axios.delete(`${BASE_URL}/api/user/account?type=${type}`, { headers: getAuthHeader() });
+      await axios.delete(`${BASE_URL}/api/user/account?type=${type}`, { withCredentials: true });
       toast.success(type === 'permanent' ? 'Account deleted' : 'Account suspended');
       logout();
     } catch {
@@ -526,7 +522,7 @@ const SettingsPage = () => {
                     {[
                       {
                         type: 'suspend', label: 'Suspend account',
-                        desc: 'Temporarily disable your account. You can reactivate via email.',
+                        desc: 'Temporarily disable your account. You can restore access later.',
                         btnLabel: 'Suspend', btnStyle: { background: 'transparent', color: '#EF4444', border: '1px solid rgba(239,68,68,0.4)' },
                       },
                       {

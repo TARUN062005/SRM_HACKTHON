@@ -3,9 +3,9 @@ import axios from 'axios';
 
 const AuthContext = createContext(null);
 
-// Create axios instance with base URL - empty string means relative URLs (proxied by Vite)
 export const API = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL || '',
+  withCredentials: true,
 });
 
 export const useAuth = () => {
@@ -15,93 +15,70 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, _setUser] = useState(null);
+  const [user, setUser] = useState(null);
+  const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Clears all stored auth credentials from memory and storage
   const clearAuthData = useCallback(() => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('login_timestamp');
-    _setUser(null);
+    setUser(null);
+    setAuthenticated(false);
   }, []);
 
-  // Updates user state and refreshes the 3-day session timestamp
-  const setUser = useCallback((userData) => {
-    if (userData) {
-      // Refresh the persistent timestamp whenever a user session is established
-      localStorage.setItem('login_timestamp', Date.now().toString());
+  const logout = useCallback(async () => {
+    try {
+      await API.post('/api/auth/logout');
+    } catch {
+      // Local sign-out should still proceed even if backend logout fails.
     }
-    _setUser(userData);
-  }, []);
-
-  const logout = useCallback(() => {
     clearAuthData();
-    // Use window.location for a clean redirect to the Landing Page
     window.location.href = window.location.origin + '/';
   }, [clearAuthData]);
 
-  // Axios interceptors for global error handling and automatic token injection
   useEffect(() => {
-    const reqInt = API.interceptors.request.use((config) => {
-      const token = localStorage.getItem('token');
-      if (token) config.headers.Authorization = `Bearer ${token}`;
-      return config;
-    });
-
     const resInt = API.interceptors.response.use(
       (res) => res,
       (err) => {
-        // CASE 1: Rate Limit Exceeded (Too many attempts from this IP)
+        const requestUrl = err.config?.url || '';
+        const isProfileRequest = requestUrl.includes('/api/auth/profile');
+
         if (err.response?.status === 429) {
           window.location.href = '/too-many-requests';
-        } 
-        // CASE 2: Unauthorized (Expired or invalid token)
-        else if (err.response?.status === 401) {
+        } else if (err.response?.status === 401) {
           clearAuthData();
-          window.location.href = '/auth';
+          if (isProfileRequest) {
+            console.info('[AUTH] No active session');
+          } else if (window.location.pathname !== '/auth') {
+            window.location.replace('/auth');
+          }
         }
         return Promise.reject(err);
       }
     );
 
     return () => {
-      API.interceptors.request.eject(reqInt);
       API.interceptors.response.eject(resInt);
     };
   }, [clearAuthData]);
 
-  // Main session initialization logic (Restores state after tab/browser close)
   const initAuth = useCallback(async () => {
-    const token = localStorage.getItem('token');
-    const loginTimestamp = localStorage.getItem('login_timestamp');
-    const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
-
-    const isExpired = loginTimestamp && Date.now() - parseInt(loginTimestamp, 10) > THREE_DAYS_MS;
-
-    // If no token or locally expired, stop loading and clear data
-    if (!token || isExpired) {
-      clearAuthData();
-      setLoading(false);
-      return;
-    }
-
+    console.info('[AUTH] Session restore started');
     try {
-      // Verify the existing token with the backend profile endpoint
-      // This route should be under a relaxed general rate limiter
       const res = await API.get('/api/auth/profile');
       if (res.data?.success) {
-        _setUser(res.data.user);
+        setUser(res.data.user);
+        setAuthenticated(true);
+        console.info('[AUTH] Session restored');
       } else {
         clearAuthData();
       }
     } catch (e) {
-      // If error isn't a rate limit, clear data to force re-login
-      if (e.response?.status !== 429) {
-        console.error('Session verification failed:', e);
+      if (e.response?.status === 401) {
+        clearAuthData();
+      } else if (e.response?.status !== 429) {
         clearAuthData();
       }
     } finally {
-      setLoading(false); // UI blocks until this check finishes
+      setLoading(false);
     }
   }, [clearAuthData]);
 
@@ -110,8 +87,8 @@ export const AuthProvider = ({ children }) => {
   }, [initAuth]);
 
   const value = useMemo(
-    () => ({ user, loading, setUser, logout }),
-    [user, loading, setUser, logout]
+    () => ({ user, authenticated, loading, setUser, logout }),
+    [user, authenticated, loading, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
