@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 const MODE_ICONS  = { sea: Anchor, ship: Anchor, air: Plane, rail: Train, truck: Truck, road: Truck };
-const MODE_COLORS = { sea: '#0d47a1', ship: '#0d47a1', air: '#0288d1', rail: '#6d28d9', truck: '#c2410c', road: '#c2410c' };
+const MODE_COLORS = { sea: '#00C2FF', ship: '#00C2FF', air: '#00C2FF', rail: '#00C2FF', truck: '#00C2FF', road: '#00C2FF' };
 const MODE_LABELS = { sea: 'Maritime', ship: 'Maritime', air: 'Air Freight', rail: 'Rail', truck: 'Road', road: 'Road' };
 
 const SEV_STYLES = {
@@ -73,24 +73,22 @@ const ShipmentsPage = () => {
   };
 
   return (
-    <div className="h-full flex flex-col" style={{ background: '#0B1220' }}>
+    <div className="dashboard-shell h-full flex flex-col text-white">
 
       {/* Page header */}
-      <div className="flex-shrink-0 px-6 pt-6 pb-4">
+      <div className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-4">
         <div className="flex items-start justify-between mb-5">
           <div>
-            <h1 className="text-xl font-black" style={{ color: '#F9FAFB' }}>Shipments</h1>
-            <p className="text-sm mt-0.5" style={{ color: '#6B7280' }}>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-cyan-300 mb-1">Shipment archive</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-white">Shipments</h1>
+            <p className="text-sm mt-0.5 text-slate-400">
               Your route history — click any shipment to reload it on the map
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleRefresh}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all"
-              style={{ background: '#1F2937', color: '#9CA3AF', border: '1px solid #374151' }}
-              onMouseEnter={e => e.currentTarget.style.color = '#F9FAFB'}
-              onMouseLeave={e => e.currentTarget.style.color = '#9CA3AF'}
+              className="rg-btn-secondary flex items-center gap-1.5 px-3 py-2 text-xs"
             >
               <RefreshCw size={12} />
               Refresh
@@ -98,10 +96,7 @@ const ShipmentsPage = () => {
             {routes.length > 0 && (
               <button
                 onClick={handleClear}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all"
-                style={{ background: 'rgba(239,68,68,0.08)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+                className="rg-btn-danger flex items-center gap-1.5 px-3 py-2 text-xs"
               >
                 <Trash2 size={12} />
                 Clear All
@@ -112,7 +107,7 @@ const ShipmentsPage = () => {
 
         {/* Stats row */}
         {routes.length > 0 && (
-          <div className="grid grid-cols-4 gap-3 mb-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
             {[
               { label: 'Total Routes', value: stats.total,    Icon: Package,       color: '#3B82F6' },
               { label: 'Critical Risk', value: stats.critical, Icon: AlertTriangle, color: '#EF4444' },
@@ -121,8 +116,7 @@ const ShipmentsPage = () => {
             ].map(({ label, value, Icon, color }) => (
               <div
                 key={label}
-                className="px-4 py-3 rounded-2xl"
-                style={{ background: '#1F2937', border: '1px solid #374151' }}
+                className="dashboard-surface rounded-[1.5rem] px-4 py-3"
               >
                 <div className="flex items-center justify-between mb-2">
                   <Icon size={14} style={{ color }} />
@@ -147,11 +141,11 @@ const ShipmentsPage = () => {
               <button
                 key={value}
                 onClick={() => setFilter(value)}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                className="px-3 py-1.5 rounded-full text-xs font-bold transition-all dashboard-chip"
                 style={{
-                  background: filter === value ? 'rgba(59,130,246,0.15)' : '#1F2937',
-                  color: filter === value ? '#3B82F6' : '#6B7280',
-                  border: `1px solid ${filter === value ? 'rgba(59,130,246,0.3)' : '#374151'}`,
+                  background: filter === value ? 'rgba(0,194,255,0.14)' : 'rgba(15,23,42,0.72)',
+                  color: filter === value ? '#E0F2FE' : '#94A3B8',
+                  border: `1px solid ${filter === value ? 'rgba(0,194,255,0.28)' : 'rgba(148,163,184,0.12)'}`,
                 }}
               >
                 {label}
@@ -163,7 +157,7 @@ const ShipmentsPage = () => {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-6">
         {filtered.length === 0 ? (
           /* Empty state */
           <motion.div
@@ -172,15 +166,14 @@ const ShipmentsPage = () => {
             className="flex flex-col items-center justify-center py-20"
           >
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-              style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.15)' }}
+              className="w-16 h-16 rounded-[1.25rem] flex items-center justify-center mb-4 dashboard-surface"
             >
-              <Package size={28} style={{ color: '#374151' }} />
+              <Package size={28} style={{ color: '#64748B' }} />
             </div>
-            <p className="text-base font-bold mb-1" style={{ color: '#6B7280' }}>
+            <p className="text-base font-bold mb-1 text-slate-300">
               {routes.length === 0 ? 'No shipments yet' : 'No shipments match this filter'}
             </p>
-            <p className="text-sm text-center max-w-xs" style={{ color: '#374151' }}>
+            <p className="text-sm text-center max-w-xs text-slate-500">
               {routes.length === 0
                 ? 'Plan a route from the Dashboard or Routes Map and it will appear here automatically.'
                 : 'Try a different filter to see more routes.'}
@@ -188,10 +181,7 @@ const ShipmentsPage = () => {
             {routes.length === 0 && (
               <button
                 onClick={() => navigate('/dashboard')}
-                className="mt-5 flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
-                style={{ background: '#3B82F6', color: '#fff' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#2563EB'}
-                onMouseLeave={e => e.currentTarget.style.background = '#3B82F6'}
+                className="rg-btn-primary mt-5 flex items-center gap-2 px-5 py-2.5 text-sm"
               >
                 Plan a Route <ArrowRight size={14} />
               </button>

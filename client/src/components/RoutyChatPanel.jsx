@@ -14,7 +14,7 @@ const MODE_MAP = { sea: 'ship', ship: 'sea', air: 'air', rail: 'rail', truck: 't
 const MODE_OPTS = [
   { value: 'sea',   label: 'Sea',  Icon: Anchor, color: '#0d47a1' },
   { value: 'air',   label: 'Air',  Icon: Plane,  color: '#0288d1' },
-  { value: 'rail',  label: 'Rail', Icon: Train,  color: '#6d28d9' },
+  { value: 'rail',  label: 'Rail', Icon: Train,  color: '#00C2FF' },
   { value: 'truck', label: 'Road', Icon: Truck,  color: '#c2410c' },
 ];
 
@@ -76,7 +76,7 @@ const ResolveCard = ({ mode, originName, destName, originOptions, destOptions, o
   const [pickedOrigin, setPickedOrigin] = useState(null);
   const [pickedDest,   setPickedDest]   = useState(null);
   const isAir    = mode === 'air';
-  const accent   = isAir ? '#8B5CF6' : '#3B82F6';
+  const accent   = '#00C2FF';
   const bgAccent = isAir ? 'rgba(139,92,246,0.12)' : 'rgba(59,130,246,0.12)';
   const ready    = pickedOrigin && pickedDest;
 
@@ -164,19 +164,19 @@ const StateProgress = ({ state }) => {
   const pct = (collected.length / required.length) * 100;
 
   return (
-    <div className="px-4 py-2.5 flex-shrink-0" style={{ borderBottom: '1px solid #374151' }}>
+    <div className="px-4 py-2.5 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#6B7280' }}>
+        <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
           Collection Progress
         </span>
-        <span className="text-[9px] font-bold" style={{ color: '#3B82F6' }}>
+        <span className="text-[9px] font-bold" style={{ color: 'var(--accent)' }}>
           {collected.length}/{required.length} required
         </span>
       </div>
-      <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: '#374151' }}>
+      <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
         <motion.div
           className="h-full rounded-full"
-          style={{ background: 'linear-gradient(90deg, #3B82F6, #22C55E)' }}
+          style={{ background: 'var(--accent)' }}
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.4 }}
@@ -189,11 +189,11 @@ const StateProgress = ({ state }) => {
           return (
             <div key={key} className="flex items-center gap-1">
               {val
-                ? <CheckCircle2 size={9} style={{ color: '#22C55E' }} />
-                : <Circle size={9} style={{ color: isRequired ? '#4B5563' : '#2D3748' }} />}
-              <span className="text-[9px] font-medium" style={{ color: val ? '#9CA3AF' : isRequired ? '#6B7280' : '#4B5563' }}>
+                ? <CheckCircle2 size={9} style={{ color: 'var(--success)' }} />
+                : <Circle size={9} style={{ color: isRequired ? 'var(--text-muted)' : 'rgba(255,255,255,0.2)' }} />}
+              <span className="text-[9px] font-medium" style={{ color: val ? 'var(--text-secondary)' : isRequired ? 'var(--text-muted)' : 'rgba(255,255,255,0.2)' }}>
                 {val ? val.split(',')[0].substring(0, 12) : label}
-                {isRequired && !val && <span style={{ color: '#EF4444' }}>*</span>}
+                {isRequired && !val && <span style={{ color: 'var(--danger)' }}>*</span>}
               </span>
             </div>
           );
@@ -577,7 +577,7 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 z-[1100]"
-            style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }}
+            style={{ background: 'rgba(0,0,0,0.4)' }}
             onClick={onClose}
           />
 
@@ -588,21 +588,21 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className="absolute right-0 top-0 bottom-0 z-[1200] flex flex-col"
-            style={{ width: 360, background: '#111827', borderLeft: '1px solid #374151' }}
+            style={{ width: 360, background: 'var(--surface)', borderLeft: '1px solid var(--border)' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #374151' }}>
+            <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.15)' }}>
-                  <Bot size={15} style={{ color: '#3B82F6' }} />
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(0,194,255,0.14)' }}>
+                  <Bot size={15} style={{ color: 'var(--accent)' }} />
                 </div>
                 <div>
-                  <p className="text-sm font-black" style={{ color: '#F9FAFB' }}>Routy AI</p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Routy AI</p>
                   <div className="flex items-center gap-1.5">
                     <div className={`w-1.5 h-1.5 rounded-full ${isThinking ? 'animate-pulse' : 'animate-pulse'}`}
                       style={{ background: isThinking ? '#F59E0B' : isListening ? '#EF4444' : '#22C55E' }} />
-                    <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: '#6B7280' }}>
+                    <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
                       {isThinking ? 'Thinking…' : isListening ? 'Listening…' : 'Online'}
                     </span>
                   </div>

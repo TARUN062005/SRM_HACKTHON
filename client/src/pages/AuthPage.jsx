@@ -1,24 +1,9 @@
 import React, { useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Shield, Github, Zap, Globe } from 'lucide-react';
+import { Shield, Github } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import authService from '../lib/auth/authService';
 import { useAuth } from '../lib/auth/hooks/useAuth';
-
-const floatingOrbs = [
-  { size: 420, left: '-8%', top: '-15%', color: 'rgba(37,99,235,0.18)', dur: 9 },
-  { size: 320, left: '65%', top: '55%', color: 'rgba(99,102,241,0.13)', dur: 12 },
-  { size: 260, left: '28%', top: '-8%', color: 'rgba(59,130,246,0.09)', dur: 15 },
-];
-
-const FloatingOrb = ({ size, left, top, color, dur }) => (
-  <motion.div
-    style={{ position: 'absolute', width: size, height: size, left, top, borderRadius: '50%', background: color, filter: 'blur(90px)', pointerEvents: 'none' }}
-    animate={{ x: [0, 28, -18, 10, 0], y: [0, -22, 14, -8, 0], scale: [1, 1.07, 0.96, 1.03, 1] }}
-    transition={{ duration: dur, repeat: Infinity, ease: 'easeInOut' }}
-  />
-);
 
 const AuthPage = () => {
   const { user, loading } = useAuth();
@@ -41,56 +26,29 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="page-shell flex overflow-hidden text-white">
-      <motion.div
-        initial={{ x: -100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-        className="hidden lg:flex w-[52%] relative flex-col justify-between p-14 overflow-hidden"
-        style={{ background: 'linear-gradient(145deg, #050816 0%, #0b1224 52%, #050816 100%)' }}
-      >
-        {floatingOrbs.map((o, i) => <FloatingOrb key={i} {...o} />)}
-        <div className="absolute inset-0 opacity-[0.035]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)', backgroundSize: '64px 64px' }} />
+    <div className="page-shell text-white">
+      <div className="min-h-screen flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          <div className="rg-panel p-6 sm:p-8">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg border p-2" style={{ borderColor: 'var(--border)' }}>
+                <Shield size={18} style={{ color: 'var(--accent)' }} />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em]" style={{ color: 'var(--text-secondary)' }}>RouteGuardian</p>
+                <h1 className="text-xl font-semibold text-white">Sign in to your account</h1>
+              </div>
+            </div>
 
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="p-2.5 bg-white/8 backdrop-blur-md rounded-xl ring-1 ring-white/10 neon-ring">
-            <Shield size={20} className="text-blue-300" />
-          </div>
-          <span className="text-white font-bold text-lg tracking-tight">RouteGuardian</span>
-        </div>
+            <p className="mt-4 text-sm leading-6" style={{ color: 'var(--text-secondary)' }}>
+              Use Google or GitHub to continue. Existing sessions load directly into the dashboard.
+            </p>
 
-        <div className="relative z-10 space-y-5">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-cyan-500/10 border border-cyan-400/20 rounded-full">
-            <Zap size={11} className="text-blue-300" />
-            <span className="text-blue-200 text-[10px] font-bold tracking-widest uppercase">Enterprise Logistics Platform</span>
-          </div>
-          <h1 className="text-[3.8rem] font-black leading-[1.04] tracking-tight text-white">Route Guardian</h1>
-          <p className="text-slate-300/75 text-base leading-relaxed max-w-xs">
-            Sign in securely using your existing Google or GitHub account.
-          </p>
-          <div className="flex items-center gap-3 text-slate-300/65 text-sm">
-            <Globe size={12} className="text-blue-300" /> OAuth-only authentication
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.45 }} className="flex-1 flex flex-col justify-center px-6 sm:px-12 lg:px-16 py-12">
-        <div className="lg:hidden flex items-center gap-2.5 mb-10">
-          <div className="p-2 bg-primary-600 rounded-xl"><Shield size={16} className="text-white" /></div>
-          <span className="font-bold text-slate-800 text-sm tracking-tight">RouteGuardian</span>
-        </div>
-
-        <div className="max-w-[370px] w-full mx-auto">
-          <div className="surface-glass rounded-[28px] p-6 sm:p-8">
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-300 mb-3">Secure Access</p>
-            <h2 className="text-[1.9rem] font-black tracking-tight leading-tight">OAuth sign-in</h2>
-            <p className="text-slate-400 text-xs mt-1 font-medium">Use your existing Google or GitHub identity to continue.</p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8">
+            <div className="mt-6 space-y-3">
               <button
                 type="button"
                 onClick={() => handleSocial('google')}
-                className="rg-btn-primary flex items-center justify-center gap-3 py-3.5 px-4 transition-transform hover:translate-y-[-1px]"
+                className="rg-btn-primary w-full flex items-center justify-center gap-3 py-3 px-4 text-sm"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path fill="#041019" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -104,7 +62,7 @@ const AuthPage = () => {
               <button
                 type="button"
                 onClick={() => handleSocial('github')}
-                className="rg-btn-secondary flex items-center justify-center gap-3 py-3.5 px-4 transition-transform hover:translate-y-[-1px]"
+                className="rg-btn-secondary w-full flex items-center justify-center gap-3 py-3 px-4 text-sm"
               >
                 <Github size={16} className="text-white" />
                 <span>Continue with GitHub</span>
@@ -112,7 +70,7 @@ const AuthPage = () => {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

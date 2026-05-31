@@ -25,8 +25,10 @@ function App() {
         toastOptions={{
           style: {
             borderRadius: '12px',
-            background: '#334155',
-            color: '#fff',
+            background: 'var(--surface)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border)',
+            boxShadow: '0 10px 24px rgba(0,0,0,0.35)',
           }
         }}
       />

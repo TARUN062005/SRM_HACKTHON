@@ -21,9 +21,14 @@ const modeIcon = (mode) => {
 };
 
 const modeColor = (mode) => {
-  if (mode === 'ship') return { accent: '#3B82F6', glow: 'rgba(59,130,246,0.15)', warn: 'rgba(245,158,11,0.08)', warnBorder: 'rgba(245,158,11,0.3)', warnText: '#F59E0B' };
-  if (mode === 'air')  return { accent: '#8B5CF6', glow: 'rgba(139,92,246,0.15)', warn: 'rgba(139,92,246,0.08)', warnBorder: 'rgba(139,92,246,0.3)', warnText: '#8B5CF6' };
-  return { accent: '#3B82F6', glow: 'rgba(59,130,246,0.15)', warn: '', warnBorder: '', warnText: '' };
+  const base = {
+    accent: 'var(--accent)',
+    glow: 'rgba(0,194,255,0.12)',
+    warn: 'rgba(255,181,71,0.08)',
+    warnBorder: 'rgba(255,181,71,0.25)',
+    warnText: 'var(--warning)',
+  };
+  return base;
 };
 
 // ── Search dropdown ───────────────────────────────────────────────────────────
@@ -37,7 +42,7 @@ const LocationInput = ({ placeholder, dotColor, query, setQuery, results, search
         style={{
           background: focused ? 'var(--card)' : 'var(--bg)',
           border:     `1px solid ${focused ? colors.accent : 'var(--border)'}`,
-          boxShadow:  focused ? `0 0 0 2px ${colors.glow}` : 'none',
+          boxShadow:  'none',
         }}
       >
         <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: dotColor }} />
@@ -83,10 +88,10 @@ const LocationInput = ({ placeholder, dotColor, query, setQuery, results, search
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
                   <div className="mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: isPort ? colors.glow : isAirport ? 'rgba(139,92,246,0.15)' : 'var(--accent-glow)' }}
+                    style={{ background: isPort || isAirport ? colors.glow : 'var(--accent-glow)' }}
                   >
                     {isPort    ? <Anchor size={12} style={{ color: colors.accent }} strokeWidth={2.5} />
-                   : isAirport ? <Plane  size={12} style={{ color: '#8B5CF6' }}    strokeWidth={2.5} />
+                   : isAirport ? <Plane  size={12} style={{ color: colors.accent }} strokeWidth={2.5} />
                    : <MapPin   size={12} style={{ color: 'var(--accent)' }}        strokeWidth={2.5} />}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -94,7 +99,7 @@ const LocationInput = ({ placeholder, dotColor, query, setQuery, results, search
                       {firstName}
                       {(isPort || isAirport) && (
                         <span className="ml-1.5 text-[8px] font-black uppercase tracking-wide px-1 py-0.5 rounded"
-                          style={{ background: isPort ? colors.glow : 'rgba(139,92,246,0.15)', color: isPort ? colors.accent : '#8B5CF6' }}>
+                          style={{ background: colors.glow, color: colors.accent }}>
                           {isPort ? 'Port' : 'Airport'}
                         </span>
                       )}
@@ -123,12 +128,12 @@ const OptionPicker = ({ mode, locationName, options, resolving, onPick, onDismis
       initial={{ opacity: 0, y: -4, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -4, scale: 0.98 }} transition={{ duration: 0.17 }}
       className="rounded-xl overflow-hidden"
-      style={{ background: colors.warn || 'rgba(59,130,246,0.06)', border: `1px solid ${colors.warnBorder || 'rgba(59,130,246,0.25)'}` }}
+      style={{ background: colors.warn, border: `1px solid ${colors.warnBorder}` }}
     >
       {/* Header */}
-      <div className="px-3 py-2 flex items-center gap-2" style={{ borderBottom: `1px solid ${colors.warnBorder || 'rgba(59,130,246,0.15)'}` }}>
-        <AlertTriangle size={10} style={{ color: colors.warnText || colors.accent, flexShrink: 0 }} />
-        <p className="text-[10px] font-black uppercase tracking-wider flex-1" style={{ color: colors.warnText || colors.accent }}>
+      <div className="px-3 py-2 flex items-center gap-2" style={{ borderBottom: `1px solid ${colors.warnBorder}` }}>
+        <AlertTriangle size={10} style={{ color: colors.warnText, flexShrink: 0 }} />
+        <p className="text-[10px] font-black uppercase tracking-wider flex-1" style={{ color: colors.warnText }}>
           {label} {subtitle}
         </p>
         {!resolving && (
@@ -153,14 +158,14 @@ const OptionPicker = ({ mode, locationName, options, resolving, onPick, onDismis
             <button key={i} onClick={() => onPick(opt)}
               className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all group"
               style={{ background: 'transparent' }}
-              onMouseEnter={e => e.currentTarget.style.background = colors.warn || 'rgba(59,130,246,0.06)'}
+              onMouseEnter={e => e.currentTarget.style.background = colors.warn}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
               <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ background: i === 0 ? colors.glow : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
               >
                 {isAir
-                  ? <Plane   size={11} style={{ color: i === 0 ? '#8B5CF6' : 'var(--text-muted)' }} />
+                  ? <Plane   size={11} style={{ color: i === 0 ? colors.accent : 'var(--text-muted)' }} />
                   : <Anchor  size={11} style={{ color: i === 0 ? colors.accent : 'var(--text-muted)' }} />
                 }
               </div>

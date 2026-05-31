@@ -14,29 +14,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 
-const THEMES = [
-  { id: 'light',  label: 'Light',  Icon: Sun     },
-  { id: 'dark',   label: 'Dark',   Icon: Moon    },
-  { id: 'system', label: 'System', Icon: Monitor },
-];
-
-const applyTheme = (themeId) => {
-  const html = document.documentElement;
-  if (themeId === 'system') {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    html.classList.toggle('dark', prefersDark);
-    html.classList.toggle('light', !prefersDark);
-  } else if (themeId === 'light') {
-    html.classList.remove('dark');
-    html.classList.add('light');
-  } else {
-    html.classList.remove('light');
-    html.classList.add('dark');
-  }
-  localStorage.setItem('theme', themeId);
-  if (window.__applyTheme) window.__applyTheme(themeId);
-};
-
 const SECTIONS = [
   { id: 'appearance',    label: 'Appearance',    Icon: Palette  },
   { id: 'profile',       label: 'Profile',       Icon: User     },
@@ -69,25 +46,16 @@ const SettingsPage = () => {
   const [pushLoading, setPushLoading]     = useState(false);
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [profilePreview, setProfilePreview]     = useState(user?.profileImage || '');
-  const [theme, setTheme]                 = useState('dark');
   const [pushEnabled, setPushEnabled]     = useState(false);
   const [activeSection, setActiveSection] = useState('appearance');
 
   useEffect(() => {
-    const saved = localStorage.getItem('theme') || 'dark';
-    setTheme(saved);
-    applyTheme(saved);
+    if (window.__applyTheme) window.__applyTheme('dark');
     if ('Notification' in window) setPushEnabled(Notification.permission === 'granted');
     return () => {
       if (profilePreview?.startsWith('blob:')) URL.revokeObjectURL(profilePreview);
     };
   }, []);
-
-  const handleThemeChange = (themeId) => {
-    setTheme(themeId);
-    applyTheme(themeId);
-    toast.success(`${themeId.charAt(0).toUpperCase() + themeId.slice(1)} theme applied`);
-  };
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
@@ -226,44 +194,20 @@ const SettingsPage = () => {
                 <div style={cardHeader}>
                   <h2 className="text-base font-bold" style={{ color: '#F9FAFB' }}>Theme</h2>
                   <p className="text-sm mt-0.5" style={{ color: '#6B7280' }}>
-                    Choose how RouteGuardian looks on your device.
+                    RouteGuardian now runs in a premium dark enterprise theme.
                   </p>
                 </div>
                 <div className="p-6">
-                  <div className="grid grid-cols-3 gap-3">
-                    {THEMES.map(({ id, label, Icon }) => (
-                      <button
-                        key={id}
-                        onClick={() => handleThemeChange(id)}
-                        className="flex flex-col items-center gap-3 p-4 rounded-2xl transition-all"
-                        style={{
-                          border: theme === id ? '2px solid #3B82F6' : '2px solid #374151',
-                          background: theme === id ? 'rgba(59,130,246,0.12)' : '#111827',
-                        }}
-                      >
-                        <div
-                          className={`w-full h-14 rounded-xl overflow-hidden ${id === 'light' ? 'theme-preview-light' : 'theme-preview-dark'}`}
-                          style={{ border: '1px solid #374151' }}
-                        >
-                          <div className="h-full p-2 flex flex-col justify-between">
-                            <div className="h-1.5 w-3/4 rounded-full theme-preview-accent" />
-                            <div className="flex gap-1">
-                              <div className="h-1.5 flex-1 rounded-full theme-preview-accent" />
-                              <div className="h-1.5 flex-1 rounded-full" style={{ background: '#3B82F6', opacity: 0.5 }} />
-                            </div>
-                          </div>
-                        </div>
-                        <Icon size={15} style={{ color: theme === id ? '#3B82F6' : '#6B7280' }} />
-                        <span className="text-sm font-bold" style={{ color: theme === id ? '#3B82F6' : '#9CA3AF' }}>
-                          {label}
-                        </span>
-                        {theme === id && (
-                          <span className="text-[9px] font-black uppercase tracking-wider" style={{ color: '#3B82F6' }}>
-                            Active
-                          </span>
-                        )}
-                      </button>
-                    ))}
+                  <div className="rounded-3xl border border-cyan-400/15 bg-cyan-500/8 p-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(0,194,255,0.12)', border: '1px solid rgba(0,194,255,0.18)' }}>
+                        <Moon size={16} style={{ color: '#00E5FF' }} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold" style={{ color: '#F9FAFB' }}>Dark theme enforced</p>
+                        <p className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>The interface uses one cohesive visual system across all screens.</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>

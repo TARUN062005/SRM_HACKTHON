@@ -60,23 +60,23 @@ const RoutesMapPage = () => {
   }, [freightMode]);
 
   return (
-    <div className="h-full w-full relative overflow-hidden" style={{ background: '#0B1220' }}>
+    <div className="dashboard-shell h-full w-full relative overflow-hidden text-white">
 
       {/* Floating control bar — top left */}
       <div className="absolute top-3 left-3 z-[1050] flex flex-col gap-2" style={{ maxWidth: 340 }}>
 
         {/* Mode selector + Routy button */}
         <div className="flex items-center gap-2">
-          <div className="flex gap-1 p-1 rounded-xl shadow-lg" style={{ background: '#111827', border: '1px solid #374151' }}>
+          <div className="flex gap-1 p-1 rounded-2xl shadow-lg dashboard-surface-strong">
             {FREIGHT_MODES.map(({ label, value, Icon }) => (
               <button
                 key={value}
                 onClick={() => setFreightMode(value)}
                 title={label}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all"
                 style={{
-                  background: freightMode === value ? '#1F2937' : 'transparent',
-                  color: freightMode === value ? '#3B82F6' : '#6B7280',
+                  background: freightMode === value ? 'rgba(0,194,255,0.14)' : 'transparent',
+                  color: freightMode === value ? '#E0F2FE' : '#94A3B8',
                 }}
               >
                 <Icon size={12} />
@@ -87,10 +87,7 @@ const RoutesMapPage = () => {
 
           <button
             onClick={() => setShowRouty(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold shadow-lg transition-all"
-            style={{ background: '#111827', color: '#3B82F6', border: '1px solid rgba(59,130,246,0.3)' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#1F2937'}
-            onMouseLeave={e => e.currentTarget.style.background = '#111827'}
+            className="rg-btn-secondary flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold shadow-lg transition-all"
           >
             <Bot size={13} className="animate-pulse" />
             Ask Routy
@@ -98,8 +95,7 @@ const RoutesMapPage = () => {
 
           <button
             onClick={() => setShowControls(v => !v)}
-            className="flex items-center gap-1 px-2.5 py-2 rounded-xl text-[10px] font-bold shadow-lg transition-all"
-            style={{ background: '#111827', color: '#6B7280', border: '1px solid #374151' }}
+            className="flex items-center gap-1 px-2.5 py-2 rounded-2xl text-[10px] font-bold shadow-lg transition-all dashboard-chip"
           >
             <ChevronDown size={12} style={{ transform: showControls ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
             {showControls ? 'Hide' : 'Route'}
@@ -114,8 +110,7 @@ const RoutesMapPage = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.97 }}
               transition={{ duration: 0.18 }}
-              className="rounded-2xl shadow-2xl p-3"
-              style={{ background: '#111827', border: '1px solid #374151' }}
+              className="rounded-[1.5rem] shadow-2xl p-3 dashboard-surface-strong"
             >
               <ShipmentCreationFlow
                 freightMode={freightMode}

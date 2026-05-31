@@ -24,7 +24,7 @@ const FREIGHT_MODES = [
 const ROUTE_LABELS = ['Optimal Route', 'Alternate 1', 'Alternate 2'];
 
 const MODE_ICONS = { sea: Anchor, ship: Anchor, air: Plane, rail: Train, truck: Truck, road: Truck };
-const MODE_COLORS = { sea: '#0d47a1', ship: '#0d47a1', air: '#0288d1', rail: '#6d28d9', truck: '#c2410c', road: '#c2410c' };
+const MODE_COLORS = { sea: '#00C2FF', ship: '#00C2FF', air: '#00C2FF', rail: '#00C2FF', truck: '#00C2FF', road: '#00C2FF' };
 
 const getWeatherIcon = (condition) => {
   if (!condition) return Wind;
@@ -40,6 +40,12 @@ const SEV_STYLES = {
   HIGH:     { card: 'rgba(245,158,11,0.08)', border: '#F59E0B', dot: '#F59E0B', badge: 'rgba(245,158,11,0.2)', badgeText: '#F59E0B', text: '#FCD34D' },
   MODERATE: { card: 'rgba(56,189,248,0.06)', border: '#38BDF8', dot: '#38BDF8', badge: 'rgba(56,189,248,0.15)', badgeText: '#38BDF8', text: '#7DD3FC' },
 };
+
+const ACCENT = 'var(--accent)';
+const ACCENT_SOFT = 'rgba(0,194,255,0.12)';
+const ACCENT_BORDER = 'rgba(0,194,255,0.28)';
+const SURFACE = 'var(--surface)';
+const SURFACE_BORDER = 'var(--border)';
 
 const timeAgo = (ts) => {
   if (!ts) return '';
@@ -57,7 +63,7 @@ const MyRoutesSection = ({ routes, onLoad, onClear, isExpanded, onToggle }) => {
   if (routes.length === 0) return null;
 
   return (
-    <div className="px-3 pb-3" style={{ borderBottom: '1px solid #374151' }}>
+    <div className="px-3 pb-3" style={{ borderBottom: `1px solid ${SURFACE_BORDER}` }}>
       <button
         onClick={onToggle}
         className="w-full flex items-center justify-between px-1 py-2 transition-all"
@@ -65,9 +71,9 @@ const MyRoutesSection = ({ routes, onLoad, onClear, isExpanded, onToggle }) => {
         onMouseLeave={e => e.currentTarget.style.opacity = '1'}
       >
         <div className="flex items-center gap-2">
-          <History size={12} style={{ color: '#A78BFA' }} />
+          <History size={12} style={{ color: 'var(--secondary-accent)' }} />
           <span className="text-xs font-bold" style={{ color: '#F9FAFB' }}>My Routes</span>
-          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black" style={{ background: 'rgba(167,139,250,0.15)', color: '#A78BFA' }}>
+          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black" style={{ background: 'rgba(124,58,237,0.2)', color: 'var(--secondary-accent)' }}>
             {routes.length}
           </span>
         </div>
@@ -75,7 +81,7 @@ const MyRoutesSection = ({ routes, onLoad, onClear, isExpanded, onToggle }) => {
           <button onClick={e => { e.stopPropagation(); onClear(); }}
             className="p-1 rounded transition-all" title="Clear history"
             style={{ color: '#6B7280' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#EF4444'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
             onMouseLeave={e => e.currentTarget.style.color = '#6B7280'}>
             <Trash2 size={10} />
           </button>
@@ -97,7 +103,7 @@ const MyRoutesSection = ({ routes, onLoad, onClear, isExpanded, onToggle }) => {
             <div className="space-y-1.5 mt-1">
               {routes.slice(0, 8).map(r => {
                 const ModeIcon = MODE_ICONS[r.mode] || Anchor;
-                const modeColor = MODE_COLORS[r.mode] || '#3B82F6';
+                const modeColor = MODE_COLORS[r.mode] || ACCENT;
                 const sev = r.severity;
                 const sevColor = sev === 'CRITICAL' ? '#EF4444' : sev === 'CAUTION' ? '#F59E0B' : '#22C55E';
                 return (
@@ -107,9 +113,9 @@ const MyRoutesSection = ({ routes, onLoad, onClear, isExpanded, onToggle }) => {
                     whileTap={{ scale: 0.98 }}
                     onClick={() => onLoad(r)}
                     className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
-                    style={{ background: '#1F2937', border: '1px solid #374151' }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = '#4B5563'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = '#374151'}
+                    style={{ background: 'rgba(15,23,42,0.85)', border: `1px solid ${SURFACE_BORDER}` }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(148,163,184,0.35)'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = SURFACE_BORDER}
                   >
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${modeColor}18` }}>
                       <ModeIcon size={12} style={{ color: modeColor }} />
@@ -134,7 +140,7 @@ const MyRoutesSection = ({ routes, onLoad, onClear, isExpanded, onToggle }) => {
                         )}
                       </div>
                     </div>
-                    <ChevronRight size={11} style={{ color: '#374151', flexShrink: 0 }} />
+                    <ChevronRight size={11} style={{ color: 'rgba(148,163,184,0.35)', flexShrink: 0 }} />
                   </motion.button>
                 );
               })}
@@ -257,21 +263,21 @@ const Dashboard = () => {
     : intel?.waypointReports?.some(w => w.severity === 'CAUTION') ? 'CAUTION' : 'STABLE';
 
   const sevBadgeStyle = globalSeverity === 'CRITICAL'
-    ? { bg: 'rgba(239,68,68,0.15)', color: '#EF4444' }
+    ? { bg: 'rgba(255,92,122,0.16)', color: 'var(--danger)' }
     : globalSeverity === 'CAUTION'
-    ? { bg: 'rgba(245,158,11,0.15)', color: '#F59E0B' }
-    : { bg: 'rgba(34,197,94,0.15)', color: '#22C55E' };
+    ? { bg: 'rgba(255,181,71,0.18)', color: 'var(--warning)' }
+    : { bg: 'rgba(0,255,174,0.16)', color: 'var(--success)' };
 
   return (
-    <div className="flex h-full overflow-hidden" style={{ background: '#0B1220' }}>
+    <div className="flex h-full overflow-hidden" style={{ background: SURFACE }}>
 
       {/* ══ LEFT CONTROL PANEL ══ */}
       <div
         className="h-full flex flex-col flex-shrink-0 overflow-hidden"
-        style={{ width: 380, background: '#111827', borderRight: '1px solid #374151' }}
+        style={{ width: 380, background: SURFACE, borderRight: `1px solid ${SURFACE_BORDER}` }}
       >
         {/* Mode selector + Routy button */}
-        <div className="px-4 pt-4 pb-3 flex-shrink-0" style={{ borderBottom: '1px solid #374151' }}>
+        <div className="px-4 pt-4 pb-3 flex-shrink-0" style={{ borderBottom: `1px solid ${SURFACE_BORDER}` }}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#6B7280' }}>
               Freight Mode
@@ -279,23 +285,23 @@ const Dashboard = () => {
             <button
               onClick={() => setShowRouty(true)}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all text-[10px] font-bold"
-              style={{ background: 'rgba(59,130,246,0.12)', color: '#3B82F6', border: '1px solid rgba(59,130,246,0.25)' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.2)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.12)'; }}
+              style={{ background: ACCENT_SOFT, color: ACCENT, border: `1px solid ${ACCENT_BORDER}` }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,194,255,0.2)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = ACCENT_SOFT; }}
             >
               <Bot size={11} className="animate-pulse" />
               Ask Routy
             </button>
           </div>
-          <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#0B1220' }}>
+          <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(5,8,22,0.9)' }}>
             {FREIGHT_MODES.map(({ label, value, Icon }) => (
               <button
                 key={value}
                 onClick={() => setFreightMode(value)}
                 className="flex-1 flex flex-col items-center gap-0.5 py-2 rounded-lg text-[9px] font-bold transition-all"
                 style={{
-                  background: freightMode === value ? '#1F2937' : 'transparent',
-                  color: freightMode === value ? '#3B82F6' : '#6B7280',
+                  background: freightMode === value ? 'rgba(15,23,42,0.85)' : 'transparent',
+                  color: freightMode === value ? ACCENT : '#6B7280',
                   boxShadow: freightMode === value ? '0 1px 4px rgba(0,0,0,0.3)' : 'none',
                 }}
               >
@@ -307,7 +313,7 @@ const Dashboard = () => {
         </div>
 
         {/* Route inputs */}
-        <div className="px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #374151' }}>
+        <div className="px-4 py-3 flex-shrink-0" style={{ borderBottom: `1px solid ${SURFACE_BORDER}` }}>
           <ShipmentCreationFlow
             freightMode={freightMode}
             onLocationSelect={(src, dest) => { setSelectedSource(src); setSelectedDest(dest); }}
@@ -334,12 +340,12 @@ const Dashboard = () => {
               <motion.div key="results" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
 
                 {/* Route summary */}
-                <div className="px-4 py-3 flex items-start justify-between" style={{ borderBottom: '1px solid #374151' }}>
+                <div className="px-4 py-3 flex items-start justify-between" style={{ borderBottom: `1px solid ${SURFACE_BORDER}` }}>
                   <div className="flex items-start gap-2.5 min-w-0 flex-1">
                     <div className="flex flex-col items-center mt-1 gap-0.5 flex-shrink-0">
-                      <div className="w-2 h-2 rounded-full" style={{ background: '#22C55E', boxShadow: '0 0 6px rgba(34,197,94,0.5)' }} />
-                      <div className="w-px h-3" style={{ background: '#374151' }} />
-                      <div className="w-2 h-2 rounded-full" style={{ background: '#EF4444', boxShadow: '0 0 6px rgba(239,68,68,0.5)' }} />
+                      <div className="w-2 h-2 rounded-full" style={{ background: 'var(--success)', boxShadow: '0 0 6px rgba(0,255,174,0.5)' }} />
+                      <div className="w-px h-3" style={{ background: SURFACE_BORDER }} />
+                      <div className="w-2 h-2 rounded-full" style={{ background: 'var(--danger)', boxShadow: '0 0 6px rgba(255,92,122,0.5)' }} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-semibold truncate leading-tight" style={{ color: '#F9FAFB' }}>
@@ -354,7 +360,7 @@ const Dashboard = () => {
                     onClick={handleClearRoute}
                     className="p-1.5 rounded-lg transition-colors flex-shrink-0"
                     style={{ color: '#6B7280' }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#EF4444'}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
                     onMouseLeave={e => e.currentTarget.style.color = '#6B7280'}
                   >
                     <X size={13} />
@@ -369,15 +375,15 @@ const Dashboard = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -6 }}
                       className="mx-3 mb-1 p-3 rounded-xl"
-                      style={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.22)' }}
+                      style={{ background: ACCENT_SOFT, border: `1px solid ${ACCENT_BORDER}` }}
                     >
                       <div className="flex items-start gap-2">
                         <div className="w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                          style={{ background: 'rgba(59,130,246,0.18)' }}>
-                          <Bot size={10} style={{ color: '#3B82F6' }} className={aiRecLoading ? 'animate-pulse' : ''} />
+                          style={{ background: 'rgba(0,194,255,0.18)' }}>
+                          <Bot size={10} style={{ color: ACCENT }} className={aiRecLoading ? 'animate-pulse' : ''} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: '#3B82F6' }}>
+                          <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: ACCENT }}>
                             AI Route Analysis
                           </p>
                           {aiRecLoading ? (
@@ -412,13 +418,13 @@ const Dashboard = () => {
                         onClick={() => setActiveRouteIndex(idx)}
                         className="w-full flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all"
                         style={{
-                          border: isActive ? '1px solid rgba(59,130,246,0.5)' : '1px solid #374151',
-                          background: isActive ? 'rgba(59,130,246,0.1)' : '#1F2937',
+                          border: isActive ? '1px solid rgba(0,194,255,0.45)' : `1px solid ${SURFACE_BORDER}`,
+                          background: isActive ? 'rgba(0,194,255,0.08)' : 'rgba(15,23,42,0.9)',
                         }}
                       >
-                        <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: isActive ? '#3B82F6' : '#374151' }} />
+                        <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: isActive ? ACCENT : 'rgba(148,163,184,0.2)' }} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-black uppercase tracking-wider mb-0.5" style={{ color: isActive ? '#3B82F6' : '#6B7280' }}>
+                          <p className="text-[10px] font-black uppercase tracking-wider mb-0.5" style={{ color: isActive ? ACCENT : '#6B7280' }}>
                             {route.summary || ROUTE_LABELS[idx] || `Route ${idx + 1}`}
                           </p>
                           <div className="flex items-baseline gap-2">
@@ -444,13 +450,13 @@ const Dashboard = () => {
                                 <span className="text-xs font-semibold" style={{ color: '#6B7280' }}>min</span>
                               </>
                             )}
-                            <span style={{ color: '#374151' }}>·</span>
+                            <span style={{ color: 'rgba(148,163,184,0.35)' }}>·</span>
                             <span className="text-sm font-semibold" style={{ color: isActive ? '#9CA3AF' : '#6B7280' }}>
                               {(route.distance / 1000).toFixed(0)} km
                             </span>
                           </div>
                         </div>
-                        {isActive && <CheckCircle size={15} style={{ color: '#3B82F6' }} className="flex-shrink-0" />}
+                        {isActive && <CheckCircle size={15} style={{ color: ACCENT }} className="flex-shrink-0" />}
                       </motion.button>
                     );
                   })}
@@ -458,13 +464,13 @@ const Dashboard = () => {
 
                 {/* Simulation controls */}
                 <div className="px-3 pb-3">
-                  <div className="flex items-center gap-3 px-4 py-3 rounded-2xl" style={{ background: '#1F2937' }}>
+                  <div className="flex items-center gap-3 px-4 py-3 rounded-2xl" style={{ background: 'rgba(15,23,42,0.9)' }}>
                     <button
                       onClick={() => setIsNavigating(v => !v)}
                       className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
                       style={{
-                        background: isNavigating ? '#EF4444' : '#3B82F6',
-                        boxShadow: isNavigating ? '0 0 12px rgba(239,68,68,0.4)' : '0 0 12px rgba(59,130,246,0.4)',
+                        background: isNavigating ? 'var(--danger)' : ACCENT,
+                        boxShadow: isNavigating ? '0 0 12px rgba(255,92,122,0.4)' : '0 0 12px rgba(0,194,255,0.4)',
                       }}
                     >
                       {isNavigating
@@ -474,13 +480,13 @@ const Dashboard = () => {
                     <div className="flex-1">
                       <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider mb-1" style={{ color: '#6B7280' }}>
                         <span>{isNavigating ? 'Simulating…' : 'Simulate Route'}</span>
-                        <span style={{ color: '#3B82F6' }}>×{simSpeed}</span>
+                        <span style={{ color: ACCENT }}>×{simSpeed}</span>
                       </div>
                       <input
                         type="range" min="1" max="10" step="1" value={simSpeed}
                         onChange={e => setSimSpeed(Number(e.target.value))}
                         className="w-full h-1 rounded-full cursor-pointer"
-                        style={{ accentColor: '#3B82F6' }}
+                        style={{ accentColor: ACCENT }}
                       />
                     </div>
                   </div>
@@ -496,7 +502,7 @@ const Dashboard = () => {
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <div className="flex items-center gap-2">
-                        <Activity size={13} style={{ color: '#3B82F6' }} />
+                        <Activity size={13} style={{ color: ACCENT }} />
                         <span className="text-xs font-bold" style={{ color: '#F9FAFB' }}>Route Intelligence</span>
                         <span className="px-2 py-0.5 rounded-full text-[9px] font-black" style={sevBadgeStyle}>
                           {globalSeverity}
@@ -524,7 +530,7 @@ const Dashboard = () => {
                                 ? { bg: 'rgba(239,68,68,0.12)', icon: '#EF4444', dot: '#EF4444' }
                                 : wp.severity === 'CAUTION'
                                 ? { bg: 'rgba(245,158,11,0.12)', icon: '#F59E0B', dot: '#F59E0B' }
-                                : { bg: 'rgba(59,130,246,0.1)', icon: '#3B82F6', dot: '#22C55E' };
+                                : { bg: 'rgba(0,194,255,0.1)', icon: ACCENT, dot: 'var(--success)' };
                               return (
                                 <div key={i} className="flex items-center gap-3">
                                   <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: clr.bg }}>
@@ -543,14 +549,14 @@ const Dashboard = () => {
                           {intel.newsFeed?.length > 0 && (
                             <div className="mt-4 space-y-2 px-1">
                               <div className="flex items-center gap-1.5">
-                                <AlertTriangle size={11} style={{ color: '#EF4444' }} />
-                                <span className="text-[9px] font-black uppercase tracking-wider" style={{ color: '#EF4444' }}>
+                                <AlertTriangle size={11} style={{ color: 'var(--danger)' }} />
+                                <span className="text-[9px] font-black uppercase tracking-wider" style={{ color: 'var(--danger)' }}>
                                   Risk Alerts ({intel.newsFeed.length})
                                 </span>
                               </div>
                               {intel.newsFeed.slice(0, 3).map((news, i) => (
                                 <div key={i} className="p-3 rounded-xl border"
-                                  style={{ background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)' }}>
+                                  style={{ background: 'rgba(255,92,122,0.08)', borderColor: 'rgba(255,92,122,0.25)' }}>
                                   <p className="text-[11px] font-semibold leading-snug mb-2 line-clamp-2" style={{ color: '#FCA5A5' }}>
                                     {news.title}
                                   </p>
@@ -558,14 +564,14 @@ const Dashboard = () => {
                                     <div className="flex gap-1">
                                       {news.categories?.slice(0, 2).map((cat, ci) => (
                                         <span key={ci} className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase"
-                                          style={{ background: 'rgba(239,68,68,0.2)', color: '#EF4444' }}>
+                                          style={{ background: 'rgba(255,92,122,0.2)', color: 'var(--danger)' }}>
                                           {cat}
                                         </span>
                                       ))}
                                     </div>
                                     {news.link && (
                                       <a href={news.link} target="_blank" rel="noreferrer"
-                                        className="text-[10px] flex items-center gap-0.5 hover:underline" style={{ color: '#3B82F6' }}>
+                                        className="text-[10px] flex items-center gap-0.5 hover:underline" style={{ color: ACCENT }}>
                                         View <ExternalLink size={9} />
                                       </a>
                                     )}
@@ -590,12 +596,12 @@ const Dashboard = () => {
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setShowRouty(true)}
                     className="w-full flex items-center gap-3 p-4 rounded-2xl transition-all"
-                    style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,0.12)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(59,130,246,0.08)'}
+                    style={{ background: ACCENT_SOFT, border: `1px solid ${ACCENT_BORDER}` }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,194,255,0.16)'}
+                    onMouseLeave={e => e.currentTarget.style.background = ACCENT_SOFT}
                   >
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(59,130,246,0.15)' }}>
-                      <Bot size={18} style={{ color: '#3B82F6' }} className="animate-pulse" />
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(0,194,255,0.2)' }}>
+                      <Bot size={18} style={{ color: ACCENT }} className="animate-pulse" />
                     </div>
                     <div className="flex-1 text-left">
                       <p className="text-sm font-black" style={{ color: '#F9FAFB' }}>Chat with Routy AI</p>
@@ -603,7 +609,7 @@ const Dashboard = () => {
                         Describe your shipment in plain English or by voice
                       </p>
                     </div>
-                    <ChevronRight size={14} style={{ color: '#3B82F6', flexShrink: 0 }} />
+                    <ChevronRight size={14} style={{ color: ACCENT, flexShrink: 0 }} />
                   </motion.button>
                 </div>
               </motion.div>

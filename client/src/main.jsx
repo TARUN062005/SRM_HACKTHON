@@ -11,21 +11,12 @@ registerFCMServiceWorker();
 
 const applyTheme = (themeId) => {
   const html = document.documentElement;
-  if (themeId === "system") {
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    html.classList.toggle("dark", prefersDark);
-    html.classList.toggle("light", !prefersDark);
-  } else if (themeId === "light") {
-    html.classList.remove("dark");
-    html.classList.add("light");
-  } else {
-    html.classList.remove("light");
-    html.classList.add("dark");
-  }
+  html.classList.remove("light");
+  html.classList.add("dark");
+  return themeId;
 };
 
-const savedTheme = localStorage.getItem("theme") || "dark";
-applyTheme(savedTheme);
+applyTheme("dark");
 
 axios.defaults.withCredentials = true;
 

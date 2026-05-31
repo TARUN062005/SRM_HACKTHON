@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, useCallback, useMemo } from 'react';
+import { useState, useEffect, createContext, useContext, useCallback, useMemo, useRef } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext(null);
@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const didInitRef = useRef(false);
 
   const clearAuthData = useCallback(() => {
     setUser(null);
@@ -83,6 +84,8 @@ export const AuthProvider = ({ children }) => {
   }, [clearAuthData]);
 
   useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
     initAuth();
   }, [initAuth]);
 

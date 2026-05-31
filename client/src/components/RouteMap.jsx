@@ -257,10 +257,10 @@ export const RouteMap = ({
 
   // ── Per-mode visual strategy ──────────────────────────────────────
   const MODE_STYLE = {
-    ship:  { activeColor: '#0d47a1', altColor: '#1565c0', glowColor: 'rgba(13,71,161,0.28)', weight: 6, altWeight: 4, dashArray: null,    glowW: 14 },
-    air:   { activeColor: '#0288d1', altColor: '#039be5', glowColor: 'rgba(2,136,209,0.22)',  weight: 4, altWeight: 3, dashArray: '12 8',  glowW: 10 },
-    rail:  { activeColor: '#6d28d9', altColor: '#7c3aed', glowColor: 'rgba(109,40,217,0.22)', weight: 5, altWeight: 4, dashArray: '14 5',  glowW: 11 },
-    truck: { activeColor: '#c2410c', altColor: '#ea580c', glowColor: 'rgba(194,65,12,0.22)',  weight: 5, altWeight: 4, dashArray: null,    glowW: 11 },
+    ship:  { activeColor: '#00C2FF', altColor: '#00C2FF', glowColor: 'transparent', weight: 5, altWeight: 4, dashArray: null,    glowW: 0 },
+    air:   { activeColor: '#00C2FF', altColor: '#00C2FF', glowColor: 'transparent', weight: 4, altWeight: 3, dashArray: '12 8',  glowW: 0 },
+    rail:  { activeColor: '#00C2FF', altColor: '#00C2FF', glowColor: 'transparent', weight: 5, altWeight: 4, dashArray: '14 5',  glowW: 0 },
+    truck: { activeColor: '#00C2FF', altColor: '#00C2FF', glowColor: 'transparent', weight: 5, altWeight: 4, dashArray: null,    glowW: 0 },
   };
   const modeStyle = MODE_STYLE[freightMode] || MODE_STYLE.truck;
 
@@ -308,22 +308,11 @@ export const RouteMap = ({
 
         return (
           <React.Fragment key={route.id}>
-            {/* Glow halo (active only) */}
-            {isActive && (
-              <Polyline
-                positions={route.coords}
-                color={modeStyle.glowColor}
-                weight={modeStyle.glowW}
-                opacity={1}
-                lineCap="round"
-                lineJoin="round"
-              />
-            )}
             {/* White outline */}
             <Polyline
               positions={route.coords}
               color="white"
-              weight={isActive ? modeStyle.glowW - 2 : modeStyle.altWeight + 3}
+              weight={isActive ? modeStyle.weight + 2 : modeStyle.altWeight + 3}
               opacity={isActive ? 0.85 : 0.35}
               lineCap="round"
               lineJoin="round"
@@ -411,15 +400,25 @@ export const RouteMap = ({
   ];
 
   return (
-    <div className="w-full h-full relative overflow-hidden bg-slate-200">
+    <div className="w-full h-full relative overflow-hidden dashboard-shell">
 
       {/* Loading bar */}
       <AnimatePresence>
         {loading && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="absolute top-0 left-0 right-0 z-[2000] h-[3px] bg-blue-100 overflow-hidden pointer-events-none">
-            <motion.div className="h-full bg-blue-500" initial={{ x: '-100%' }} animate={{ x: '110%' }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }} />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute top-0 left-0 right-0 z-[2000] h-[3px] overflow-hidden pointer-events-none"
+            style={{ background: 'rgba(255,255,255,0.06)' }}
+          >
+            <motion.div
+              className="h-full"
+              style={{ background: 'var(--accent)' }}
+              initial={{ x: '-100%' }}
+              animate={{ x: '110%' }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -428,21 +427,21 @@ export const RouteMap = ({
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1050] pointer-events-none">
         <AnimatePresence mode="wait">
           <motion.div key={freightMode}
-            initial={{ opacity: 0, y: -8, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="flex items-center gap-2 px-3.5 py-1.5 backdrop-blur-sm rounded-full shadow-lg border"
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border"
             style={{
-              background: `${modeStyle.activeColor}e6`,
-              borderColor: `${modeStyle.activeColor}99`,
+              background: 'var(--surface)',
+              borderColor: 'var(--border)',
             }}>
-            <div className="w-1.5 h-1.5 rounded-full bg-white/80 animate-pulse" />
+            <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
             <span className="text-[10px] font-black text-white uppercase tracking-widest">
               {freightMode === 'ship'  ? 'Maritime Route Intelligence'
              : freightMode === 'air'  ? 'Air Route · Great-Circle Path'
              : freightMode === 'rail' ? 'Rail Route Intelligence'
              : 'Road Route Intelligence'}
             </span>
-            {isMaritime && showSeamarks && <span className="text-[8px] font-bold text-white/60">· OpenSeaMap</span>}
+            {isMaritime && showSeamarks && <span className="text-[8px] font-bold" style={{ color: 'var(--text-secondary)' }}>· OpenSeaMap</span>}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -451,22 +450,32 @@ export const RouteMap = ({
       <div className="absolute top-3 right-3 z-[1050] flex flex-col items-end gap-2">
         <AnimatePresence>
           {showLayerPicker && (
-            <motion.div initial={{ opacity: 0, y: -6, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -6, scale: 0.96 }}
-              className="flex flex-col gap-2 p-2.5 bg-white rounded-2xl shadow-lg border border-slate-100" style={{ minWidth: 204 }}>
-              <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 px-0.5">Map Style</p>
+            <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.98 }}
+              className="flex flex-col gap-2 p-2.5 rounded-2xl border" style={{ minWidth: 204, background: 'var(--surface)', borderColor: 'var(--border)' }}>
+              <p className="text-[8px] font-black uppercase tracking-widest px-0.5" style={{ color: 'var(--text-secondary)' }}>Map Style</p>
               <div className="grid grid-cols-3 gap-1.5">
                 {layerOptions.map(t => (
                   <button key={t.id} onClick={() => { setMapType(t.id); setShowLayerPicker(false); }}
-                    className={`flex flex-col items-center justify-center gap-1 h-[54px] rounded-xl border-2 transition-all ${mapType === t.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-white'}`}>
+                    className={`flex flex-col items-center justify-center gap-1 h-[54px] rounded-xl border transition-all ${mapType === t.id ? 'text-white' : ''}`}
+                    style={{
+                      background: mapType === t.id ? 'rgba(0,194,255,0.12)' : 'var(--bg)',
+                      borderColor: mapType === t.id ? 'rgba(0,194,255,0.35)' : 'var(--border)',
+                    }}>
                     <span className="text-lg leading-none">{t.emoji}</span>
-                    <span className={`text-[8px] font-black uppercase tracking-wide ${mapType === t.id ? 'text-blue-600' : 'text-slate-500'}`}>{t.label}</span>
+                    <span className="text-[8px] font-black uppercase tracking-wide" style={{ color: mapType === t.id ? 'var(--accent)' : 'var(--text-secondary)' }}>{t.label}</span>
                   </button>
                 ))}
               </div>
               <button onClick={() => setShowSeamarks(v => !v)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${showSeamarks ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                <div className={`w-3 h-3 rounded border-2 flex items-center justify-center ${showSeamarks ? 'bg-blue-600 border-blue-600' : 'border-slate-400'}`}>
+                className="flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all"
+                style={{
+                  background: showSeamarks ? 'rgba(0,194,255,0.12)' : 'var(--bg)',
+                  borderColor: showSeamarks ? 'rgba(0,194,255,0.35)' : 'var(--border)',
+                  color: showSeamarks ? 'var(--accent)' : 'var(--text-secondary)',
+                }}>
+                <div className="w-3 h-3 rounded border-2 flex items-center justify-center"
+                  style={{ borderColor: showSeamarks ? 'var(--accent)' : 'var(--text-secondary)', background: showSeamarks ? 'var(--accent)' : 'transparent' }}>
                   {showSeamarks && <span className="text-white text-[8px] font-black">✓</span>}
                 </div>
                 OpenSeaMap Overlay
@@ -475,7 +484,8 @@ export const RouteMap = ({
           )}
         </AnimatePresence>
         <button onClick={() => setShowLayerPicker(v => !v)} title="Map layers"
-          className={`w-[34px] h-[34px] rounded-lg shadow-md border flex items-center justify-center transition-all hover:shadow-lg ${showLayerPicker ? 'bg-blue-600 text-white border-blue-500' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+          className={`w-[34px] h-[34px] rounded-xl border flex items-center justify-center transition-all dashboard-surface-strong ${showLayerPicker ? 'text-white' : ''}`}
+          style={{ color: showLayerPicker ? 'var(--accent)' : 'var(--text-secondary)' }}>
           <Layers size={15} />
         </button>
       </div>

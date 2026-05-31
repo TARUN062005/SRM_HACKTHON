@@ -1,91 +1,73 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 @theme {
-  --color-primary-50: #e6fbff;
-  --color-primary-100: #bff5ff;
-  --color-primary-200: #80ebff;
-  --color-primary-600: #00E5FF;
-  --color-primary-700: #00b8d1;
-  --color-primary-800: #0a7d91;
-  --color-primary-900: #064b57;
-  --color-slate-50: #f8fafc;
+  --color-primary-50: #e6f9ff;
+  --color-primary-100: #bfeeff;
+  --color-primary-200: #80dcff;
+  --color-primary-600: #00C2FF;
+  --color-primary-700: #0099cc;
+  --color-primary-800: #007399;
+  --color-primary-900: #005266;
+  --color-slate-50: #f3f6fa;
   --color-slate-100: #e2e8f0;
   --color-slate-200: #cbd5e1;
-  --color-slate-300: #94a3b8;
-  --color-slate-400: #64748b;
-  --color-slate-500: #475569;
-  --color-slate-600: #334155;
-  --color-slate-700: #1e293b;
-  --color-slate-800: #0f172a;
-  --color-slate-900: #050816;
-  --color-slate-950: #02040c;
+  --color-slate-300: #9aa7b5;
+  --color-slate-400: #7c8a99;
+  --color-slate-500: #647286;
+  --color-slate-600: #4b576b;
+  --color-slate-700: #354257;
+  --color-slate-800: #1f2b3f;
+  --color-slate-900: #081120;
+  --color-slate-950: #050b15;
 }
 
 /* ── Design Tokens ─────────────────────────────────────────────── */
 :root {
-  --bg: #050816;
-  --surface: #0B1224;
-  --card: rgba(15, 23, 42, 0.75);
-  --card-hover: rgba(15, 23, 42, 0.92);
-  --border: rgba(148,163,184,0.12);
-  --border-subtle: rgba(148,163,184,0.08);
-  --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
-  --accent: #00E5FF;
-  --accent-hover: #4defff;
-  --accent-glow: rgba(0,229,255,0.35);
-  --secondary-accent: #7C3AED;
+  --bg: #081120;
+  --surface: #101826;
+  --surface-strong: #111b2a;
+  --card: #101826;
+  --card-hover: #121c2c;
+  --border: rgba(255,255,255,0.08);
+  --border-subtle: rgba(255,255,255,0.05);
+  --text-primary: #F3F6FA;
+  --text-secondary: #9AA7B5;
+  --text-muted: #7C8A99;
+  --accent: #00C2FF;
+  --accent-hover: #26d0ff;
+  --accent-glow: rgba(0,194,255,0.16);
+  --secondary-accent: #00C2FF;
   --danger: #FF5C7A;
-  --success: #00FFAE;
+  --success: #00D39A;
   --warning: #FFB547;
-  --background: #050816;
-  --foreground: #F8FAFC;
-}
-
-html.light {
-  --bg: #050816;
-  --surface: #0B1224;
-  --card: rgba(15, 23, 42, 0.72);
-  --card-hover: rgba(15, 23, 42, 0.9);
-  --border: rgba(148,163,184,0.12);
-  --border-subtle: rgba(148,163,184,0.08);
-  --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
-  --accent: #00E5FF;
-  --accent-hover: #4defff;
-  --accent-glow: rgba(0,229,255,0.35);
-  --secondary-accent: #7C3AED;
-  --background: #050816;
-  --foreground: #F8FAFC;
+  --background: #081120;
+  --foreground: #F3F6FA;
 }
 
 @layer base {
-  .dark {
-    --color-slate-900: #f8fafc;
-    --color-slate-800: #f1f5f9;
-    --color-slate-50:  #0f172a;
-    --color-slate-100: #1e293b;
-    --color-slate-200: #334155;
-  }
-
   html, body, #root {
     min-height: 100%;
     margin: 0;
     padding: 0;
     background: var(--bg);
     color: var(--text-primary);
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
 
   body {
     overflow-x: hidden;
-    @apply antialiased transition-colors duration-200 selection:bg-cyan-500/25 selection:text-cyan-100;
-    background:
-      radial-gradient(circle at top left, rgba(0,229,255,0.08), transparent 25%),
-      radial-gradient(circle at top right, rgba(124,58,237,0.08), transparent 28%),
-      linear-gradient(180deg, #050816 0%, #070b18 100%);
+    @apply antialiased transition-colors duration-200;
+    background: var(--bg);
+  }
+
+  ::selection {
+    background: rgba(0,194,255,0.2);
+    color: var(--text-primary);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
 }
 
@@ -135,71 +117,81 @@ html.light {
 
 /* ── Reusable component tokens ──────────────────────────────────── */
 @layer components {
-  .glass-card {
-    @apply backdrop-blur-md border shadow-xl;
-    background: rgba(15, 23, 42, 0.75);
-    border-color: var(--border);
-  }
-
-  .theme-preview-dark {
-    background: linear-gradient(180deg, #0B1224 0%, #050816 100%);
-    color: #F8FAFC;
-  }
-
-  .theme-preview-light {
-    background: linear-gradient(180deg, #0B1224 0%, #050816 100%);
-    color: #F8FAFC;
-  }
-
-  .theme-preview-dark .theme-preview-accent {
-    background: rgba(0,229,255,0.25);
-  }
-
-  .theme-preview-light .theme-preview-accent {
-    background: rgba(124,58,237,0.22);
+  .page-shell {
+    min-height: 100vh;
+    background: var(--bg);
   }
 
   .rg-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 20px;
+    border-radius: 16px;
+  }
+
+  .rg-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .rg-panel-strong {
+    background: var(--surface-strong);
+    border: 1px solid var(--border);
+    border-radius: 12px;
   }
 
   .rg-btn-primary {
     background: var(--accent);
     color: #041019;
-    font-weight: 800;
-    border-radius: 14px;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-    box-shadow: 0 12px 30px rgba(0,229,255,0.18);
+    font-weight: 700;
+    border-radius: 10px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
   }
   .rg-btn-primary:hover {
-    background: var(--accent-hover);
     transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.35);
   }
 
   .rg-btn-secondary {
-    background: rgba(124,58,237,0.16);
+    background: var(--surface);
     color: var(--text-primary);
-    border: 1px solid rgba(124,58,237,0.28);
-    font-weight: 700;
-    border-radius: 14px;
+    border: 1px solid var(--border);
+    font-weight: 600;
+    border-radius: 10px;
+    box-shadow: none;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .rg-btn-secondary:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255,255,255,0.16);
+  }
+
+  .rg-btn-danger {
+    background: rgba(255,92,122,0.16);
+    color: #ffe4ea;
+    border: 1px solid rgba(255,92,122,0.35);
+    border-radius: 10px;
+    font-weight: 600;
+    box-shadow: none;
   }
 
   .input-field {
-    @apply w-full px-4 py-3 rounded-xl outline-none transition-all;
-    background: var(--card);
+    @apply w-full px-4 py-3 rounded-2xl outline-none transition-all;
+    background: var(--surface);
     border: 1px solid var(--border);
     color: var(--text-primary);
   }
   .input-field:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
+    box-shadow: none;
   }
 
-  .page-shell {
-    min-height: 100vh;
-    background: var(--bg);
+  .hero-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .hero-grid {
@@ -209,9 +201,79 @@ html.light {
     background-size: 64px 64px;
   }
 
+  .hero-noise {
+    background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 4px 4px;
+  }
+
   .rg-loading-ring {
-    border-color: rgba(0,229,255,0.2);
+    border-color: rgba(0,194,255,0.2);
     border-top-color: var(--accent);
+  }
+
+  .dashboard-shell {
+    background: var(--bg);
+  }
+
+  .dashboard-surface {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: none;
+  }
+
+  .dashboard-surface-strong {
+    background: var(--surface-strong);
+    border: 1px solid var(--border);
+    box-shadow: none;
+  }
+
+  .dashboard-nav-item {
+    @apply flex items-center gap-3 rounded-2xl transition-all;
+    color: var(--text-secondary);
+  }
+
+  .dashboard-nav-item:hover {
+    background: rgba(255,255,255,0.04);
+    color: var(--text-primary);
+  }
+
+  .dashboard-nav-item.active {
+    background: rgba(0,194,255,0.12);
+    color: var(--text-primary);
+    box-shadow: inset 0 0 0 1px rgba(0,194,255,0.2);
+  }
+
+  .dashboard-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 999px;
+  }
+
+  .rg-badge {
+    background: rgba(0,194,255,0.12);
+    border: 1px solid rgba(0,194,255,0.25);
+    color: var(--accent);
+    border-radius: 999px;
+  }
+
+  .rg-divider {
+    background: rgba(255,255,255,0.12);
+  }
+
+  .rg-sidebar {
+    background: var(--surface-strong);
+    border-right: 1px solid var(--border);
+  }
+
+  .rg-nav-glass {
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: none;
+  }
+
+  .map-tactical-overlay {
+    background: rgba(8,17,32,0.25);
   }
 }
 
@@ -236,26 +298,20 @@ input[type=range]::-webkit-slider-runnable-track {
 /* ── Leaflet overrides ─────────────────────────────────────────── */
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
-  background: rgba(15, 23, 42, 0.95) !important;
-  color: #F8FAFC !important;
-  border: 1px solid rgba(148,163,184,0.12) !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+  background: var(--surface) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.35) !important;
   border-radius: 12px !important;
 }
 .leaflet-popup-content {
   margin: 0 !important;
 }
 .leaflet-popup-close-button {
-  color: #6B7280 !important;
+  color: var(--text-muted) !important;
 }
 .leaflet-popup-close-button:hover {
-  color: #F9FAFB !important;
-}
-html.light .leaflet-popup-content-wrapper,
-html.light .leaflet-popup-tip {
-  background: rgba(15, 23, 42, 0.95) !important;
-  color: #F8FAFC !important;
-  border-color: rgba(148,163,184,0.12) !important;
+  color: var(--text-primary) !important;
 }
 
 /* ── Tooltip (Leaflet) ──────────────────────────────────────────── */

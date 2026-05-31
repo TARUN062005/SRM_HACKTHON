@@ -146,15 +146,13 @@ const DashboardLayout = () => {
   const isDashboard = location.pathname === "/dashboard";
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "#0B1220" }}>
+    <div className="dashboard-shell flex h-screen overflow-hidden text-white">
 
       {/* ══ SIDEBAR ══ */}
       <aside
-        className="fixed left-0 top-0 h-screen flex flex-col z-30 flex-shrink-0"
+        className="fixed left-0 top-0 h-screen flex flex-col z-30 flex-shrink-0 dashboard-surface-strong rg-sidebar"
         style={{
           width: sidebarW,
-          background: "#111827",
-          borderRight: "1px solid #374151",
           transition: "width 0.22s cubic-bezier(0.4,0,0.2,1)",
           overflow: "hidden",
         }}
@@ -162,35 +160,33 @@ const DashboardLayout = () => {
         {/* Logo — exactly NAV_H tall, clickable to collapse */}
         <button
           onClick={() => setCollapsed(v => !v)}
-          className="flex items-center flex-shrink-0 w-full text-left transition-all"
+          className="flex items-center flex-shrink-0 w-full text-left transition-all hover:bg-white/5"
           style={{
             height: NAV_H,
             minHeight: NAV_H,
             padding: collapsed ? "0 14px" : "0 20px",
-            borderBottom: "1px solid #374151",
+            borderBottom: "1px solid rgba(148,163,184,0.12)",
             gap: 12,
           }}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <div
-            className="flex items-center justify-center flex-shrink-0"
+            className="flex items-center justify-center flex-shrink-0 rounded-xl"
             style={{
               width: 36, height: 36,
-              background: "#3B82F6",
-              boxShadow: "0 0 16px rgba(59,130,246,0.35)",
-              borderRadius: 10,
+              background: "var(--accent)",
             }}
           >
-            <Anchor size={17} className="text-white" />
+            <Anchor size={17} style={{ color: "#041019" }} />
           </div>
 
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-black leading-none whitespace-nowrap" style={{ color: "#F9FAFB" }}>
-                Route<span style={{ color: "#3B82F6" }}>Guardian</span>
+              <p className="text-sm font-black leading-none whitespace-nowrap text-white">
+                Route<span style={{ color: "var(--accent)" }}>Guardian</span>
               </p>
-              <p className="text-[9px] uppercase tracking-widest font-bold mt-0.5 whitespace-nowrap" style={{ color: "#6B7280" }}>
-                Logistics AI
+              <p className="text-[9px] uppercase tracking-[0.28em] font-bold mt-0.5 whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
+                Logistics intelligence
               </p>
             </div>
           )}
@@ -204,7 +200,7 @@ const DashboardLayout = () => {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4" style={{ padding: collapsed ? "16px 8px" : "16px 12px" }}>
           {!collapsed && (
-            <p className="text-[9px] font-black uppercase tracking-widest px-3 mb-3" style={{ color: "#6B7280" }}>
+            <p className="text-[9px] font-black uppercase tracking-[0.28em] px-3 mb-3 text-slate-400">
               Navigation
             </p>
           )}
@@ -222,30 +218,26 @@ const DashboardLayout = () => {
                   key={label}
                   to={to}
                   title={collapsed ? label : ""}
-                  className="flex items-center justify-between w-full rounded-xl transition-all group"
+                  className={`relative flex items-center justify-between w-full rounded-2xl transition-all group dashboard-nav-item ${isActive ? 'active' : ''}`}
                   style={{
                     padding: collapsed ? "10px 10px" : "10px 12px",
-                    background: isActive ? "rgba(59,130,246,0.15)" : "transparent",
-                    color: isActive ? "#3B82F6" : "#9CA3AF",
                     justifyContent: collapsed ? "center" : "space-between",
                   }}
-                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#F9FAFB"; } }}
-                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#9CA3AF"; } }}
                 >
                   <div className="flex items-center" style={{ gap: collapsed ? 0 : 12 }}>
                     <Icon size={17} style={{ flexShrink: 0 }} />
                     {!collapsed && <span className="text-sm font-semibold whitespace-nowrap">{label}</span>}
                   </div>
                   {!collapsed && badge && unreadCount > 0 && (
-                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full" style={{ background: "#EF4444", color: "#fff" }}>
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full" style={{ background: "var(--danger)", color: "#fff" }}>
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </span>
                   )}
                   {collapsed && badge && unreadCount > 0 && (
-                    <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style={{ background: "#EF4444" }} />
+                    <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style={{ background: "var(--danger)" }} />
                   )}
                   {!collapsed && isActive && (
-                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#3B82F6" }} />
+                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "var(--accent)" }} />
                   )}
                 </Link>
               );
@@ -254,20 +246,16 @@ const DashboardLayout = () => {
         </nav>
 
         {/* Bottom: Settings + Sign Out */}
-        <div style={{ padding: collapsed ? "8px" : "12px", borderTop: "1px solid #374151" }} className="space-y-0.5">
+        <div style={{ padding: collapsed ? "8px" : "12px", borderTop: "1px solid rgba(148,163,184,0.12)" }} className="space-y-0.5">
           <Link
             to="/settings"
             title={collapsed ? "Settings" : ""}
-            className="flex items-center w-full rounded-xl transition-all text-sm font-semibold"
             style={{
               padding: collapsed ? "10px 10px" : "10px 12px",
-              color: location.pathname === "/settings" ? "#3B82F6" : "#9CA3AF",
-              background: location.pathname === "/settings" ? "rgba(59,130,246,0.15)" : "transparent",
               justifyContent: collapsed ? "center" : "flex-start",
               gap: collapsed ? 0 : 12,
             }}
-            onMouseEnter={e => { if (location.pathname !== "/settings") { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#F9FAFB"; } }}
-            onMouseLeave={e => { if (location.pathname !== "/settings") { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#9CA3AF"; } }}
+            className={`flex items-center w-full rounded-2xl transition-all text-sm font-semibold dashboard-nav-item ${location.pathname === "/settings" ? 'active' : ''}`}
           >
             <Settings size={17} style={{ flexShrink: 0 }} />
             {!collapsed && <span>Settings</span>}
@@ -276,15 +264,12 @@ const DashboardLayout = () => {
           <button
             onClick={handleLogout}
             title={collapsed ? "Sign Out" : ""}
-            className="flex items-center w-full rounded-xl transition-all text-sm font-semibold"
+            className="flex items-center w-full rounded-2xl transition-all text-sm font-semibold rg-btn-danger"
             style={{
               padding: collapsed ? "10px 10px" : "10px 12px",
-              color: "#9CA3AF",
               justifyContent: collapsed ? "center" : "flex-start",
               gap: collapsed ? 0 : 12,
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.1)"; e.currentTarget.style.color = "#EF4444"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#9CA3AF"; }}
           >
             <LogOut size={17} style={{ flexShrink: 0 }} />
             {!collapsed && <span>Sign Out</span>}
@@ -302,22 +287,21 @@ const DashboardLayout = () => {
       >
         {/* ── NAVBAR ── */}
         <header
-          className="flex items-center justify-between px-6 flex-shrink-0 z-20"
+          className="flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-20 dashboard-surface-strong"
           style={{
             height: NAV_H,
             minHeight: NAV_H,
-            background: "#111827",
-            borderBottom: "1px solid #374151",
+            borderBottom: "1px solid rgba(148,163,184,0.12)",
           }}
         >
           {/* Left: breadcrumb */}
           <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#22C55E" }} />
+            <div className="w-2 h-2 rounded-full animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.6)]" style={{ background: "#22C55E" }} />
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#6B7280" }}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">
                 RouteGuardian
               </p>
-              <p className="text-sm font-bold capitalize leading-none" style={{ color: "#F9FAFB" }}>
+              <p className="text-sm font-bold capitalize leading-none text-white">
                 {pageTitle}
               </p>
             </div>
@@ -328,10 +312,7 @@ const DashboardLayout = () => {
             {isDashboard && (
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent("toggleNewRoute"))}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all"
-                style={{ background: "#3B82F6", color: "#fff" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#2563EB"}
-                onMouseLeave={e => e.currentTarget.style.background = "#3B82F6"}
+                className="rg-btn-primary flex items-center gap-2 px-4 py-2 text-sm"
               >
                 <Navigation size={14} /> New Route
               </button>
@@ -341,10 +322,7 @@ const DashboardLayout = () => {
             <div className="relative" ref={bellRef}>
               <button
                 onClick={() => { setShowBell(v => !v); if (!showBell) fetchRecentNotifs(); }}
-                className="relative w-9 h-9 rounded-xl flex items-center justify-center transition-all"
-                style={{ color: "#9CA3AF" }}
-                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#F9FAFB"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#9CA3AF"; }}
+                className="relative w-10 h-10 rounded-2xl flex items-center justify-center transition-all dashboard-chip hover:text-white"
               >
                 {notifLoading
                   ? <Loader2 className="animate-spin" size={18} />
@@ -352,27 +330,25 @@ const DashboardLayout = () => {
                 {unreadCount > 0 && (
                   <span
                     className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2"
-                    style={{ background: "#EF4444", borderColor: "#111827" }}
+                    style={{ background: "var(--danger)", borderColor: "#0B1224" }}
                   />
                 )}
               </button>
 
               {showBell && (
                 <div
-                  className="absolute right-0 mt-2 w-80 rounded-2xl shadow-2xl py-2 z-50 flex flex-col overflow-hidden"
-                  style={{ background: "#1F2937", border: "1px solid #374151", maxHeight: "70vh" }}
+                  className="absolute right-0 mt-2 w-80 rounded-[24px] shadow-2xl py-2 z-50 flex flex-col overflow-hidden dashboard-surface-strong"
+                  style={{ maxHeight: "70vh" }}
                 >
-                  <div className="px-4 py-3" style={{ borderBottom: "1px solid #374151" }}>
+                  <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#6B7280" }}>Notifications</p>
-                        <p className="text-sm font-bold" style={{ color: "#F9FAFB" }}>{unreadCount} unread</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Notifications</p>
+                        <p className="text-sm font-bold text-white">{unreadCount} unread</p>
                       </div>
                       {unreadCount > 0 && (
                         <button onClick={markAllRead} className="text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
-                          style={{ background: "#374151", color: "#9CA3AF" }}
-                          onMouseEnter={e => e.currentTarget.style.color = "#F9FAFB"}
-                          onMouseLeave={e => e.currentTarget.style.color = "#9CA3AF"}>
+                          style={{ background: "rgba(15,23,42,0.8)", color: "#CBD5E1", border: "1px solid rgba(148,163,184,0.16)" }}>
                           Mark all read
                         </button>
                       )}
@@ -382,7 +358,7 @@ const DashboardLayout = () => {
                   <div className="flex-1 overflow-y-auto py-1">
                     {recentNotifs.length === 0 ? (
                       <div className="px-4 py-8 text-center">
-                        <Bell size={28} style={{ color: "#374151" }} className="mx-auto" />
+                        <Bell size={28} style={{ color: "rgba(148,163,184,0.35)" }} className="mx-auto" />
                         <p className="text-sm font-bold mt-2" style={{ color: "#6B7280" }}>No notifications yet</p>
                       </div>
                     ) : (
@@ -391,10 +367,10 @@ const DashboardLayout = () => {
                           <div key={n.id}
                             onClick={() => { if (!n.isRead) markRead(n.id); navigate("/notifications"); setShowBell(false); }}
                             className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all"
-                            style={{ background: !n.isRead ? "rgba(59,130,246,0.08)" : "transparent" }}
+                            style={{ background: !n.isRead ? "rgba(0,194,255,0.08)" : "transparent" }}
                             onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.04)"}
-                            onMouseLeave={e => e.currentTarget.style.background = !n.isRead ? "rgba(59,130,246,0.08)" : "transparent"}>
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#374151" }}>
+                            onMouseLeave={e => e.currentTarget.style.background = !n.isRead ? "rgba(0,194,255,0.08)" : "transparent"}>
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(148,163,184,0.16)" }}>
                               {getNotifIcon(n.type)}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -402,18 +378,18 @@ const DashboardLayout = () => {
                               <p className="text-xs line-clamp-1 mt-0.5" style={{ color: "#6B7280" }}>{n.message}</p>
                               <p className="text-[10px] mt-1" style={{ color: "#6B7280" }}>{fmtTime(n.createdAt)}</p>
                             </div>
-                            {!n.isRead && <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: "#3B82F6" }} />}
+                            {!n.isRead && <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: "var(--accent)" }} />}
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
 
-                  <div className="px-3 pt-2 pb-1" style={{ borderTop: "1px solid #374151" }}>
+                  <div className="px-3 pt-2 pb-1" style={{ borderTop: "1px solid var(--border)" }}>
                     <Link to="/notifications" onClick={() => setShowBell(false)}
                       className="flex items-center justify-center w-full py-2 rounded-xl text-sm font-bold transition-all"
-                      style={{ color: "#3B82F6" }}
-                      onMouseEnter={e => e.currentTarget.style.background = "rgba(59,130,246,0.1)"}
+                      style={{ color: "var(--accent)" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(0,194,255,0.1)"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                       View all alerts
                     </Link>
@@ -423,7 +399,7 @@ const DashboardLayout = () => {
             </div>
 
             {/* Divider */}
-            <div className="w-px h-6" style={{ background: "#374151" }} />
+            <div className="w-px h-6 rg-divider" />
 
             {/* Profile */}
             <div className="relative" ref={profileRef}>
@@ -434,7 +410,7 @@ const DashboardLayout = () => {
                 onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#F9FAFB"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#9CA3AF"; }}
               >
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black overflow-hidden" style={{ background: "#3B82F6", color: "#fff" }}>
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black overflow-hidden" style={{ background: "var(--accent)", color: "#020713" }}>
                   {user?.profileImage
                     ? <img src={user.profileImage} alt="profile" className="w-full h-full object-cover" />
                     : user?.name?.charAt(0)?.toUpperCase() || "U"}
@@ -446,8 +422,8 @@ const DashboardLayout = () => {
               </button>
 
               {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-52 rounded-2xl shadow-2xl py-2 z-50" style={{ background: "#1F2937", border: "1px solid #374151" }}>
-                  <div className="px-4 py-2.5" style={{ borderBottom: "1px solid #374151" }}>
+                <div className="absolute right-0 mt-2 w-52 rounded-2xl shadow-2xl py-2 z-50" style={{ background: "rgba(15,23,42,0.92)", border: "1px solid var(--border)" }}>
+                  <div className="px-4 py-2.5" style={{ borderBottom: "1px solid var(--border)" }}>
                     <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#6B7280" }}>Account</p>
                     <p className="text-sm font-bold truncate mt-0.5" style={{ color: "#F9FAFB" }}>{user?.name}</p>
                     <p className="text-xs truncate" style={{ color: "#6B7280" }}>{user?.email}</p>
@@ -466,7 +442,7 @@ const DashboardLayout = () => {
                     </Link>
                   ))}
 
-                  <div className="my-1.5 mx-3" style={{ height: 1, background: "#374151" }} />
+                  <div className="my-1.5 mx-3 rg-divider" style={{ height: 1 }} />
 
                   <button onClick={handleLogout}
                     className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-semibold transition-all"
