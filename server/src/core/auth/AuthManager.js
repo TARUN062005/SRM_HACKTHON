@@ -4,9 +4,12 @@ const crypto = require('crypto');
 
 class AuthManager {
   constructor(config = {}) {
+    const secret = process.env.JWT_SECRET;
+    if (!secret && process.env.NODE_ENV === 'production') {
+      throw new Error('SECURITY CRITICAL: JWT_SECRET is not defined in environment variables.');
+    }
     this.config = {
-      jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
-      jwtExpiresIn: '7d', // Default session
+      jwtSecret: secret || 'dev-secret-key',
       bcryptRounds: 10,
       maxLoginAttempts: 5,
       lockTime: 15 * 60 * 1000, // 15 minutes
@@ -29,21 +32,34 @@ class AuthManager {
   }
 
   /**
-   * Generate JWT token
-   * Includes 'issuedAt' to help frontend track the 3-day auto-logout rule
+   * Generate JWT token (Access or Refresh)
    */
-  generateToken(user) {
-    return jwt.sign(
-      {
-        id: user.id,
-        role: user.role,
-        email: user.email,
-        authProvider: user.authProvider,
-        iat: Math.floor(Date.now() / 1000) // Explicit Issued At
-      },
-      this.config.jwtSecret,
-      { expiresIn: this.config.jwtExpiresIn }
-    );
+  generateToken(user, type = 'access') {
+    if (type === 'access') {
+      return jwt.sign(
+        {
+          id: user.id,
+          role: user.role,
+          email: user.email,
+          authProvider: user.authProvider,
+          type: 'access',
+          iat: Math.floor(Date.now() / 1000) // Explicit Issued At
+        },
+        this.config.jwtSecret,
+        { expiresIn: '15m' }
+      );
+    } else if (type === 'refresh') {
+      return jwt.sign(
+        {
+          id: user.id,
+          type: 'refresh',
+          iat: Math.floor(Date.now() / 1000)
+        },
+        this.config.jwtSecret,
+        { expiresIn: '7d' }
+      );
+    }
+    throw new Error('Invalid token type');
   }
 
   /**
@@ -54,9 +70,13 @@ class AuthManager {
       return jwt.verify(token, this.config.jwtSecret);
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
-        throw new Error('Session expired. Please login again.');
+        const err = new Error('Session expired. Please login again.');
+        err.name = 'TokenExpiredError';
+        throw err;
       }
-      throw new Error('Invalid token');
+      const err = new Error('Invalid token');
+      err.name = 'JsonWebTokenError';
+      throw err;
     }
   }
 

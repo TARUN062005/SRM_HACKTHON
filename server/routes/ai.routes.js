@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const aiRouteController = require('../controller/aiRouteController');
-
 const aiAgentController = require('../controller/aiAgentController');
+const { verifyToken } = require('../middleware/authmiddleware');
+
+router.use(verifyToken);
 
 router.post('/route/optimize', aiRouteController.optimizeRoute);
 router.post('/intent', aiAgentController.processAIIntent);
@@ -15,6 +17,7 @@ router.delete('/shipments', aiRouteController.clearShipments);
 router.delete('/shipment/:id', aiRouteController.deleteShipment);
 router.get('/shipment/:id', aiRouteController.getShipment);
 router.get('/alerts', aiRouteController.getAlerts);
+router.get('/article-content', aiRouteController.getArticleContent);
 router.get('/weather', aiRouteController.getWeather);
 router.get('/search', aiRouteController.searchLocation);
 router.get('/resolve-port', aiRouteController.resolvePort);

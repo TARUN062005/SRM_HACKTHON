@@ -28,14 +28,11 @@
     "firebase-admin": "^13.10.0",
     "helmet": "^7.2.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.6.1",
-    "morgan": "^1.10.1",
     "multer": "^2.0.2",
     "node-cache": "^5.1.2",
     "node-cron": "^4.2.1",
     "prisma": "^5.0.0",
-    "searoute-ts": "^1.1.0",
-    "twilio": "^4.19.0"
+    "searoute-ts": "^1.1.0"
   },
   "devDependencies": {
     "@types/node-fetch": "^2.6.13",

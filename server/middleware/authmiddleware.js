@@ -37,10 +37,10 @@ const verifyToken = async (req, res, next) => {
     // 1) Decode token
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    if (!decoded?.id) {
+    if (!decoded?.id || decoded.type !== 'access') {
       return res.status(401).json({
         success: false,
-        message: 'Invalid token payload'
+        message: 'Invalid token payload or type'
       });
     }
 
@@ -89,11 +89,11 @@ const verifyToken = async (req, res, next) => {
     console.error('Auth middleware error:', error.message);
 
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ success: false, message: 'Token expired' });
+      return res.status(401).json({ success: false, message: 'Token expired', code: 'TOKEN_EXPIRED' });
     }
 
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ success: false, message: 'Invalid token' });
+      return res.status(401).json({ success: false, message: 'Invalid token', code: 'INVALID_TOKEN' });
     }
 
     return res.status(403).json({ success: false, message: 'Unauthorized' });

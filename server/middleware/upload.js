@@ -21,14 +21,20 @@ const storage = multer.diskStorage({
   },
 });
 
+const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
 // File type filter
 const fileFilter = (req, file, cb) => {
-  if (!file || !file.mimetype) {
-    return cb(new Error("Invalid file"), false);
+  if (!file || !file.originalname || !file.mimetype) {
+    return cb(new Error("Invalid file upload"), false);
   }
 
-  if (!file.mimetype.startsWith("image/")) {
-    return cb(new Error("Only image files are allowed"), false);
+  const ext = path.extname(file.originalname).toLowerCase();
+  const mime = file.mimetype.toLowerCase();
+
+  if (!ALLOWED_EXTS.includes(ext) || !ALLOWED_MIMES.includes(mime)) {
+    return cb(new Error("Dangerous file type blocked. Only JPEG, PNG, GIF, and WEBP images are allowed."), false);
   }
 
   cb(null, true);

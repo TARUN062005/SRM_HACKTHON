@@ -583,7 +583,7 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.6 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[1100] bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 z-[4000] bg-black/60 backdrop-blur-sm"
             onClick={onClose}
           />
 
@@ -593,7 +593,7 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="absolute right-0 top-0 bottom-0 z-[1200] flex flex-col animate-fade-in"
+            className="absolute right-0 top-0 bottom-0 z-[4010] flex flex-col animate-fade-in"
             style={{ width: 360, background: '#0B1220', borderLeft: '1px solid var(--border)' }}
             onClick={e => e.stopPropagation()}
           >

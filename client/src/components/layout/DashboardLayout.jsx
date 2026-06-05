@@ -65,7 +65,7 @@ const DashboardLayout = () => {
 
       {/* ══ SIDEBAR ══ */}
       <aside
-        className="fixed left-0 top-0 h-screen flex flex-col z-30 flex-shrink-0 dashboard-surface-strong rg-sidebar"
+        className="fixed left-0 top-0 h-screen flex flex-col z-[3000] flex-shrink-0 dashboard-surface-strong rg-sidebar"
         style={{
           width: sidebarW,
           transition: "width 0.22s cubic-bezier(0.4,0,0.2,1)",
@@ -193,7 +193,7 @@ const DashboardLayout = () => {
       >
         {/* ── NAVBAR ── */}
         <header
-          className="flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-20 dashboard-surface-strong"
+          className="flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-[2900] dashboard-surface-strong"
           style={{
             height: NAV_H,
             minHeight: NAV_H,
@@ -245,7 +245,7 @@ const DashboardLayout = () => {
               </button>
 
               {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-52 rounded-2xl shadow-2xl py-2 z-50" style={{ background: "rgba(15,23,42,0.92)", border: "1px solid var(--border)" }}>
+                <div className="absolute right-0 mt-2 w-52 rounded-2xl shadow-2xl py-2 z-[3100]" style={{ background: "rgba(15,23,42,0.92)", border: "1px solid var(--border)" }}>
                   <div className="px-4 py-2.5" style={{ borderBottom: "1px solid var(--border)" }}>
                     <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#6B7280" }}>Account</p>
                     <p className="text-sm font-bold truncate mt-0.5" style={{ color: "#F9FAFB" }}>{user?.name}</p>

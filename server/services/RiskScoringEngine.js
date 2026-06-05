@@ -1,13 +1,7 @@
 const weatherAgent = require('./ai/WeatherAgent');
 const trafficAgent = require('./ai/TrafficAgent');
 const newsAgent = require('./ai/NewsAgent');
-// Use the model if it exists, else handle failure gracefully
-let RiskLog;
-try {
-  RiskLog = require('../models/RiskLog');
-} catch (e) {
-  RiskLog = null;
-}
+const RiskLog = null;
 
 class RiskScoringEngine {
   constructor() {

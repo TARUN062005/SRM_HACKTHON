@@ -134,6 +134,7 @@ class AdminController {
           role: adminUser.role,
           authProvider: adminUser.authProvider,
           isActive: adminUser.isActive,
+          type: 'access',
         },
         JWT_SECRET,
         { expiresIn: ADMIN_JWT_EXPIRES }

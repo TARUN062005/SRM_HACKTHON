@@ -1,8 +1,4 @@
-let shipmentModel;
-try {
-  shipmentModel = require('../models/Shipment');
-} catch(e) { /* fallback if model not loaded */ }
-
+const shipmentModel = null;
 const routeOptimizer = require('./RouteOptimizationService');
 const riskEngine = require('./RiskScoringEngine');
 

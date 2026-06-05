@@ -41,7 +41,7 @@ async function seedAdmin() {
     
     console.log('✅ Admin user created successfully!');
     console.log('Admin ID:', adminUser.id);
-    console.log('Admin Email:', adminUser.email);
+    console.log('Admin Email:', adminUser.email ? adminUser.email.replace(/^(.)(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(b.length) + c) : 'N/A');
     
     return adminUser;
   } catch (error) {

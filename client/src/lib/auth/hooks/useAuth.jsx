@@ -3,10 +3,11 @@ import axios from 'axios';
 
 const AuthContext = createContext(null);
 
-export const API = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || '',
-  withCredentials: true,
-});
+// Configure global Axios settings for RouteGuardian
+axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL || '';
+axios.defaults.withCredentials = true;
+
+export const API = axios;
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -36,28 +37,87 @@ export const AuthProvider = ({ children }) => {
   }, [clearAuthData]);
 
   useEffect(() => {
-    const resInt = API.interceptors.response.use(
+    let isRefreshing = false;
+    let failedQueue = [];
+
+    const processQueue = (error) => {
+      failedQueue.forEach((prom) => {
+        if (error) {
+          prom.reject(error);
+        } else {
+          prom.resolve();
+        }
+      });
+      failedQueue = [];
+    };
+
+    const resInt = axios.interceptors.response.use(
       (res) => res,
-      (err) => {
-        const requestUrl = err.config?.url || '';
+      async (err) => {
+        const originalRequest = err.config;
+        const requestUrl = originalRequest?.url || '';
         const isProfileRequest = requestUrl.includes('/api/auth/profile');
+        const isRefreshRequest = requestUrl.includes('/api/auth/refresh');
 
         if (err.response?.status === 429) {
           window.location.href = '/too-many-requests';
-        } else if (err.response?.status === 401) {
+          return Promise.reject(err);
+        }
+
+        // Silent Refresh if access token expired (401)
+        if (err.response?.status === 401 && !isRefreshRequest && !originalRequest._retry) {
+          if (isRefreshing) {
+            return new Promise((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
+            })
+              .then(() => {
+                return axios(originalRequest);
+              })
+              .catch((err) => {
+                return Promise.reject(err);
+              });
+          }
+
+          originalRequest._retry = true;
+          isRefreshing = true;
+
+          try {
+            console.info('[AUTH] Access token expired, attempting silent refresh...');
+            const refreshRes = await axios.post('/api/auth/refresh', {});
+            if (refreshRes.data?.success) {
+              console.info('[AUTH] Session refreshed successfully, retrying original request.');
+              processQueue(null);
+              return axios(originalRequest);
+            }
+          } catch (refreshErr) {
+            console.error('[AUTH] Silent refresh failed:', refreshErr.message);
+            processQueue(refreshErr);
+            clearAuthData();
+            if (!isProfileRequest && window.location.pathname !== '/auth' && window.location.pathname !== '/') {
+              window.location.replace('/auth');
+            }
+            return Promise.reject(refreshErr);
+          } finally {
+            isRefreshing = false;
+          }
+        }
+
+        // Default 401 handling if not retrying or refresh failed
+        if (err.response?.status === 401) {
           clearAuthData();
           if (isProfileRequest) {
             console.info('[AUTH] No active session');
-          } else if (window.location.pathname !== '/auth') {
+          } else if (window.location.pathname !== '/auth' && window.location.pathname !== '/') {
             window.location.replace('/auth');
           }
         }
+
         return Promise.reject(err);
       }
     );
 
     return () => {
-      API.interceptors.response.eject(resInt);
+      axios.interceptors.response.eject(resInt);
     };
   }, [clearAuthData]);
 

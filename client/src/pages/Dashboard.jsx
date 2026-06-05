@@ -10,8 +10,9 @@ import {
   CloudRain, Wind, Sun, Zap, AlertTriangle,
   CheckCircle, ChevronDown, ChevronUp, ExternalLink, X,
   Play, Square, Clock, Activity,
-  Bot, History, Trash2, ChevronRight, Radio,
+  Bot, History, Trash2, ChevronRight, Radio, Newspaper,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const getFavicon = (url) => {
   try {
@@ -205,6 +206,40 @@ const Dashboard = () => {
   const [centerMapTo, setCenterMapTo]           = useState(null);
   const [originalAnalysis, setOriginalAnalysis] = useState(null);
   const [isMissionControlOpen, setIsMissionControlOpen] = useState(false);
+  const [activeNewsModal, setActiveNewsModal] = useState(null);
+  const [modalContent, setModalContent] = useState('');
+  const [modalContentLoading, setModalContentLoading] = useState(false);
+
+  useEffect(() => {
+    const handleOpenNews = async (e) => {
+      const alert = e.detail;
+      setActiveNewsModal(alert);
+      setModalContent('');
+      if (!alert.source_url) {
+        setModalContent(alert.title);
+        return;
+      }
+      
+      try {
+        setModalContentLoading(true);
+        const res = await axios.get('/api/ai/article-content', {
+          params: { url: alert.source_url, title: alert.title }
+        });
+        if (res.data?.success) {
+          setModalContent(res.data.text);
+        } else {
+          setModalContent(alert.title);
+        }
+      } catch (err) {
+        setModalContent(alert.title);
+      } finally {
+        setModalContentLoading(false);
+      }
+    };
+    
+    window.addEventListener('open-news-modal', handleOpenNews);
+    return () => window.removeEventListener('open-news-modal', handleOpenNews);
+  }, []);
 
   const parsedOriginalReport = useMemo(() => {
     if (!originalAnalysis?.aiReport) return null;
@@ -951,8 +986,29 @@ const Dashboard = () => {
                           const severity = news.intensity >= 0.5 ? 'CRITICAL' : news.intensity >= 0.25 ? 'HIGH' : 'MODERATE';
                           const style = SEV_STYLES[severity] || SEV_STYLES.MODERATE;
                           return (
-                            <div key={i} className="p-3 rounded-xl border flex flex-col gap-1.5"
-                              style={{ background: 'rgba(255,92,122,0.06)', borderColor: 'rgba(255,92,122,0.18)' }}>
+                            <div key={i} className="p-3 rounded-xl border flex flex-col gap-1.5 cursor-pointer hover:border-red-500/55 transition-colors"
+                              style={{ background: 'rgba(255,92,122,0.06)', borderColor: 'rgba(255,92,122,0.18)' }}
+                              onClick={() => {
+                                window.dispatchEvent(new CustomEvent('open-news-modal', { 
+                                  detail: {
+                                    title: news.headline,
+                                    source_url: news.source_url,
+                                    category: news.label || 'threat',
+                                    published: news.published_at,
+                                    image_url: news.image_url,
+                                    publisher: news.publisher,
+                                    severity: severity,
+                                    confidence: news.confidence,
+                                    intensity: news.intensity
+                                  } 
+                                }));
+                              }}
+                            >
+                              {news.image_url && (
+                                <a href={news.source_url || '#'} target={news.source_url ? "_blank" : undefined} rel="noreferrer" onClick={e => e.stopPropagation()} className="block overflow-hidden rounded-lg mb-1.5">
+                                  <img src={news.image_url} alt={news.headline} loading="lazy" className="w-full h-24 object-cover hover:scale-105 transition-transform duration-300" />
+                                </a>
+                              )}
                               <div className="flex justify-between items-start gap-2">
                                 <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded tracking-wide flex-shrink-0"
                                   style={{ background: style.card, color: style.dot, borderColor: style.border, border: '1px solid' }}>
@@ -988,11 +1044,24 @@ const Dashboard = () => {
                               if (news.location && news.location.length >= 2) {
                                 setCenterMapTo([news.location[0], news.location[1]]);
                               }
+                              window.dispatchEvent(new CustomEvent('open-news-modal', { 
+                                detail: {
+                                  title: news.headline,
+                                  source_url: news.source_url,
+                                  category: news.label || 'threat',
+                                  published: news.published_at,
+                                  image_url: news.image_url,
+                                  publisher: news.publisher,
+                                  severity: severity,
+                                  confidence: news.confidence,
+                                  intensity: news.intensity
+                                } 
+                              }));
                             }}
                           >
                             {news.image_url ? (
                               <a href={news.source_url || '#'} target={news.source_url ? "_blank" : undefined} rel="noreferrer" onClick={e => e.stopPropagation()} className={news.source_url ? "block overflow-hidden rounded-lg" : "block overflow-hidden rounded-lg pointer-events-none"}>
-                                <img src={news.image_url} alt={news.headline} className="w-full h-32 object-cover hover:scale-105 transition-transform duration-300" />
+                                <img src={news.image_url} alt={news.headline} loading="lazy" className="w-full h-32 object-cover hover:scale-105 transition-transform duration-300" />
                               </a>
                             ) : (
                               <div className="w-full h-20 bg-slate-800/40 rounded-lg flex flex-col items-center justify-center text-slate-500 gap-1.5 border border-slate-800/50">
@@ -1183,7 +1252,7 @@ const Dashboard = () => {
               animate={{ opacity: 0.6 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMissionControlOpen(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm z-40"
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm z-[4000]"
             />
             {/* Drawer */}
             <motion.div
@@ -1191,7 +1260,7 @@ const Dashboard = () => {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="absolute left-0 top-0 h-full z-50 flex flex-col overflow-hidden rg-sidebar"
+              className="absolute left-0 top-0 h-full z-[4010] flex flex-col overflow-hidden rg-sidebar"
               style={{
                 width: 380,
                 background: '#0B1220',
@@ -1334,6 +1403,159 @@ const Dashboard = () => {
           freightMode={freightMode}
           onRouteSaved={handleRoutySaved}
         />
+
+        {/* News Detail Modal */}
+        <AnimatePresence>
+          {activeNewsModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+              onClick={() => setActiveNewsModal(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                onClick={e => e.stopPropagation()}
+                className="w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+                style={{ background: '#1F2937', border: '1px solid #374151' }}
+              >
+                {/* Modal header */}
+                <div className="flex items-start justify-between p-5 border-b border-slate-800" style={{ background: '#111827' }}>
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-slate-800 border border-slate-700">
+                      <Newspaper size={18} className="text-cyan-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                          {activeNewsModal.category || 'General'}
+                        </span>
+                        {activeNewsModal.severity && (
+                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded"
+                            style={{
+                              background: activeNewsModal.severity === 'CRITICAL' ? 'rgba(239,68,68,0.15)' : activeNewsModal.severity === 'HIGH' ? 'rgba(245,158,11,0.15)' : 'rgba(56,189,248,0.15)',
+                              color: activeNewsModal.severity === 'CRITICAL' ? '#EF4444' : activeNewsModal.severity === 'HIGH' ? '#F59E0B' : '#38BDF8',
+                              border: '1px solid currentColor'
+                            }}
+                          >
+                            {activeNewsModal.severity}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-base font-black pr-4 leading-snug text-white">
+                        {activeNewsModal.title}
+                      </h3>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveNewsModal(null)}
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Modal body (Scrollable) */}
+                <div className="p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar">
+                  {activeNewsModal.image_url && (
+                    <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-900">
+                      <img
+                        src={activeNewsModal.image_url}
+                        alt="News Cover"
+                        className="w-full h-56 object-cover"
+                      />
+                    </div>
+                  )}
+
+                  {/* Description/Content */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Geopolitical Briefing</p>
+                    {modalContentLoading ? (
+                      <div className="flex flex-col items-center justify-center py-10 gap-3">
+                        <div className="w-8 h-8 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin" />
+                        <p className="text-xs text-slate-400 animate-pulse">Extracting intelligence report...</p>
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-relaxed text-slate-300 whitespace-pre-wrap">
+                        {modalContent || activeNewsModal.title}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Metadata details */}
+                  <div className="grid grid-cols-2 gap-4 p-4 rounded-xl text-xs bg-slate-900 border border-slate-800">
+                    <div>
+                      <p className="font-semibold text-[10px] uppercase tracking-wider text-slate-500">Publisher</p>
+                      <p className="font-bold mt-0.5 text-slate-200">{activeNewsModal.publisher || 'Unknown Source'}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-[10px] uppercase tracking-wider text-slate-500">Published Date</p>
+                      <p className="font-bold mt-0.5 text-slate-200">
+                        {activeNewsModal.published ? new Date(activeNewsModal.published).toLocaleString() : 'N/A'}
+                      </p>
+                    </div>
+                    {activeNewsModal.confidence != null && (
+                      <div>
+                        <p className="font-semibold text-[10px] uppercase tracking-wider text-slate-500">ML Confidence</p>
+                        <p className="font-bold mt-0.5 text-slate-200">{(activeNewsModal.confidence * 100).toFixed(0)}%</p>
+                      </div>
+                    )}
+                    {activeNewsModal.intensity != null && (
+                      <div>
+                        <p className="font-semibold text-[10px] uppercase tracking-wider text-slate-500">Threat Intensity</p>
+                        <p className="font-bold mt-0.5 text-slate-200">{(activeNewsModal.intensity * 100).toFixed(0)}%</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions Footer */}
+                <div className="p-4 border-t border-slate-800 flex items-center justify-end gap-2.5" style={{ background: '#111827' }}>
+                  <button
+                    onClick={() => {
+                      if (activeNewsModal.source_url) {
+                        navigator.clipboard.writeText(activeNewsModal.source_url);
+                        toast.success("Article link copied!");
+                      }
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+                  >
+                    Copy Link
+                  </button>
+                  {activeNewsModal.source_url && (
+                    <button
+                      onClick={() => {
+                        try {
+                          const hostname = new URL(activeNewsModal.source_url).hostname;
+                          window.open(`https://${hostname}`, '_blank', 'noreferrer');
+                        } catch (e) {
+                          window.open(activeNewsModal.source_url, '_blank', 'noreferrer');
+                        }
+                      }}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+                    >
+                      Open Publisher Website
+                    </button>
+                  )}
+                  {activeNewsModal.source_url && (
+                    <a
+                      href={activeNewsModal.source_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2 rounded-xl text-xs font-black uppercase bg-[#00C2FF] hover:bg-[#00A3D9] text-[#0F172A] flex items-center gap-1 shadow-md transition-colors"
+                    >
+                      Read Original Source <ExternalLink size={12} />
+                    </a>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

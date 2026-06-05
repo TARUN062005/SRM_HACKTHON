@@ -152,7 +152,7 @@ const ClusteredIncidentMarkers = ({ events }) => {
                 <div className="p-2.5 max-w-xs text-xs" style={{ background: '#0F172A', color: '#F8FAFC', borderRadius: '12px' }}>
                   {event.image_url && (
                     <a href={event.source_url || '#'} target={event.source_url ? "_blank" : undefined} rel="noreferrer" className={event.source_url ? "block mb-2" : "block mb-2 pointer-events-none"}>
-                      <img src={event.image_url} alt={event.headline} className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity" />
+                      <img src={event.image_url} alt={event.headline} loading="lazy" className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity" />
                     </a>
                   )}
                   <p className="font-black text-sm mb-1 leading-snug" style={{ color: severityColor }}>{event.headline}</p>

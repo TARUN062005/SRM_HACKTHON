@@ -69,12 +69,32 @@ function getPrimaryClientUrl() {
   return 'http://localhost:5173';
 }
 
-function authCookieOptions() {
+function accessCookieOptions() {
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: 15 * 60 * 1000, // 15 minutes
+    path: '/',
+  };
+}
+
+function refreshCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/',
+  };
+}
+
+function csrfCookieOptions() {
+  return {
+    httpOnly: false, // Must be accessible to client-side JS
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/',
   };
 }
@@ -138,17 +158,26 @@ class AuthController {
       try {
         const profile = await oauthStrategy.getProfileFromCode(code);
         const { user } = await userService.upsertBySocialProfile('google', profile);
-        const token = authManager.generateToken(user);
+        
+        const accessToken = authManager.generateToken(user, 'access');
+        const refreshToken = authManager.generateToken(user, 'refresh');
 
         await userService.createSession(user.id, {
-          token,
+          token: refreshToken,
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          ipAddress: req.ip || null,
+          userAgent: req.headers['user-agent'] || null,
         });
+
+        const crypto = require('crypto');
+        const csrfToken = crypto.randomBytes(24).toString('hex');
 
         finalizeOAuthCodeUsed(code);
         await ActivityService.log(user.id, 'Login Success', 'Logged in via Google', req.ip);
 
-        res.cookie('access_token', token, authCookieOptions());
+        res.cookie('access_token', accessToken, accessCookieOptions());
+        res.cookie('refresh_token', refreshToken, refreshCookieOptions());
+        res.cookie('XSRF-TOKEN', csrfToken, csrfCookieOptions());
         return res.redirect(`${clientUrl}/dashboard`);
       } catch (err) {
         clearOAuthCode(code);
@@ -179,17 +208,26 @@ class AuthController {
       try {
         const profile = await oauthStrategy.getProfileFromCode(code);
         const { user } = await userService.upsertBySocialProfile('github', profile);
-        const token = authManager.generateToken(user);
+        
+        const accessToken = authManager.generateToken(user, 'access');
+        const refreshToken = authManager.generateToken(user, 'refresh');
 
         await userService.createSession(user.id, {
-          token,
+          token: refreshToken,
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          ipAddress: req.ip || null,
+          userAgent: req.headers['user-agent'] || null,
         });
+
+        const crypto = require('crypto');
+        const csrfToken = crypto.randomBytes(24).toString('hex');
 
         finalizeOAuthCodeUsed(code);
         await ActivityService.log(user.id, 'Login Success', 'Logged in via GitHub', req.ip);
 
-        res.cookie('access_token', token, authCookieOptions());
+        res.cookie('access_token', accessToken, accessCookieOptions());
+        res.cookie('refresh_token', refreshToken, refreshCookieOptions());
+        res.cookie('XSRF-TOKEN', csrfToken, csrfCookieOptions());
         return res.redirect(`${clientUrl}/dashboard`);
       } catch (err) {
         clearOAuthCode(code);
@@ -201,13 +239,81 @@ class AuthController {
     }
   }
 
+  async refresh(req, res) {
+    try {
+      const refreshToken = req.cookies?.refresh_token;
+      if (!refreshToken) {
+        return res.status(401).json({ success: false, message: 'Refresh token required' });
+      }
+
+      let decoded;
+      try {
+        decoded = authManager.verifyToken(refreshToken);
+      } catch (err) {
+        res.clearCookie('access_token', { ...accessCookieOptions(), maxAge: undefined });
+        res.clearCookie('refresh_token', { ...refreshCookieOptions(), maxAge: undefined });
+        res.clearCookie('XSRF-TOKEN', { ...csrfCookieOptions(), maxAge: undefined });
+        return res.status(401).json({ success: false, message: 'Session expired' });
+      }
+
+      if (decoded.type !== 'refresh') {
+        return res.status(401).json({ success: false, message: 'Invalid token type' });
+      }
+
+      const { prisma } = require('../utils/dbConnector');
+      const session = await prisma.session.findUnique({
+        where: { token: refreshToken }
+      });
+
+      if (!session || session.expiresAt < new Date()) {
+        if (session) {
+          await prisma.session.delete({ where: { token: refreshToken } }).catch(() => {});
+        }
+        res.clearCookie('access_token', { ...accessCookieOptions(), maxAge: undefined });
+        res.clearCookie('refresh_token', { ...refreshCookieOptions(), maxAge: undefined });
+        res.clearCookie('XSRF-TOKEN', { ...csrfCookieOptions(), maxAge: undefined });
+        return res.status(401).json({ success: false, message: 'Session invalid or expired' });
+      }
+
+      const user = await userService.findById(decoded.id);
+      if (!user || !user.isActive) {
+        res.clearCookie('access_token', { ...accessCookieOptions(), maxAge: undefined });
+        res.clearCookie('refresh_token', { ...refreshCookieOptions(), maxAge: undefined });
+        res.clearCookie('XSRF-TOKEN', { ...csrfCookieOptions(), maxAge: undefined });
+        return res.status(401).json({ success: false, message: 'User suspended or not found' });
+      }
+
+      // 4. Token Rotation: generate new keys
+      const newAccessToken = authManager.generateToken(user, 'access');
+      const newRefreshToken = authManager.generateToken(user, 'refresh');
+
+      // Swap database sessions
+      await prisma.session.delete({ where: { token: refreshToken } }).catch(() => {});
+      await userService.createSession(user.id, {
+        token: newRefreshToken,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        ipAddress: req.ip || null,
+        userAgent: req.headers['user-agent'] || null,
+      });
+
+      res.cookie('access_token', newAccessToken, accessCookieOptions());
+      res.cookie('refresh_token', newRefreshToken, refreshCookieOptions());
+      return res.status(200).json({ success: true, message: 'Token refreshed successfully' });
+    } catch (error) {
+      console.error('Session refresh error:', error.message);
+      return res.status(500).json({ success: false, message: 'Failed to refresh token' });
+    }
+  }
+
   async logout(req, res) {
     try {
-      const token = extractToken(req);
-      if (token) {
-        await userService.deleteSession(token);
+      const refreshToken = req.cookies?.refresh_token;
+      if (refreshToken) {
+        await userService.deleteSession(refreshToken);
       }
-      res.clearCookie('access_token', { ...authCookieOptions(), maxAge: undefined });
+      res.clearCookie('access_token', { ...accessCookieOptions(), maxAge: undefined });
+      res.clearCookie('refresh_token', { ...refreshCookieOptions(), maxAge: undefined });
+      res.clearCookie('XSRF-TOKEN', { ...csrfCookieOptions(), maxAge: undefined });
       return res.status(200).json({ success: true, message: 'Logged out successfully' });
     } catch (error) {
       return res.status(500).json({ success: false, message: 'Failed to logout' });

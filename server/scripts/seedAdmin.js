@@ -13,7 +13,7 @@ async function seedAdmin() {
     const adminPassword = process.env.ADMIN_PASSWORD ;
     
     console.log('🔄 Seeding admin user...');
-    console.log('Admin email:', adminEmail);
+    console.log('Admin email:', adminEmail ? adminEmail.replace(/^(.)(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(b.length) + c) : 'N/A');
     
     if (!adminEmail || !adminPassword) {
       throw new Error('ADMIN_EMAIL and ADMIN_PASSWORD must be set in .env file');
@@ -52,7 +52,7 @@ async function seedAdmin() {
     
     console.log('✅ Admin user seeded successfully!');
     console.log('Admin ID:', adminUser.id);
-    console.log('Admin Email:', adminUser.email);
+    console.log('Admin Email:', adminUser.email ? adminUser.email.replace(/^(.)(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(b.length) + c) : 'N/A');
     
     await prisma.$disconnect();
     return adminUser;

@@ -92,7 +92,7 @@ export const RiskIntelPanel = ({
   const riskScore  = intel.riskScore   ?? 0;
   const severity   = intel.severity    ?? 'STABLE';
   const riskZones  = intel.riskZones   ?? [];
-  const newsFeed   = intel.newsFeed    ?? [];
+  const newsFeed   = intel.newsFeed || intel.events || [];
   const waypoints  = intel.waypointReports ?? [];
   const weatherBad = waypoints.filter(w => w.code >= 61);
   const cfg        = SEV[severity] || SEV.STABLE;
@@ -118,7 +118,7 @@ export const RiskIntelPanel = ({
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: '100%', opacity: 0 }}
           transition={{ type: 'spring', stiffness: 290, damping: 30 }}
-          className="absolute right-0 top-0 bottom-0 z-[1500] flex flex-col overflow-hidden"
+          className="absolute right-0 top-0 bottom-0 z-[4010] flex flex-col overflow-hidden"
           style={{
             width: 340,
             background: 'var(--surface)',
@@ -259,30 +259,62 @@ export const RiskIntelPanel = ({
               <div className="p-3 space-y-2">
                 {newsFeed.length > 0 ? (
                   newsFeed.map((article, i) => {
-                    const aCfg = SEV[article.severity === 'high' ? 'CRITICAL' : article.severity === 'medium' ? 'CAUTION' : 'STABLE'] || SEV.STABLE;
+                    const title = article.title || article.headline || '';
+                    const link = article.link || article.source_url || '';
+                    const type = article.type || article.label || 'threat';
+                    const date = article.date || article.published_at || article.published || '';
+                    const image = article.image_url || null;
+                    const publisher = article.publisher || article.source || '';
+                    const severity = article.severity || (article.intensity >= 0.5 ? 'high' : article.intensity >= 0.25 ? 'medium' : 'low');
+                    
+                    const severityUpper = typeof severity === 'string' ? severity.toUpperCase() : 'MODERATE';
+                    const aCfg = SEV[severityUpper] || SEV.STABLE;
+                    
                     return (
-                      <div key={i} className="p-3 rounded-xl transition-all"
-                        style={{ background: 'var(--card)', border: `1px solid ${aCfg.border}` }}>
+                      <div key={i} className="p-3 rounded-xl transition-all hover:border-slate-600 cursor-pointer"
+                        style={{ background: 'var(--card)', border: `1px solid ${aCfg.border}` }}
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('open-news-modal', { 
+                            detail: {
+                              title,
+                              source_url: link,
+                              category: type,
+                              published: date,
+                              image_url: image,
+                              publisher,
+                              severity: severityUpper,
+                              confidence: article.confidence,
+                              intensity: article.intensity
+                            } 
+                          }));
+                        }}
+                      >
+                        {image && (
+                          <a href={link || '#'} target={link ? "_blank" : undefined} rel="noreferrer" onClick={e => e.stopPropagation()} className="block overflow-hidden rounded-lg mb-2">
+                            <img src={image} alt={title} loading="lazy" className="w-full h-24 object-cover hover:scale-105 transition-transform duration-300" />
+                          </a>
+                        )}
                         <div className="flex items-start gap-2 mb-2">
                           <Newspaper size={11} className="flex-shrink-0 mt-0.5" style={{ color: aCfg.color }} />
-                          <p className="text-[11px] font-semibold flex-1 leading-snug" style={{ color: 'var(--text-primary)' }}>
-                            {article.title}
+                          <p className="text-[11px] font-semibold flex-1 leading-snug hover:text-cyan-400 transition-colors" style={{ color: 'var(--text-primary)' }}>
+                            {title}
                           </p>
                         </div>
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1 flex-wrap">
                             <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase"
                               style={{ background: aCfg.bg, color: aCfg.color }}>
-                              {article.type || 'alert'}
+                              {type || 'alert'}
                             </span>
-                            {article.date && (
+                            {date && (
                               <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>
-                                {new Date(article.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                               </span>
                             )}
                           </div>
-                          {article.link && (
-                            <a href={article.link} target="_blank" rel="noreferrer"
+                          {link && (
+                            <a href={link} target="_blank" rel="noreferrer"
+                              onClick={e => e.stopPropagation()}
                               className="flex items-center gap-0.5 text-[10px] hover:underline flex-shrink-0"
                               style={{ color: 'var(--accent)' }}>
                               View <ExternalLink size={8} />

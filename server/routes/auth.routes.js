@@ -13,9 +13,12 @@ router.get('/github', authController.githubAuth);
 router.get('/google/callback', authController.googleCallback);
 router.get('/github/callback', authController.githubCallback);
 
+const { setCsrfToken } = require('../middleware/csrfmiddleware');
+
 // --- Protected User Routes ---
+router.post('/refresh', authController.refresh);
 router.post('/logout', verifyToken, authController.logout);
-router.get('/profile', verifyToken, authController.getProfile);
+router.get('/profile', verifyToken, setCsrfToken, authController.getProfile);
 
 // --- Admin Management Routes ---
 

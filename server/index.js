@@ -59,20 +59,31 @@ const initializeServices = async () => {
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
-
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         scriptSrc: ["'self'"],
-        imgSrc: ["'self'", 'data:', 'blob:', 'https:', 'http:'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:', 'http:', '*.tile.openstreetmap.org', 'tile.openstreetmap.org'],
         fontSrc: ["'self'", 'https:', 'data:'],
       },
     },
-
+    hsts: process.env.NODE_ENV === 'production' ? {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    } : false,
     crossOriginEmbedderPolicy: false,
   })
 );
+
+app.use((req, res, next) => {
+  res.setHeader(
+    'Permissions-Policy',
+    'geolocation=(self), microphone=(self), camera=()'
+  );
+  next();
+});
 
 /**
  * ------------------ CORS CONFIG ------------------
@@ -96,9 +107,11 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    // Always allow Replit preview/proxy domains
-    if (origin.endsWith('.replit.dev') || origin.endsWith('.repl.co') || origin.endsWith('.sisko.replit.dev')) {
-      return callback(null, true);
+    // Allow Replit preview/proxy domains only in development
+    if (process.env.NODE_ENV !== 'production') {
+      if (origin.endsWith('.replit.dev') || origin.endsWith('.repl.co') || origin.endsWith('.sisko.replit.dev')) {
+        return callback(null, true);
+      }
     }
 
     if (process.env.NODE_ENV === 'development') {
@@ -142,28 +155,58 @@ app.use((req, res, next) => {
  * ------------------ RATE LIMITERS ------------------
  */
 
-const authActionLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 15,
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 mins
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: true,
   message: {
     success: false,
-    message: 'rate_limit_exceeded',
-    retryAfter: '15 minutes',
-    suggestion: 'Too many login attempts. Please try again later.',
+    message: 'Too many authentication attempts. Please try again after 15 minutes.',
   },
 });
 
-const adminLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 300,
+const aiChatLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 min
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'admin_rate_limit_exceeded',
+    message: 'Too many chat requests. Please slow down and try again in a minute.',
+  },
+});
+
+const routeSearchLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 mins
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many route search requests. Please try again later.',
+  },
+});
+
+const riskAnalysisLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 mins
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many risk analysis requests. Please try again later.',
+  },
+});
+
+const shipmentCreationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 mins
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many shipment operations. Please try again later.',
   },
 });
 
@@ -174,18 +217,31 @@ const generalLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'too_many_requests',
+    message: 'Too many requests, please try again later',
   },
 });
 
-// Apply strict limits to auth actions
-app.use('/api/auth/google', authActionLimiter);
-app.use('/api/auth/github', authActionLimiter);
+// Apply rate limiters to matching routes
+app.use('/api/auth/google', authLimiter);
+app.use('/api/auth/github', authLimiter);
+app.use('/api/admin/login', authLimiter);
 
-// Apply admin limiter
-app.use('/api/admin', adminLimiter);
+app.use('/api/ai/agent/chat', aiChatLimiter);
+app.use('/api/ai/intent', aiChatLimiter);
 
-// Apply general limiter
+app.use('/api/ai/route/optimize', routeSearchLimiter);
+app.use('/api/ai/routes/compare', routeSearchLimiter);
+app.use('/api/ai/directions', routeSearchLimiter);
+app.use('/api/ai/resolve-port', routeSearchLimiter);
+app.use('/api/ai/resolve-airport', routeSearchLimiter);
+
+app.use('/api/ai/risk/analyze', riskAnalysisLimiter);
+app.use('/api/ai/alerts', riskAnalysisLimiter);
+app.use('/api/ai/article-content', riskAnalysisLimiter);
+
+app.use('/api/ai/shipment', shipmentCreationLimiter);
+
+app.use('/api/admin', generalLimiter);
 app.use('/api/user', generalLimiter);
 app.use('/api', generalLimiter);
 
@@ -324,9 +380,12 @@ app.get('/', (req, res) => {
   });
 });
 
+const { csrfProtection } = require('./middleware/csrfmiddleware');
+
 /**
  * ------------------ API ROUTES ------------------
  */
+app.use('/api', csrfProtection);
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 

@@ -36,9 +36,36 @@ const NotificationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState([]);
   const [openAlert, setOpenAlert] = useState(null);
+  const [modalContent, setModalContent] = useState("");
+  const [modalContentLoading, setModalContentLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSeverity, setSelectedSeverity] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const handleOpenAlert = async (alert) => {
+    setOpenAlert(alert);
+    setModalContent("");
+    if (!alert.source_url) {
+      setModalContent(alert.title);
+      return;
+    }
+    
+    try {
+      setModalContentLoading(true);
+      const res = await axios.get(`${BASE_URL}/api/ai/article-content`, {
+        params: { url: alert.source_url, title: alert.title }
+      });
+      if (res.data?.success) {
+        setModalContent(res.data.text);
+      } else {
+        setModalContent(alert.title);
+      }
+    } catch (err) {
+      setModalContent(alert.title);
+    } finally {
+      setModalContentLoading(false);
+    }
+  };
 
   const fetchAlerts = async () => {
     try {
@@ -235,12 +262,13 @@ const NotificationsPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ delay: idx * 0.02 }}
-                  className="rounded-2xl flex flex-col overflow-hidden transition-all duration-300"
+                  className="rounded-2xl flex flex-col overflow-hidden transition-all duration-300 hover:border-slate-600 cursor-pointer"
                   style={{
                     background: "#1F2937",
                     border: `1px solid #374151`,
                     borderTop: `4px solid ${sevConf.color}`
                   }}
+                  onClick={() => handleOpenAlert(n)}
                   onMouseEnter={e => {
                     e.currentTarget.style.transform = "translateY(-4px)";
                     e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
@@ -252,10 +280,11 @@ const NotificationsPage = () => {
                 >
                   {/* Event Image */}
                   {n.image_url ? (
-                    <div className="relative h-44 overflow-hidden bg-slate-900">
+                    <a href={n.source_url || '#'} target={n.source_url ? "_blank" : undefined} rel="noreferrer" onClick={e => e.stopPropagation()} className="relative h-44 overflow-hidden bg-slate-900 block">
                       <img
                         src={n.image_url}
                         alt={n.title}
+                        loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                       />
                       <div className="absolute top-3 right-3">
@@ -266,7 +295,7 @@ const NotificationsPage = () => {
                           {n.severity}
                         </span>
                       </div>
-                    </div>
+                    </a>
                   ) : (
                     <div className="relative h-44 bg-slate-800/40 flex flex-col items-center justify-center text-slate-500 gap-2 border-b border-slate-700/50">
                       <Globe size={24} className="opacity-40" />
@@ -292,7 +321,7 @@ const NotificationsPage = () => {
                     </div>
 
                     <h3 className="text-sm font-bold line-clamp-2 text-white flex-1 min-h-[40px] hover:text-[#00C2FF] transition-colors cursor-pointer"
-                        onClick={() => setOpenAlert(n)}>
+                        onClick={(e) => { e.stopPropagation(); handleOpenAlert(n); }}>
                       {n.title}
                     </h3>
 
@@ -309,7 +338,7 @@ const NotificationsPage = () => {
                     {/* Actions */}
                     <div className="flex gap-2 mt-2 pt-2 border-t border-slate-800">
                       <button
-                        onClick={() => setOpenAlert(n)}
+                        onClick={(e) => { e.stopPropagation(); handleOpenAlert(n); }}
                         className="flex-1 py-2 rounded-xl text-xs font-bold transition-all text-center cursor-pointer bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700"
                       >
                         View Article
@@ -319,6 +348,7 @@ const NotificationsPage = () => {
                           href={n.source_url}
                           target="_blank"
                           rel="noreferrer"
+                          onClick={e => e.stopPropagation()}
                           className="flex-1 py-2 rounded-xl text-xs font-bold transition-all text-center cursor-pointer bg-[#00C2FF] text-[#0F172A] hover:bg-[#00A3D9] flex items-center justify-center gap-1 shadow-md"
                         >
                           Open Source <ExternalLink size={11} />
@@ -341,113 +371,158 @@ const NotificationsPage = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
             onClick={() => setOpenAlert(null)}
           >
             <motion.div
-              initial={{ scale: 0.95, y: 16 }}
+              initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 16 }}
+              exit={{ scale: 0.95, y: 20 }}
               onClick={e => e.stopPropagation()}
-              className="w-full max-w-lg rounded-2xl overflow-hidden"
+              className="w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
               style={{ background: "#1F2937", border: "1px solid #374151" }}
             >
               {/* Modal header */}
-              <div className="flex items-start justify-between p-5" style={{ borderBottom: "1px solid #374151" }}>
+              <div className="flex items-start justify-between p-5 border-b border-slate-800" style={{ background: "#111827" }}>
                 <div className="flex items-start gap-3">
                   {(() => {
                     const tc = SEV_CONFIG[openAlert.severity?.toUpperCase()] || SEV_CONFIG.MODERATE;
                     const TI = tc.icon;
                     return (
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: tc.bg }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: tc.bg, border: `1px solid ${tc.border}` }}>
                         <TI size={18} style={{ color: tc.color }} />
                       </div>
                     );
                   })()}
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest capitalize" style={{ color: "#6B7280" }}>
-                      {openAlert.category || "General"} · {openAlert.severity}
-                    </p>
-                    <h3 className="text-base font-bold mt-0.5 pr-4" style={{ color: "#F9FAFB" }}>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                        {openAlert.category || "General"}
+                      </span>
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded"
+                        style={{
+                          background: openAlert.severity === 'CRITICAL' ? 'rgba(239,68,68,0.15)' : openAlert.severity === 'HIGH' ? 'rgba(245,158,11,0.15)' : 'rgba(56,189,248,0.15)',
+                          color: openAlert.severity === 'CRITICAL' ? '#EF4444' : openAlert.severity === 'HIGH' ? '#F59E0B' : '#38BDF8',
+                          border: '1px solid currentColor'
+                        }}
+                      >
+                        {openAlert.severity}
+                      </span>
+                    </div>
+                    <h3 className="text-base font-black pr-4 leading-snug text-white">
                       {openAlert.title}
                     </h3>
                   </div>
                 </div>
                 <button
                   onClick={() => setOpenAlert(null)}
-                  className="p-1.5 rounded-lg transition-all flex-shrink-0 cursor-pointer"
-                  style={{ color: "#6B7280" }}
-                  onMouseEnter={e => e.currentTarget.style.color = "#F9FAFB"}
-                  onMouseLeave={e => e.currentTarget.style.color = "#6B7280"}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-white transition-colors cursor-pointer"
                 >
                   <X size={16} />
                 </button>
               </div>
 
-              {/* Modal body */}
-              <div className="p-5 space-y-4">
+              {/* Modal body (Scrollable) */}
+              <div className="p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar">
                 {openAlert.image_url && (
-                  <img
-                    src={openAlert.image_url}
-                    alt="Alert Banner"
-                    className="w-full h-40 object-cover rounded-xl"
-                    style={{ border: "1px solid #374151" }}
-                  />
+                  <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-900">
+                    <img
+                      src={openAlert.image_url}
+                      alt="News Cover"
+                      className="w-full h-56 object-cover"
+                    />
+                  </div>
                 )}
 
-                {/* Description/Headline */}
+                {/* Description/Content */}
                 <div className="space-y-2">
-                  <p className="text-xs font-black uppercase tracking-wider" style={{ color: "#6B7280" }}>Incident Details</p>
-                  <p className="text-sm leading-relaxed" style={{ color: "#9CA3AF" }}>
-                    {openAlert.title}
-                  </p>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Geopolitical Briefing</p>
+                  {modalContentLoading ? (
+                    <div className="flex flex-col items-center justify-center py-10 gap-3">
+                      <div className="w-8 h-8 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin" />
+                      <p className="text-xs text-slate-400 animate-pulse">Extracting intelligence report...</p>
+                    </div>
+                  ) : (
+                    <p className="text-sm leading-relaxed text-slate-300 whitespace-pre-wrap">
+                      {modalContent || openAlert.title}
+                    </p>
+                  )}
                 </div>
 
-                {/* Metadata Grid */}
-                <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl text-xs" style={{ background: "#111827", border: "1px solid #374151" }}>
+                {/* Metadata details */}
+                <div className="grid grid-cols-2 gap-4 p-4 rounded-xl text-xs bg-slate-900 border border-slate-800">
                   <div>
-                    <p className="font-semibold text-[10px] uppercase tracking-wider" style={{ color: "#6B7280" }}>Location</p>
-                    <p className="font-bold mt-0.5" style={{ color: "#F9FAFB" }}>{openAlert.country || "Global"}</p>
+                    <p className="font-semibold text-[10px] uppercase tracking-wider text-slate-500">Publisher</p>
+                    <p className="font-bold mt-0.5 text-slate-200">{openAlert.source || "GEO_RISK_ENGINE"}</p>
                   </div>
                   <div>
-                    <p className="font-semibold text-[10px] uppercase tracking-wider" style={{ color: "#6B7280" }}>Published</p>
-                    <p className="font-bold mt-0.5" style={{ color: "#F9FAFB" }}>{formatDate(openAlert.published)}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-[10px] uppercase tracking-wider" style={{ color: "#6B7280" }}>Source Provider</p>
-                    <p className="font-bold mt-0.5" style={{ color: "#F9FAFB" }}>{openAlert.source || "GEO_RISK_ENGINE"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-[10px] uppercase tracking-wider" style={{ color: "#6B7280" }}>Intelligence Metrics</p>
-                    <p className="font-bold mt-0.5" style={{ color: "#F9FAFB" }}>
-                      Intensity: {openAlert.intensity != null ? (openAlert.intensity * 100).toFixed(0) : "N/A"}% 
-                      {openAlert.confidence != null ? ` (Conf: ${(openAlert.confidence * 100).toFixed(0)}%)` : ""}
+                    <p className="font-semibold text-[10px] uppercase tracking-wider text-slate-500">Published Date</p>
+                    <p className="font-bold mt-0.5 text-slate-200">
+                      {openAlert.published ? new Date(openAlert.published).toLocaleString() : "N/A"}
                     </p>
                   </div>
+                  {openAlert.confidence != null && (
+                    <div>
+                      <p className="font-semibold text-[10px] uppercase tracking-wider text-slate-500">ML Confidence</p>
+                      <p className="font-bold mt-0.5 text-slate-200">{(openAlert.confidence * 100).toFixed(0)}%</p>
+                    </div>
+                  )}
+                  {openAlert.intensity != null && (
+                    <div>
+                      <p className="font-semibold text-[10px] uppercase tracking-wider text-slate-500">Threat Intensity</p>
+                      <p className="font-bold mt-0.5 text-slate-200">{(openAlert.intensity * 100).toFixed(0)}%</p>
+                    </div>
+                  )}
                   {openAlert.lat != null && openAlert.lon != null && (
                     <div className="col-span-2">
-                      <p className="font-semibold text-[10px] uppercase tracking-wider" style={{ color: "#6B7280" }}>Coordinates</p>
+                      <p className="font-semibold text-[10px] uppercase tracking-wider text-slate-500">Coordinates</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <MapPin size={11} style={{ color: "#6B7280" }} />
-                        <span className="font-mono text-[11px]" style={{ color: "#E5E7EB" }}>
+                        <MapPin size={11} className="text-slate-500" />
+                        <span className="font-mono text-[11px] text-slate-300">
                           {openAlert.lat.toFixed(5)}, {openAlert.lon.toFixed(5)}
                         </span>
                       </div>
                     </div>
                   )}
                 </div>
+              </div>
 
+              {/* Actions Footer */}
+              <div className="p-4 border-t border-slate-800 flex items-center justify-end gap-2.5" style={{ background: "#111827" }}>
+                <button
+                  onClick={() => {
+                    if (openAlert.source_url) {
+                      navigator.clipboard.writeText(openAlert.source_url);
+                      toast.success("Article link copied!");
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+                >
+                  Copy Link
+                </button>
+                {openAlert.source_url && (
+                  <button
+                    onClick={() => {
+                      try {
+                        const hostname = new URL(openAlert.source_url).hostname;
+                        window.open(`https://${hostname}`, '_blank', 'noreferrer');
+                      } catch (e) {
+                        window.open(openAlert.source_url, '_blank', 'noreferrer');
+                      }
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+                  >
+                    Open Publisher Website
+                  </button>
+                )}
                 {openAlert.source_url && (
                   <a
                     href={openAlert.source_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold transition-all"
-                    style={{ background: "#00C2FF", color: "#0F172A" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#00A3D9"}
-                    onMouseLeave={e => e.currentTarget.style.background = "#00C2FF"}
+                    className="px-4 py-2 rounded-xl text-xs font-black uppercase bg-[#00C2FF] hover:bg-[#00A3D9] text-[#0F172A] flex items-center gap-1 shadow-md transition-colors"
                   >
-                    Access Intelligence Source <ExternalLink size={13} />
+                    Read Original Source <ExternalLink size={12} />
                   </a>
                 )}
               </div>
