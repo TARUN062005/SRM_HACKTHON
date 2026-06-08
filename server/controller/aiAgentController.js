@@ -594,209 +594,264 @@ REQUIRED JSON RESPONSE (no markdown, no extra text):
     if (!parsed) {
         const msg = message.toLowerCase().trim();
 
-        // Mode keyword map
-        const MODE_KEYWORDS = {
-            sea: 'sea', ship: 'sea', maritime: 'sea', ocean: 'sea', shipping: 'sea',
-            air: 'air', flight: 'air', plane: 'air', fly: 'air',
-            rail: 'rail', train: 'rail', railway: 'rail',
-            truck: 'truck', road: 'truck', ground: 'truck', land: 'truck',
-        };
-        const modeWord = Object.keys(MODE_KEYWORDS).find(k =>
-            msg === k || msg.startsWith(k + ' ') || msg.endsWith(' ' + k)
-        );
-        const detectedMode = modeWord ? MODE_KEYWORDS[modeWord] : null;
+        // Check if we should skip extracting fields from this message (e.g. if it's a control or confirmation keyword)
+        let skipExtraction = false;
+        if (msg === 'confirmed' || msg === 'yes' || msg === 'no' || msg === 'ok') {
+            skipExtraction = true;
+        }
+        if (currentState.origin && msg === currentState.origin.toLowerCase().trim()) {
+            skipExtraction = true;
+        }
+        if (currentState.destination && msg === currentState.destination.toLowerCase().trim()) {
+            skipExtraction = true;
+        }
+        if (currentState.date && msg === currentState.date.toLowerCase().trim()) {
+            skipExtraction = true;
+        }
+        if (currentState.time && msg === currentState.time.toLowerCase().trim()) {
+            skipExtraction = true;
+        }
 
-        // Route pattern "X to Y" (optionally "by mode")
-        const routeMatch = message.match(/^(.+?)\s+(?:to|till|→|->)\s+(.+)$/i);
-
-        // Date/time patterns (with boundary \b to avoid conflicts like matching 'mar' in 'maritime')
-        const datePattern = /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|monday|tuesday|wednesday|thursday|friday|saturday|sunday|asap|today|tomorrow)\b|\bnext\s+\w+\b|\d{1,2}[\/\-]\d{1,2}/i;
-        const timePattern = /\b(?:\d{1,2}:\d{2}|morning|afternoon|evening|night|any\s*time)\b|\b\d{1,2}\s*[ap]m\b/i;
-
-        const COUNTRY_PORT_HINTS = {
-            india: ['Mumbai Port, India', 'Chennai Port, India', 'Visakhapatnam Port, India', 'Kandla Port, India'],
-            usa: ['Port of New York and New Jersey, USA', 'Port of Los Angeles, USA', 'Port of Long Beach, USA', 'Port of Savannah, USA'],
-            america: ['Port of New York and New Jersey, USA', 'Port of Los Angeles, USA', 'Port of Long Beach, USA', 'Port of Savannah, USA'],
-            china: ['Shanghai Port, China', 'Shenzhen Port, China', 'Ningbo-Zhoushan Port, China', 'Qingdao Port, China'],
-            dubai: ['Jebel Ali Port, UAE', 'Port Rashid, UAE', 'Dubai Creek, UAE'],
-            uae: ['Jebel Ali Port, UAE', 'Port Rashid, UAE', 'Dubai Creek, UAE'],
-        };
-
-        const COUNTRY_AIRPORT_HINTS = {
-            india: ['Chhatrapati Shivaji Maharaj International Airport (BOM), India', 'Indira Gandhi International Airport (DEL), India', 'Kempegowda International Airport (BLR), India', 'Chennai International Airport (MAA), India'],
-            usa: ['John F. Kennedy International Airport (JFK), USA', 'Los Angeles International Airport (LAX), USA', 'O\'Hare International Airport (ORD), USA', 'Hartsfield-Jackson Atlanta International Airport (ATL), USA'],
-            america: ['John F. Kennedy International Airport (JFK), USA', 'Los Angeles International Airport (LAX), USA', 'O\'Hare International Airport (ORD), USA', 'Hartsfield-Jackson Atlanta International Airport (ATL), USA'],
-            china: ['Shanghai Pudong International Airport (PVG), China', 'Beijing Capital International Airport (PEK), China', 'Guangzhou Baiyun International Airport (CAN), China', 'Shenzhen Bao\'an International Airport (SZX), China'],
-            dubai: ['Dubai International Airport (DXB), UAE', 'Al Maktoum International Airport (DWC), UAE'],
-            uae: ['Dubai International Airport (DXB), UAE', 'Al Maktoum International Airport (DWC), UAE'],
-        };
-
-        const activeHints = currentState.mode === 'air' ? COUNTRY_AIRPORT_HINTS : COUNTRY_PORT_HINTS;
-
-        const normalize = (text) => String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-        const normalizedMsg = normalize(msg);
-        const countryMatch = Object.keys(activeHints).find(k => normalizedMsg === k || normalizedMsg.includes(` ${k} `) || normalizedMsg.startsWith(`${k} `) || normalizedMsg.endsWith(` ${k}`));
-        const matchedPort = Object.values(activeHints).flat().find(p => normalize(p) === normalizedMsg);
-        const matchedCountryPort = Object.entries(activeHints).find(([, ports]) =>
-            ports.some(p => normalize(p) === normalizedMsg)
-        );
-
-        if (matchedPort && !state.origin) {
+        if (skipExtraction) {
+            const REQUIRED_ORDER = ['mode', 'origin', 'destination', 'date', 'time'];
+            const missingField = REQUIRED_ORDER.find(f => !currentState[f]);
+            const ASK_MESSAGES = {
+                mode:        'Which transport mode — Sea, Air, or Road?',
+                origin:      'Where would you like to ship from?',
+                destination: 'And where is it going to?',
+                date:        'What date would you like to ship? (e.g. June 15, next Monday, or ASAP)',
+                time:        "What's the preferred departure time? (e.g. 09:00, morning, any time)",
+            };
             parsed = {
                 type: 'ASK',
-                message: `Great — ${matchedPort}. And where is it going?`,
-                extracted: { origin: matchedPort, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
-                clarifyField: null,
-                options: [],
-            };
-        } else if (countryMatch && !state.origin) {
-            parsed = {
-                type: 'CLARIFY',
-                message: `I found "${countryMatch}" as a country. Please choose a specific ${currentState.mode === 'air' ? 'airport' : 'port'} to continue.`,
+                message: missingField ? ASK_MESSAGES[missingField] : 'Almost done! Let me calculate your route.',
                 extracted: { origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
-                clarifyField: 'origin',
-                options: activeHints[countryMatch],
-            };
-        } else if (matchedPort && state.origin && !state.destination) {
-            parsed = {
-                type: 'ASK',
-                message: `Great — ${matchedPort}. What date would you like to ship? (e.g. June 15, next Monday, or ASAP)`,
-                extracted: { origin: null, destination: matchedPort, mode: null, date: null, time: null, cargo: null, priority: null },
-                clarifyField: null,
-                options: [],
-            };
-        } else if (countryMatch && state.origin && !state.destination) {
-            parsed = {
-                type: 'CLARIFY',
-                message: `I found "${countryMatch}" as a country. Please choose a specific ${currentState.mode === 'air' ? 'airport' : 'port'} to continue.`,
-                extracted: { origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
-                clarifyField: 'destination',
-                options: activeHints[countryMatch],
-            };
-        } else if (matchedCountryPort && !state.origin) {
-            parsed = {
-                type: 'ASK',
-                message: `Great — ${matchedPort}. And where is it going?`,
-                extracted: { origin: matchedPort, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
-                clarifyField: null,
-                options: [],
-            };
-        } else if (matchedCountryPort && state.origin && !state.destination) {
-            parsed = {
-                type: 'ASK',
-                message: `Great — ${matchedPort}. What date would you like to ship? (e.g. June 15, next Monday, or ASAP)`,
-                extracted: { origin: null, destination: matchedPort, mode: null, date: null, time: null, cargo: null, priority: null },
-                clarifyField: null,
-                options: [],
-            };
-        } else if (detectedMode && !state.mode) {
-            const modeLabels = { sea: 'Maritime', air: 'Air freight', rail: 'Rail', truck: 'Road' };
-            const nextQ = !state.date
-                ? `${modeLabels[detectedMode]} it is! What date would you like to ship? (e.g. June 15, next Monday, or ASAP)`
-                : !state.time
-                ? `Great! What's the preferred departure time? (e.g. 09:00, morning, any time)`
-                : `All set — let me put your route together.`;
-            parsed = {
-                type: 'ASK',
-                message: nextQ,
-                extracted: { origin: null, destination: null, mode: detectedMode, date: null, time: null, cargo: null, priority: null },
-                clarifyField: null, options: [],
-            };
-        } else if (routeMatch) {
-            const originText = routeMatch[1].trim();
-            const rawDest    = routeMatch[2].trim();
-            const byMatch   = rawDest.match(/^(.+?)\s+(?:by|via|using|through)\s+(\w+)$/i);
-            const cleanDest  = byMatch ? byMatch[1].trim() : rawDest;
-            const inlineMode = byMatch ? (MODE_KEYWORDS[byMatch[2].toLowerCase()] || null) : null;
-            parsed = {
-                type: 'ASK',
-                message: inlineMode
-                    ? `Got it — ${originText} to ${cleanDest} by ${inlineMode}. What date would you like to ship?`
-                    : `Got it — ${originText} to ${cleanDest}. What transport mode? Sea, Air, Rail, or Road?`,
-                extracted: { origin: originText, destination: cleanDest, mode: inlineMode, date: null, time: null, cargo: null, priority: null },
-                clarifyField: null, options: [],
-            };
-        } else if (datePattern.test(msg) && !state.date) {
-            parsed = {
-                type: 'ASK',
-                message: `Got it! What's the preferred departure time? (e.g. 09:00, morning, any time)`,
-                extracted: { origin: null, destination: null, mode: null, date: message.trim(), time: null, cargo: null, priority: null },
-                clarifyField: null, options: [],
-            };
-        } else if (state.date && !state.time && (timePattern.test(msg) || /\d/.test(msg))) {
-            const timeText = message.trim();
-            const parsedTime = timeText
-                .replace(/\s+/g, ' ')
-                .replace(/\b([ap])\.?m\.?\b/gi, (_, a) => `${a.toUpperCase()}M`)
-                .replace(/\b([ap])\b/gi, (_, a) => `${a.toUpperCase()}M`);
-            parsed = {
-                type: 'ASK',
-                message: `Perfect! What type of cargo are you shipping? (optional — just press enter to skip)`,
-                extracted: { origin: null, destination: null, mode: null, date: null, time: parsedTime, cargo: null, priority: null },
                 clarifyField: null, options: [],
             };
         } else {
-            // STATE-AWARE SINGLE WORD EXTRACTOR (for fallback parser robustness)
-            if (!state.origin) {
+            // Mode keyword map
+            const MODE_KEYWORDS = {
+                sea: 'sea', ship: 'sea', maritime: 'sea', ocean: 'sea', shipping: 'sea',
+                air: 'air', flight: 'air', plane: 'air', fly: 'air',
+                rail: 'rail', train: 'rail', railway: 'rail',
+                truck: 'truck', road: 'truck', ground: 'truck', land: 'truck',
+            };
+            const modeWord = Object.keys(MODE_KEYWORDS).find(k =>
+                msg === k || msg.startsWith(k + ' ') || msg.endsWith(' ' + k)
+            );
+            const detectedMode = modeWord ? MODE_KEYWORDS[modeWord] : null;
+
+            // Route pattern "X to Y" (optionally "by mode")
+            const routeMatch = message.match(/^(.+?)\s+(?:to|till|→|->)\s+(.+)$/i);
+
+            // Date/time patterns (with boundary \b to avoid conflicts like matching 'mar' in 'maritime')
+            const datePattern = /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|monday|tuesday|wednesday|thursday|friday|saturday|sunday|asap|today|tomorrow)\b|\bnext\s+\w+\b|\d{1,2}[\/\-]\d{1,2}/i;
+            const timePattern = /\b(?:\d{1,2}:\d{2}|morning|afternoon|evening|night|any\s*time)\b|\b\d{1,2}\s*[ap]m\b/i;
+
+            const COUNTRY_PORT_HINTS = {
+                india: ['Mumbai Port, India', 'Chennai Port, India', 'Visakhapatnam Port, India', 'Kandla Port, India'],
+                usa: ['Port of New York and New Jersey, USA', 'Port of Los Angeles, USA', 'Port of Long Beach, USA', 'Port of Savannah, USA'],
+                america: ['Port of New York and New Jersey, USA', 'Port of Los Angeles, USA', 'Port of Long Beach, USA', 'Port of Savannah, USA'],
+                china: ['Shanghai Port, China', 'Shenzhen Port, China', 'Ningbo-Zhoushan Port, China', 'Qingdao Port, China'],
+                dubai: ['Jebel Ali Port, UAE', 'Port Rashid, UAE', 'Dubai Creek, UAE'],
+                uae: ['Jebel Ali Port, UAE', 'Port Rashid, UAE', 'Dubai Creek, UAE'],
+            };
+
+            const COUNTRY_AIRPORT_HINTS = {
+                india: ['Chhatrapati Shivaji Maharaj International Airport (BOM), India', 'Indira Gandhi International Airport (DEL), India', 'Kempegowda International Airport (BLR), India', 'Chennai International Airport (MAA), India'],
+                usa: ['John F. Kennedy International Airport (JFK), USA', 'Los Angeles International Airport (LAX), USA', 'O\'Hare International Airport (ORD), USA', 'Hartsfield-Jackson Atlanta International Airport (ATL), USA'],
+                america: ['John F. Kennedy International Airport (JFK), USA', 'Los Angeles International Airport (LAX), USA', 'O\'Hare International Airport (ORD), USA', 'Hartsfield-Jackson Atlanta International Airport (ATL), USA'],
+                china: ['Shanghai Pudong International Airport (PVG), China', 'Beijing Capital International Airport (PEK), China', 'Guangzhou Baiyun International Airport (CAN), China', 'Shenzhen Bao\'an International Airport (SZX), China'],
+                dubai: ['Dubai International Airport (DXB), UAE', 'Al Maktoum International Airport (DWC), UAE'],
+                uae: ['Dubai International Airport (DXB), UAE', 'Al Maktoum International Airport (DWC), UAE'],
+            };
+
+            const activeHints = currentState.mode === 'air' ? COUNTRY_AIRPORT_HINTS : COUNTRY_PORT_HINTS;
+
+            const normalize = (text) => String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+            const normalizedMsg = normalize(msg);
+            const countryMatch = Object.keys(activeHints).find(k => normalizedMsg === k || normalizedMsg.includes(` ${k} `) || normalizedMsg.startsWith(`${k} `) || normalizedMsg.endsWith(` ${k}`));
+            const matchedPort = Object.values(activeHints).flat().find(p => normalize(p) === normalizedMsg);
+            const matchedCountryPort = Object.entries(activeHints).find(([, ports]) =>
+                ports.some(p => normalize(p) === normalizedMsg)
+            );
+
+            if (matchedPort && !state.origin) {
                 parsed = {
                     type: 'ASK',
-                    message: `Great — ${message.trim()}. And where is it going?`,
-                    extracted: { origin: message.trim(), destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
+                    message: `Great — ${matchedPort}. And where is it going?`,
+                    extracted: { origin: matchedPort, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
+                    clarifyField: null,
+                    options: [],
+                };
+            } else if (countryMatch && !state.origin) {
+                parsed = {
+                    type: 'CLARIFY',
+                    message: `I found "${countryMatch}" as a country. Please choose a specific ${currentState.mode === 'air' ? 'airport' : 'port'} to continue.`,
+                    extracted: { origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
+                    clarifyField: 'origin',
+                    options: activeHints[countryMatch],
+                };
+            } else if (matchedPort && state.origin && !state.destination) {
+                parsed = {
+                    type: 'ASK',
+                    message: `Great — ${matchedPort}. What date would you like to ship? (e.g. June 15, next Monday, or ASAP)`,
+                    extracted: { origin: null, destination: matchedPort, mode: null, date: null, time: null, cargo: null, priority: null },
+                    clarifyField: null,
+                    options: [],
+                };
+            } else if (countryMatch && state.origin && !state.destination) {
+                parsed = {
+                    type: 'CLARIFY',
+                    message: `I found "${countryMatch}" as a country. Please choose a specific ${currentState.mode === 'air' ? 'airport' : 'port'} to continue.`,
+                    extracted: { origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
+                    clarifyField: 'destination',
+                    options: activeHints[countryMatch],
+                };
+            } else if (matchedCountryPort && !state.origin) {
+                parsed = {
+                    type: 'ASK',
+                    message: `Great — ${matchedPort}. And where is it going?`,
+                    extracted: { origin: matchedPort, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
+                    clarifyField: null,
+                    options: [],
+                };
+            } else if (matchedCountryPort && state.origin && !state.destination) {
+                parsed = {
+                    type: 'ASK',
+                    message: `Great — ${matchedPort}. What date would you like to ship? (e.g. June 15, next Monday, or ASAP)`,
+                    extracted: { origin: null, destination: matchedPort, mode: null, date: null, time: null, cargo: null, priority: null },
+                    clarifyField: null,
+                    options: [],
+                };
+            } else if (detectedMode && !state.mode) {
+                const modeLabels = { sea: 'Maritime', air: 'Air freight', rail: 'Rail', truck: 'Road' };
+                const nextQ = !state.origin
+                    ? `${modeLabels[detectedMode]} it is! Where would you like to ship from?`
+                    : !state.destination
+                    ? `Great! And where is it going?`
+                    : !state.date
+                    ? `${modeLabels[detectedMode]} it is! What date would you like to ship? (e.g. June 15, next Monday, or ASAP)`
+                    : !state.time
+                    ? `Great! What's the preferred departure time? (e.g. 09:00, morning, any time)`
+                    : `All set — let me put your route together.`;
+                parsed = {
+                    type: 'ASK',
+                    message: nextQ,
+                    extracted: { origin: null, destination: null, mode: detectedMode, date: null, time: null, cargo: null, priority: null },
                     clarifyField: null, options: [],
                 };
-            } else if (!state.destination) {
+            } else if (routeMatch) {
+                const originText = routeMatch[1].trim();
+                const rawDest    = routeMatch[2].trim();
+                const byMatch   = rawDest.match(/^(.+?)\s+(?:by|via|using|through)\s+(\w+)$/i);
+                const cleanDest  = byMatch ? byMatch[1].trim() : rawDest;
+                const inlineMode = byMatch ? (MODE_KEYWORDS[byMatch[2].toLowerCase()] || null) : null;
                 parsed = {
                     type: 'ASK',
-                    message: `Great — ${message.trim()}. What date would you like to ship? (e.g. June 15, next Monday, or ASAP)`,
-                    extracted: { origin: null, destination: message.trim(), mode: null, date: null, time: null, cargo: null, priority: null },
+                    message: inlineMode
+                        ? `Got it — ${originText} to ${cleanDest} by ${inlineMode}. What date would you like to ship?`
+                        : `Got it — ${originText} to ${cleanDest}. What transport mode? Sea, Air, Rail, or Road?`,
+                    extracted: { origin: originText, destination: cleanDest, mode: inlineMode, date: null, time: null, cargo: null, priority: null },
                     clarifyField: null, options: [],
                 };
-            } else if (!state.date) {
+            } else if (datePattern.test(msg) && !state.date) {
+                const nextMsg = !state.origin
+                    ? `Got it! Where would you like to ship from?`
+                    : !state.destination
+                    ? `Got it! And where is it going?`
+                    : `Got it! What's the preferred departure time? (e.g. 09:00, morning, any time)`;
                 parsed = {
                     type: 'ASK',
-                    message: `Got it! What's the preferred departure time? (e.g. 09:00, morning, any time)`,
+                    message: nextMsg,
                     extracted: { origin: null, destination: null, mode: null, date: message.trim(), time: null, cargo: null, priority: null },
                     clarifyField: null, options: [],
                 };
-            } else if (!state.time) {
+            } else if (state.date && !state.time && (timePattern.test(msg) || /\d/.test(msg))) {
+                const timeText = message.trim();
+                const parsedTime = timeText
+                    .replace(/\s+/g, ' ')
+                    .replace(/\b([ap])\.?m\.?\b/gi, (_, a) => `${a.toUpperCase()}M`)
+                    .replace(/\b([ap])\b/gi, (_, a) => `${a.toUpperCase()}M`);
+                const nextMsg = !state.origin
+                    ? `Perfect! Where would you like to ship from?`
+                    : !state.destination
+                    ? `Perfect! And where is it going?`
+                    : `Perfect! What type of cargo are you shipping? (optional — just press enter to skip)`;
                 parsed = {
                     type: 'ASK',
-                    message: `Perfect! What type of cargo are you shipping? (optional — just press enter to skip)`,
-                    extracted: { origin: null, destination: null, mode: null, date: null, time: message.trim(), cargo: null, priority: null },
-                    clarifyField: null, options: [],
-                };
-            } else if (!state.cargo) {
-                parsed = {
-                    type: 'ASK',
-                    message: `Got it! What is the shipping priority? (optional: express, standard, economy)`,
-                    extracted: { origin: null, destination: null, mode: null, date: null, time: null, cargo: message.trim(), priority: null },
-                    clarifyField: null, options: [],
-                };
-            } else if (!state.priority) {
-                parsed = {
-                    type: 'ASK',
-                    message: `Calculating your route now...`,
-                    extracted: { origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: message.trim() },
+                    message: nextMsg,
+                    extracted: { origin: null, destination: null, mode: null, date: null, time: parsedTime, cargo: null, priority: null },
                     clarifyField: null, options: [],
                 };
             } else {
-                const nextPrompt = !currentState.mode
-                    ? `Which transport mode — Sea, Air, or Road?`
-                    : !currentState.origin
-                    ? `Where would you like to ship from?`
-                    : !currentState.destination
-                    ? `And where is it going?`
-                    : !currentState.date
-                    ? `What date would you like to ship?`
-                    : !currentState.time
-                    ? `What's the preferred departure time?`
-                    : `Got it! What type of cargo are you shipping? (optional)`;
-                parsed = {
-                    type: currentState.origin ? 'ASK' : 'CHAT',
-                    message: nextPrompt,
-                    extracted: { origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
-                    clarifyField: null, options: [],
-                };
+                // STATE-AWARE SINGLE WORD EXTRACTOR (for fallback parser robustness)
+                if (!state.origin) {
+                    parsed = {
+                        type: 'ASK',
+                        message: `Great — ${message.trim()}. And where is it going?`,
+                        extracted: { origin: message.trim(), destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
+                        clarifyField: null, options: [],
+                    };
+                } else if (!state.destination) {
+                    const nextMsg = !state.date
+                        ? `Great — ${message.trim()}. What date would you like to ship? (e.g. June 15, next Monday, or ASAP)`
+                        : !state.time
+                        ? `Great — ${message.trim()}. What's the preferred departure time? (e.g. 09:00, morning, any time)`
+                        : `Great — ${message.trim()}. What type of cargo are you shipping? (optional)`;
+                    parsed = {
+                        type: 'ASK',
+                        message: nextMsg,
+                        extracted: { origin: null, destination: message.trim(), mode: null, date: null, time: null, cargo: null, priority: null },
+                        clarifyField: null, options: [],
+                    };
+                } else if (!state.date) {
+                    parsed = {
+                        type: 'ASK',
+                        message: `Got it! What's the preferred departure time? (e.g. 09:00, morning, any time)`,
+                        extracted: { origin: null, destination: null, mode: null, date: message.trim(), time: null, cargo: null, priority: null },
+                        clarifyField: null, options: [],
+                    };
+                } else if (!state.time) {
+                    parsed = {
+                        type: 'ASK',
+                        message: `Perfect! What type of cargo are you shipping? (optional — just press enter to skip)`,
+                        extracted: { origin: null, destination: null, mode: null, date: null, time: message.trim(), cargo: null, priority: null },
+                        clarifyField: null, options: [],
+                    };
+                } else if (!state.cargo) {
+                    parsed = {
+                        type: 'ASK',
+                        message: `Got it! What is the shipping priority? (optional: express, standard, economy)`,
+                        extracted: { origin: null, destination: null, mode: null, date: null, time: null, cargo: message.trim(), priority: null },
+                        clarifyField: null, options: [],
+                    };
+                } else if (!state.priority) {
+                    parsed = {
+                        type: 'ASK',
+                        message: `Calculating your route now...`,
+                        extracted: { origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: message.trim() },
+                        clarifyField: null, options: [],
+                    };
+                } else {
+                    const nextPrompt = !currentState.mode
+                        ? `Which transport mode — Sea, Air, or Road?`
+                        : !currentState.origin
+                        ? `Where would you like to ship from?`
+                        : !currentState.destination
+                        ? `And where is it going?`
+                        : !currentState.date
+                        ? `What date would you like to ship?`
+                        : !currentState.time
+                        ? `What's the preferred departure time?`
+                        : `Got it! What type of cargo are you shipping? (optional)`;
+                    parsed = {
+                        type: currentState.origin ? 'ASK' : 'CHAT',
+                        message: nextPrompt,
+                        extracted: { origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: null },
+                        clarifyField: null, options: [],
+                    };
+                }
             }
         }
     }

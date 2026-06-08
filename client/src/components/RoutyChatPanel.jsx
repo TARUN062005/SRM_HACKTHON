@@ -438,7 +438,6 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
     confirmedSource: null, confirmedDest: null,
   });
   const [convHistory, setConvHistory] = useState([]);
-  const [msgId, setMsgId] = useState(1);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const srRef = useRef(null);
@@ -452,17 +451,15 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
       setConvState(initState);
       setMessages([WELCOME]);
       setConvHistory([]);
-      setMsgId(1);
       setInput('');
       setTimeout(() => inputRef.current?.focus(), 300);
     }
   }, [isOpen, freightMode]);
 
   const addMsg = useCallback((role, text, extra = {}) => {
-    setMsgId(prev => {
-      const id = prev + 1;
-      setMessages(msgs => [...msgs, { id, role, text, ...extra }]);
-      return id;
+    setMessages(msgs => {
+      const newId = msgs.length > 0 ? Math.max(...msgs.map(m => m.id)) + 1 : 1;
+      return [...msgs, { id: newId, role, text, ...extra }];
     });
   }, []);
 
@@ -518,15 +515,15 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
           mode:          data.mode,
           originName:    data.originName,
           destName:      data.destName,
-          originOptions: data.originOptions || [],
+          originOptions: data.options || data.originOptions || [],
           destOptions:   data.destOptions   || [],
           pendingState:  updatedState,
         });
       } else if (data.type === 'ASK') {
         const msgLower = data.message?.toLowerCase() || '';
         const isModeQ = !updatedState.mode && (msgLower.includes('mode') || msgLower.includes('transport') || msgLower.includes('sea') || msgLower.includes('air'));
-        const isDateQ = !updatedState.date && (msgLower.includes('date') || msgLower.includes('when') || (updatedState.mode && updatedState.origin && updatedState.destination));
-        const isTimeQ = !updatedState.time && (msgLower.includes('time') || msgLower.includes('departure') || updatedState.date);
+        const isDateQ = !updatedState.date && (msgLower.includes('date') || msgLower.includes('when'));
+        const isTimeQ = !updatedState.time && (msgLower.includes('time') || msgLower.includes('departure') || msgLower.includes('clock') || msgLower.includes('hour'));
         
         if (isModeQ) {
           addMsg('mode-select', data.message);
@@ -558,8 +555,8 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
 
       const msgLower = nextQ.toLowerCase();
       const isModeQ = !stateToSend.mode && (msgLower.includes('mode') || msgLower.includes('transport') || msgLower.includes('sea') || msgLower.includes('air'));
-      const isDateQ = !stateToSend.date && (msgLower.includes('date') || msgLower.includes('when') || (stateToSend.mode && stateToSend.origin && stateToSend.destination));
-      const isTimeQ = !stateToSend.time && (msgLower.includes('time') || msgLower.includes('departure') || stateToSend.date);
+      const isDateQ = !stateToSend.date && (msgLower.includes('date') || msgLower.includes('when'));
+      const isTimeQ = !stateToSend.time && (msgLower.includes('time') || msgLower.includes('departure') || msgLower.includes('clock') || msgLower.includes('hour'));
       
       if (isModeQ) {
         addMsg('mode-select', nextQ);
@@ -678,7 +675,6 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
     setConvState({ origin: null, destination: null, mode: initMode, date: null, time: null, cargo: null, priority: null, confirmedSource: null, confirmedDest: null });
     setConvHistory([]);
     setMessages([WELCOME]);
-    setMsgId(1);
   }, [freightMode]);
 
   return (
