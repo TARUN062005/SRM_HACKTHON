@@ -525,8 +525,8 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
       } else if (data.type === 'ASK') {
         const msgLower = data.message?.toLowerCase() || '';
         const isModeQ = !updatedState.mode && (msgLower.includes('mode') || msgLower.includes('transport') || msgLower.includes('sea') || msgLower.includes('air'));
-        const isDateQ = msgLower.includes('date') || msgLower.includes('when') || (!updatedState.date && updatedState.mode && updatedState.origin && updatedState.destination);
-        const isTimeQ = msgLower.includes('time') || msgLower.includes('departure') || (updatedState.date && !updatedState.time);
+        const isDateQ = !updatedState.date && (msgLower.includes('date') || msgLower.includes('when') || (updatedState.mode && updatedState.origin && updatedState.destination));
+        const isTimeQ = !updatedState.time && (msgLower.includes('time') || msgLower.includes('departure') || updatedState.date);
         
         if (isModeQ) {
           addMsg('mode-select', data.message);
@@ -558,8 +558,8 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
 
       const msgLower = nextQ.toLowerCase();
       const isModeQ = !stateToSend.mode && (msgLower.includes('mode') || msgLower.includes('transport') || msgLower.includes('sea') || msgLower.includes('air'));
-      const isDateQ = msgLower.includes('date') || msgLower.includes('when') || (!stateToSend.date && stateToSend.mode && stateToSend.origin && stateToSend.destination);
-      const isTimeQ = msgLower.includes('time') || msgLower.includes('departure') || (stateToSend.date && !stateToSend.time);
+      const isDateQ = !stateToSend.date && (msgLower.includes('date') || msgLower.includes('when') || (stateToSend.mode && stateToSend.origin && stateToSend.destination));
+      const isTimeQ = !stateToSend.time && (msgLower.includes('time') || msgLower.includes('departure') || stateToSend.date);
       
       if (isModeQ) {
         addMsg('mode-select', nextQ);
