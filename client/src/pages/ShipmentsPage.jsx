@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -87,6 +87,24 @@ const timeAgo = (ts) => {
 const formatDate = (ts) => {
   if (!ts) return '—';
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const formatDuration = (seconds, mode) => {
+  if (!seconds) return '—';
+  if (mode === 'sea' || mode === 'ship') {
+    const days = seconds / 86400;
+    return days >= 1 ? `${days.toFixed(1)} days` : `${(seconds / 3600).toFixed(0)} hrs`;
+  }
+  if (mode === 'air') {
+    const hrs = seconds / 3600;
+    return hrs >= 1 ? `${hrs.toFixed(1)} hrs` : `${(seconds / 60).toFixed(0)} min`;
+  }
+  return `${(seconds / 60).toFixed(0)} min`;
+};
+
+const formatDistance = (meters) => {
+  if (!meters) return '—';
+  return `${(meters / 1000).toFixed(0)} km`;
 };
 
 const ShipmentsPage = () => {
@@ -283,7 +301,7 @@ const ShipmentsPage = () => {
 
         {/* Filter & Sort tabs */}
         {routes.length > 0 && (
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 flex-wrap">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 flex-wrap border-b border-slate-800/60 pb-4">
             <div className="flex gap-2 flex-wrap">
               {[
                 { value: 'all',   label: 'All' },
@@ -365,176 +383,126 @@ const ShipmentsPage = () => {
             )}
           </motion.div>
         ) : (
-          /* Shipment list */
-          <div className="space-y-2.5">
-            <AnimatePresence>
-              {sortedAndFiltered.map((r, idx) => {
-                const ModeIcon   = MODE_ICONS[r.mode]   || Anchor;
-                const modeColor  = MODE_COLORS[r.mode]  || '#3B82F6';
-                const modeLabel  = MODE_LABELS[r.mode]  || r.mode;
-                const sev        = r.severity || 'STABLE';
-                const sevStyle   = SEV_STYLES[sev] || SEV_STYLES.STABLE;
-                const isSelected = selected === r.id;
+          /* Shipment table */
+          <div className="overflow-x-auto rounded-[24px] border border-slate-800/80 bg-slate-950/40 backdrop-blur-md">
+            <table className="w-full border-collapse text-left text-sm text-slate-350">
+              <thead className="bg-slate-950/90 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th scope="col" className="px-6 py-4">Origin & Destination</th>
+                  <th scope="col" className="px-6 py-4">Mode</th>
+                  <th scope="col" className="px-6 py-4">Search Date</th>
+                  <th scope="col" className="px-6 py-4 text-center">Risk Score</th>
+                  <th scope="col" className="px-6 py-4 text-center">Safety Score</th>
+                  <th scope="col" className="px-6 py-4 text-right">Distance</th>
+                  <th scope="col" className="px-6 py-4 text-right">Duration</th>
+                  <th scope="col" className="px-6 py-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/40">
+                {sortedAndFiltered.map((r, idx) => {
+                  const ModeIcon   = MODE_ICONS[r.mode]   || Anchor;
+                  const modeColor  = MODE_COLORS[r.mode]  || '#3B82F6';
+                  const modeLabel  = MODE_LABELS[r.mode]  || r.mode;
+                  const sev        = r.severity || 'STABLE';
+                  const sevStyle   = SEV_STYLES[sev] || SEV_STYLES.STABLE;
 
-                return (
-                  <motion.div
-                    key={`shipment-${r.id || idx}-${idx}`}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.97 }}
-                    transition={{ delay: idx * 0.03 }}
-                  >
-                    {/* Main row */}
-                    <div
-                      className="flex items-center gap-4 px-5 py-4 rounded-2xl cursor-pointer transition-all"
-                      style={{
-                        background: isSelected ? '#1F2937' : '#111827',
-                        border: isSelected ? '1px solid #374151' : '1px solid rgba(55,65,81,0.5)',
-                      }}
-                      onClick={() => setSelected(isSelected ? null : r.id)}
-                      onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = '#1F2937'; }}
-                      onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = '#111827'; }}
+                  return (
+                    <tr
+                      key={`shipment-row-${r.id || idx}`}
+                      onClick={() => handleOpenRoute(r)}
+                      className="hover:bg-slate-800/30 transition-all cursor-pointer group"
                     >
-                      {/* Mode icon */}
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: `${modeColor}18` }}
-                      >
-                        <ModeIcon size={18} style={{ color: modeColor }} />
-                      </div>
-
-                      {/* Route info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                          <span className="text-sm font-bold truncate" style={{ color: '#F9FAFB' }}>
-                            {r.origin?.split(',')[0] || 'Unknown'}
-                          </span>
-                          <ArrowRight size={13} style={{ color: '#4B5563', flexShrink: 0 }} />
-                          <span className="text-sm font-bold truncate" style={{ color: '#F9FAFB' }}>
-                            {r.destination?.split(',')[0] || 'Unknown'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <span
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: `${modeColor}18`, color: modeColor }}
-                          >
-                            {modeLabel}
-                          </span>
+                      {/* Origin & Destination */}
+                      <td className="px-6 py-4.5">
+                        <div className="flex flex-col gap-1 max-w-[280px]">
+                          <div className="flex items-center gap-1.5 text-white font-extrabold text-xs sm:text-sm">
+                            <span className="truncate" title={r.origin}>{r.origin?.split(',')[0] || 'Unknown'}</span>
+                            <ArrowRight size={12} className="text-slate-500 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                            <span className="truncate" title={r.destination}>{r.destination?.split(',')[0] || 'Unknown'}</span>
+                          </div>
                           {r.cargo && (
-                            <span className="text-[10px]" style={{ color: '#6B7280' }}>
-                              {r.cargo}
-                            </span>
+                            <span className="text-[10px] text-slate-500 font-bold truncate">{r.cargo}</span>
                           )}
-                          <span className="text-[10px]" style={{ color: '#4B5563' }}>
-                            {timeAgo(r.timestamp)}
-                          </span>
                         </div>
-                      </div>
+                      </td>
 
-                      {/* Risk badge */}
-                      <div className="flex items-center gap-3 flex-shrink-0">
-                        {r.severity && (
-                          <span
-                            className="text-[10px] font-black px-2.5 py-1 rounded-lg"
-                            style={{ background: sevStyle.bg, color: sevStyle.color, border: `1px solid ${sevStyle.border}` }}
-                          >
-                            {sev}
-                          </span>
-                        )}
-                        {r.riskScore != null && (
-                          <div className="text-center">
-                            <p className="text-lg font-black leading-none" style={{ color: sevStyle.color }}>
-                              {r.riskScore}
-                            </p>
-                            <p className="text-[8px] font-bold uppercase" style={{ color: '#6B7280' }}>Risk</p>
-                          </div>
-                        )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShipmentToDelete(r);
-                            setDeleteModalOpen(true);
-                          }}
-                          className="flex items-center justify-center p-2 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all"
-                          title="Delete Shipment"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                        <ChevronRight
-                          size={16}
-                          style={{ color: '#374151', transform: isSelected ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Expanded detail */}
-                    <AnimatePresence>
-                      {isSelected && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
+                      {/* Mode */}
+                      <td className="px-6 py-4.5 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
                           <div
-                            className="mx-2 mb-1 px-5 py-4 rounded-b-2xl flex items-center justify-between gap-4 flex-wrap"
-                            style={{ background: '#1F2937', borderTop: '1px solid #374151' }}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ background: `${modeColor}14` }}
                           >
-                            <div className="flex gap-6 flex-wrap">
-                              <div>
-                                <p className="text-[9px] font-black uppercase tracking-wider mb-1" style={{ color: '#6B7280' }}>Origin</p>
-                                <div className="flex items-center gap-1.5">
-                                  <MapPin size={11} style={{ color: '#22C55E' }} />
-                                  <p className="text-xs font-semibold" style={{ color: '#F9FAFB' }}>{r.origin || '—'}</p>
-                                </div>
-                              </div>
-                              <div>
-                                <p className="text-[9px] font-black uppercase tracking-wider mb-1" style={{ color: '#6B7280' }}>Destination</p>
-                                <div className="flex items-center gap-1.5">
-                                  <MapPin size={11} style={{ color: '#EF4444' }} />
-                                  <p className="text-xs font-semibold" style={{ color: '#F9FAFB' }}>{r.destination || '—'}</p>
-                                </div>
-                              </div>
-                              <div>
-                                <p className="text-[9px] font-black uppercase tracking-wider mb-1" style={{ color: '#6B7280' }}>Date Added</p>
-                                <div className="flex items-center gap-1.5">
-                                  <Clock size={11} style={{ color: '#6B7280' }} />
-                                  <p className="text-xs font-semibold" style={{ color: '#9CA3AF' }}>{formatDate(r.timestamp)}</p>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShipmentToDelete(r);
-                                  setDeleteModalOpen(true);
-                                }}
-                                className="flex items-center justify-center p-2 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all"
-                                title="Delete Shipment"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                              <button
-                                onClick={() => handleOpenRoute(r)}
-                                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all"
-                                style={{ background: '#3B82F6', color: '#fff' }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#2563EB'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#3B82F6'}
-                              >
-                                View on Map <ArrowRight size={12} />
-                              </button>
-                            </div>
+                            <ModeIcon size={13} style={{ color: modeColor }} />
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
+                          <span className="text-xs font-bold text-slate-300">{modeLabel}</span>
+                        </div>
+                      </td>
+
+                      {/* Search Date */}
+                      <td className="px-6 py-4.5 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-300">{formatDate(r.timestamp)}</span>
+                          <span className="text-[10px] text-slate-500 font-semibold mt-0.5">{timeAgo(r.timestamp)}</span>
+                        </div>
+                      </td>
+
+                      {/* Risk Score */}
+                      <td className="px-6 py-4.5 text-center whitespace-nowrap">
+                        <span
+                          className="inline-flex items-center justify-center px-2 py-0.5 rounded-lg text-xs font-black"
+                          style={{ background: sevStyle.bg, color: sevStyle.color, border: `1px solid ${sevStyle.border}` }}
+                        >
+                          {r.riskScore != null ? r.riskScore : '—'}
+                        </span>
+                      </td>
+
+                      {/* Safety Score */}
+                      <td className="px-6 py-4.5 text-center whitespace-nowrap">
+                        <span
+                          className="inline-flex items-center justify-center px-2 py-0.5 rounded-lg text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"
+                        >
+                          {r.safetyScore != null ? r.safetyScore : '—'}
+                        </span>
+                      </td>
+
+                      {/* Distance */}
+                      <td className="px-6 py-4.5 text-right whitespace-nowrap font-bold text-slate-300 text-xs">
+                        {formatDistance(r.distance)}
+                      </td>
+
+                      {/* Duration */}
+                      <td className="px-6 py-4.5 text-right whitespace-nowrap font-bold text-slate-300 text-xs">
+                        {formatDuration(r.eta, r.mode)}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-6 py-4.5 text-center whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleOpenRoute(r)}
+                            className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800/80 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-105"
+                            title="Load on Map"
+                          >
+                            <ChevronRight size={14} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShipmentToDelete(r);
+                              setDeleteModalOpen(true);
+                            }}
+                            className="p-1.5 rounded-lg border border-red-500/10 bg-red-500/5 hover:bg-red-500/15 text-red-400 hover:text-red-300 transition-all hover:scale-105"
+                            title="Delete Shipment"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

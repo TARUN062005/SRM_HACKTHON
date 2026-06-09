@@ -67,8 +67,13 @@ export default function WeatherRouteMap() {
 
   return (
     <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
-      <MapContainer center={[40, -100]} zoom={4} style={{ height: "100vh", width: "100vw" }}>
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <MapContainer center={[40, -100]} zoom={4}
+        minZoom={2} maxZoom={18}
+        maxBounds={[[-85, -180], [85, 180]]}
+        maxBoundsViscosity={1.0}
+        preferCanvas={true}
+        style={{ height: "100vh", width: "100vw" }}>
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" noWrap={true} bounds={[[-85, -180], [85, 180]]} />
         <MapClickHandler />
         {points.map((p, i) => (
           <Marker key={i} position={p} />

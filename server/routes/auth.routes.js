@@ -15,6 +15,14 @@ router.get('/github/callback', authController.githubCallback);
 
 const { setCsrfToken } = require('../middleware/csrfmiddleware');
 
+// --- Public Local Auth Routes ---
+router.post('/register', authController.register);
+router.post('/verify-email', authController.verifyEmail);
+router.post('/login', authController.login);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
+router.get('/intelligence-preview', authController.getIntelligencePreview);
+
 // --- Protected User Routes ---
 router.post('/refresh', authController.refresh);
 router.post('/logout', verifyToken, authController.logout);

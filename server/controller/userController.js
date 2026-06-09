@@ -150,6 +150,46 @@ class UserController {
   }
 
   /**
+   * POST /api/user/logout-all
+   */
+  async logoutAllSessions(req, res) {
+    try {
+      await userService.deleteAllUserSessions(req.user.id);
+
+      res.clearCookie('access_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+      });
+      res.clearCookie('refresh_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+      });
+      res.clearCookie('XSRF-TOKEN', {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+      });
+
+      await ActivityService.log(
+        req.user.id,
+        'Sessions Terminated',
+        'User logged out from all sessions',
+        req.ip
+      );
+
+      return res.status(200).json({ success: true, message: 'All sessions logged out successfully' });
+    } catch (error) {
+      console.error('logoutAllSessions error:', error);
+      return res.status(500).json({ success: false, message: 'Failed to terminate sessions' });
+    }
+  }
+
+  /**
    * POST /api/user/request-reactivation
    */
   async requestReactivation(req, res) {

@@ -39,6 +39,66 @@ const SUGGESTIONS = [
   'Delhi to London',
 ];
 
+const isValidLocationLocal = (q) => {
+  if (!q) return false;
+  const clean = q.toLowerCase().trim();
+  const INVALID = new Set([
+    'sea', 'ship', 'road', 'air', 'flight', 'airplane', 'maritime',
+    'transport', 'cargo', 'rail', 'train', 'ground', 'land', 'truck',
+    'express', 'standard', 'economy', 'port', 'airport', 'way', 'route'
+  ]);
+  const words = clean.replace(/[\(\)\[\]\+\*,-\.\/]/g, ' ').split(/\s+/).filter(Boolean);
+  if (words.length === 0) return false;
+  if (words.length === 1 && INVALID.has(words[0])) return false;
+  return !words.every(word => INVALID.has(word));
+};
+
+const localExtractFromTranscript = (text) => {
+  if (!text) return null;
+  const msg = text.trim();
+  
+  let mode = null;
+  if (/\b(sea|maritime|ship|ocean|seafreight)\b/i.test(msg)) {
+      mode = 'sea';
+  } else if (/\b(air|flight|plane|airport|airfreight)\b/i.test(msg)) {
+      mode = 'air';
+  } else if (/\b(road|truck|ground|land|roadfreight)\b/i.test(msg)) {
+      mode = 'road';
+  } else if (/\b(rail|train)\b/i.test(msg)) {
+      mode = 'rail';
+  }
+
+  let origin = null;
+  let destination = null;
+  const routeMatch = msg.match(/(?:from\s+)?(.+?)\s+(?:to|till|→|->|destination|dest)\s+(.+)/i);
+  if (routeMatch) {
+      let orig = routeMatch[1].trim();
+      let dest = routeMatch[2].trim();
+      orig = orig.replace(/^(ship|route|cargo|freight|from)\s+/i, '').trim();
+      
+      const byMatch = dest.match(/^(.+?)\s+(?:by|via|using|through)?\s*(sea|ship|maritime|air|flight|plane|rail|train|truck|road|ground|land)$/i);
+      if (byMatch) {
+          dest = byMatch[1].trim();
+          if (!mode) {
+              const rawM = byMatch[2].toLowerCase();
+              mode = (rawM === 'ship' || rawM === 'maritime') ? 'sea' : (rawM === 'truck' || rawM === 'ground' || rawM === 'land') ? 'road' : rawM;
+          }
+      }
+      if (isValidLocationLocal(orig)) origin = orig;
+      if (isValidLocationLocal(dest)) destination = dest;
+  } else {
+      const words = msg.split(/[\s,]+/).map(w => w.trim()).filter(Boolean);
+      if (words.length === 2) {
+          if (isValidLocationLocal(words[0]) && isValidLocationLocal(words[1])) {
+              origin = words[0];
+              destination = words[1];
+          }
+      }
+  }
+
+  return { origin: origin || 'Not detected', destination: destination || 'Not detected', mode: mode || 'Not detected' };
+};
+
 // ── Route History (localStorage) ──────────────────────────────────────────────
 export const saveRouteToHistory = (route) => {
   try {
@@ -247,13 +307,13 @@ const TimeSelectBubble = ({ msg, onTimeSelect }) => {
 const ThinkingDots = () => (
   <div className="flex items-center gap-1 px-4 py-3 rounded-2xl rounded-tl-none" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.12)' }}>
     {[0, 1, 2].map(i => (
-      <div key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--accent)', animationDelay: `${i * 0.15}s` }} />
+      <div key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--accent, #00C2FF)', animationDelay: `${i * 0.15}s` }} />
     ))}
   </div>
 );
 
 // ── State progress bar ────────────────────────────────────────────────────────
-const REQUIRED_FIELDS = ['origin', 'destination', 'mode', 'date', 'time'];
+const REQUIRED_FIELDS = ['origin', 'destination', 'mode'];
 
 const StateProgress = ({ state }) => {
   const required  = REQUIRED_FIELDS;
@@ -263,17 +323,16 @@ const StateProgress = ({ state }) => {
   return (
     <div className="px-4 py-2.5 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
           Collection Progress
         </span>
-        <span className="text-[9px] font-bold" style={{ color: 'var(--accent)' }}>
+        <span className="text-[9px] font-bold text-cyan-400">
           {collected.length}/{required.length} required
         </span>
       </div>
       <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
         <motion.div
-          className="h-full rounded-full"
-          style={{ background: 'var(--accent)' }}
+          className="h-full rounded-full bg-cyan-400"
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.4 }}
@@ -286,11 +345,11 @@ const StateProgress = ({ state }) => {
           return (
             <div key={key} className="flex items-center gap-1">
               {val
-                ? <CheckCircle2 size={9} style={{ color: 'var(--success)' }} />
-                : <Circle size={9} style={{ color: isRequired ? 'var(--text-muted)' : 'rgba(255,255,255,0.2)' }} />}
-              <span className="text-[9px] font-medium" style={{ color: val ? 'var(--text-secondary)' : isRequired ? 'var(--text-muted)' : 'rgba(255,255,255,0.2)' }}>
+                ? <CheckCircle2 size={9} className="text-green-500" />
+                : <Circle size={9} style={{ color: isRequired ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)' }} />}
+              <span className="text-[9px] font-medium" style={{ color: val ? '#D1D5DB' : isRequired ? '#94A3B8' : 'rgba(255,255,255,0.2)' }}>
                 {val ? val.split(',')[0].substring(0, 12) : label}
-                {isRequired && !val && <span style={{ color: 'var(--danger)' }}>*</span>}
+                {isRequired && !val && <span className="text-red-500">*</span>}
               </span>
             </div>
           );
@@ -386,8 +445,8 @@ const MessageBubble = ({ msg, onPortSelect, onModeSelect, onResolveConfirm, onDa
         <div className="max-w-[92%] px-3.5 py-3 rounded-2xl rounded-tl-none text-xs leading-relaxed animate-fade-in"
           style={{ background: 'rgba(34,197,94,0.08)', color: '#86EFAC', border: '1px solid rgba(34,197,94,0.2)' }}>
           <div className="flex items-center gap-1.5 mb-1">
-            <CheckCircle2 size={12} style={{ color: '#22C55E' }} />
-            <span className="font-black text-[10px] uppercase tracking-wider" style={{ color: '#22C55E' }}>Route Ready</span>
+            <CheckCircle2 size={12} className="text-green-500" />
+            <span className="font-black text-[10px] uppercase tracking-wider text-green-400">Route Ready</span>
           </div>
           {msg.text}
         </div>
@@ -414,7 +473,6 @@ const MessageBubble = ({ msg, onPortSelect, onModeSelect, onResolveConfirm, onDa
     );
   }
 
-  // Standard AI message
   return (
     <div className="flex justify-start">
       <div className="max-w-[85%] px-3.5 py-2.5 rounded-2xl rounded-tl-none text-xs leading-relaxed animate-fade-in"
@@ -438,29 +496,104 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
     confirmedSource: null, confirmedDest: null,
   });
   const [convHistory, setConvHistory] = useState([]);
+  
+  // Search Autocomplete Picker states
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Voice transcript confirmation step
+  const [voiceConfirmation, setVoiceConfirmation] = useState(null);
+
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const srRef = useRef(null);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isThinking]);
 
-  // Reset on open
+  // Load state from DB on mount / open
   useEffect(() => {
     if (isOpen) {
-      const initState = { origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: null, confirmedSource: null, confirmedDest: null };
-      setConvState(initState);
-      setMessages([WELCOME]);
-      setConvHistory([]);
-      setInput('');
-      setTimeout(() => inputRef.current?.focus(), 300);
+      const loadState = async () => {
+        setIsThinking(true);
+        try {
+          const res = await axios.get(`${BASE_URL}/api/ai/agent/state`, { withCredentials: true });
+          if (res.data?.success && res.data.state) {
+            const serverState = res.data.state;
+            setConvState({
+              origin: serverState.origin || null,
+              destination: serverState.destination || null,
+              mode: serverState.mode || null,
+              date: serverState.date || null,
+              time: serverState.time || null,
+              cargo: serverState.cargo || null,
+              priority: serverState.priority || null,
+              confirmedSource: serverState.confirmedSource || null,
+              confirmedDest: serverState.confirmedDest || null,
+              currentStep: serverState.currentStep || 'mode',
+            });
+            if (serverState.messages && serverState.messages.length > 0) {
+              setMessages(serverState.messages);
+            } else {
+              setMessages([WELCOME]);
+            }
+            setConvHistory(serverState.history || []);
+          } else {
+            setConvState({ origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: null, confirmedSource: null, confirmedDest: null, currentStep: 'mode' });
+            setMessages([WELCOME]);
+            setConvHistory([]);
+          }
+        } catch (err) {
+          console.warn('[RoutyChatPanel] Failed to load server state:', err.message);
+          setConvState({ origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: null, confirmedSource: null, confirmedDest: null, currentStep: 'mode' });
+          setMessages([WELCOME]);
+          setConvHistory([]);
+        } finally {
+          setIsThinking(false);
+          setTimeout(() => inputRef.current?.focus(), 300);
+        }
+      };
+      loadState();
     }
-  }, [isOpen, freightMode]);
+  }, [isOpen]);
 
-  const addMsg = useCallback((role, text, extra = {}) => {
-    setMessages(msgs => {
-      const newId = msgs.length > 0 ? Math.max(...msgs.map(m => m.id)) + 1 : 1;
-      return [...msgs, { id: newId, role, text, ...extra }];
-    });
+  // Search autocomplete watcher
+  useEffect(() => {
+    if (input.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const modeParam = convState.mode || 'sea';
+        const res = await axios.get(`${BASE_URL}/api/ai/search`, {
+          params: { q: input, mode: modeParam, limit: 5 },
+          withCredentials: true
+        });
+        const results = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+        setSuggestions(results);
+        setShowSuggestions(results.length > 0);
+      } catch (err) {
+        console.warn('Autocomplete fetch failed:', err.message);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [input, convState.mode]);
+
+  const saveStateToServer = useCallback(async (state, msgs, history) => {
+    try {
+      await axios.post(`${BASE_URL}/api/ai/agent/state`, {
+        state: {
+          ...state,
+          messages: msgs,
+          history: history
+        }
+      }, { withCredentials: true });
+    } catch (err) {
+      console.warn('[RoutyChatPanel] Failed to save state to server:', err.message);
+    }
   }, []);
 
   const handleSend = useCallback(async (text, override = {}) => {
@@ -468,8 +601,14 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
     if (!cmd || isThinking) return;
 
     setInput('');
-    addMsg('user', cmd);
+    setSuggestions([]);
+    setShowSuggestions(false);
     setIsThinking(true);
+
+    const newId = messages.length > 0 ? Math.max(...messages.map(m => m.id)) + 1 : 1;
+    const userMsg = { id: newId, role: 'user', text: cmd };
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
 
     const newHistory = [...convHistory, { role: 'user', text: cmd }];
     const stateToSend = { ...convState, ...override };
@@ -479,7 +618,7 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
         message: cmd,
         state: stateToSend,
         history: newHistory,
-      }, { timeout: 30000 });
+      }, { withCredentials: true, timeout: 30000 });
 
       const data = res.data;
       const updatedState = { ...stateToSend, ...(data.state || {}) };
@@ -488,8 +627,11 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
       const aiHistory = [...newHistory, { role: 'ai', text: data.message }];
       setConvHistory(aiHistory);
 
+      let role = 'ai';
+      let extra = {};
+
       if (data.type === 'COMPLETE' && data.source && data.destination) {
-        addMsg('complete', data.message);
+        role = 'complete';
         const saved = saveRouteToHistory({ state: updatedState, source: data.source, destination: data.destination });
         onRouteSaved?.(saved);
         setTimeout(() => {
@@ -502,23 +644,24 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
           onClose?.();
         }, 1200);
       } else if (data.type === 'CLARIFY') {
-        // Check if it's a mode question disguised as clarify
         const msgLower = data.message?.toLowerCase() || '';
         const isModeQ = msgLower.includes('mode') || msgLower.includes('sea') || msgLower.includes('ship') || msgLower.includes('transport');
         if (!updatedState.mode && isModeQ && (!data.options || data.options.length === 0)) {
-          addMsg('mode-select', data.message);
+          role = 'mode-select';
         } else {
-          addMsg('clarify', data.message, { clarifyField: data.clarifyField || 'origin', options: data.options || [] });
+          role = 'clarify';
+          extra = { clarifyField: data.clarifyField || 'origin', options: data.options || [] };
         }
       } else if (data.type === 'RESOLVE') {
-        addMsg('resolve', data.message, {
+        role = 'resolve';
+        extra = {
           mode:          data.mode,
           originName:    data.originName,
           destName:      data.destName,
           originOptions: data.options || data.originOptions || [],
           destOptions:   data.destOptions   || [],
           pendingState:  updatedState,
-        });
+        };
       } else if (data.type === 'ASK') {
         const msgLower = data.message?.toLowerCase() || '';
         const isModeQ = !updatedState.mode && (msgLower.includes('mode') || msgLower.includes('transport') || msgLower.includes('sea') || msgLower.includes('air'));
@@ -526,21 +669,23 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
         const isTimeQ = !updatedState.time && (msgLower.includes('time') || msgLower.includes('departure') || msgLower.includes('clock') || msgLower.includes('hour'));
         
         if (isModeQ) {
-          addMsg('mode-select', data.message);
+          role = 'mode-select';
         } else if (isDateQ) {
-          addMsg('date-select', data.message);
+          role = 'date-select';
         } else if (isTimeQ) {
-          addMsg('time-select', data.message);
-        } else {
-          addMsg('ai', data.message);
+          role = 'time-select';
         }
-      } else {
-        addMsg('ai', data.message || "Got it, let's keep going.");
       }
+
+      const aiId = newId + 1;
+      const aiMsg = { id: aiId, role, text: data.message || "Got it, let's keep going.", ...extra };
+      const finalMessages = [...updatedMessages, aiMsg];
+      setMessages(finalMessages);
+
+      await saveStateToServer(updatedState, finalMessages, aiHistory);
     } catch (err) {
-      console.error('[RoutyChatPanel] Chat error details:', err.response || err);
+      console.error('[RoutyChatPanel] Chat error:', err.message);
       
-      // Smart offline fallback
       const nextQ = !stateToSend.mode
         ? 'Which transport mode — Sea, Air, or Road?'
         : !stateToSend.origin
@@ -554,23 +699,26 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
         : 'Almost there — let me calculate your route.';
 
       const msgLower = nextQ.toLowerCase();
-      const isModeQ = !stateToSend.mode && (msgLower.includes('mode') || msgLower.includes('transport') || msgLower.includes('sea') || msgLower.includes('air'));
-      const isDateQ = !stateToSend.date && (msgLower.includes('date') || msgLower.includes('when'));
-      const isTimeQ = !stateToSend.time && (msgLower.includes('time') || msgLower.includes('departure') || msgLower.includes('clock') || msgLower.includes('hour'));
-      
-      if (isModeQ) {
-        addMsg('mode-select', nextQ);
-      } else if (isDateQ) {
-        addMsg('date-select', nextQ);
-      } else if (isTimeQ) {
-        addMsg('time-select', nextQ);
-      } else {
-        addMsg('ai', nextQ);
+      let role = 'ai';
+      if (!stateToSend.mode) {
+        role = 'mode-select';
+      } else if (!stateToSend.date && (msgLower.includes('date') || msgLower.includes('when'))) {
+        role = 'date-select';
+      } else if (!stateToSend.time && (msgLower.includes('time') || msgLower.includes('departure'))) {
+        role = 'time-select';
       }
+
+      const aiId = newId + 1;
+      const aiMsg = { id: aiId, role, text: nextQ };
+      const finalMessages = [...updatedMessages, aiMsg];
+      setMessages(finalMessages);
+
+      await saveStateToServer(stateToSend, finalMessages, newHistory);
     } finally {
       setIsThinking(false);
+      setTimeout(() => inputRef.current?.focus(), 300);
     }
-  }, [input, isThinking, convState, convHistory, addMsg, onRouteGenerated, onClose, onRouteSaved]);
+  }, [input, isThinking, convState, convHistory, messages, onRouteGenerated, onClose, onRouteSaved, saveStateToServer]);
 
   const handlePortSelect = useCallback((portName, field) => {
     const stateOverride = field === 'origin' ? { origin: portName } : { destination: portName };
@@ -589,8 +737,13 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
     const isAir = pendingState?.mode === 'air';
     const origDisplay = isAir ? `${pickedOrigin.name} (${pickedOrigin.iata})` : `${pickedOrigin.name} Port`;
     const destDisplay  = isAir ? `${pickedDest.name} (${pickedDest.iata})`   : `${pickedDest.name} Port`;
-    addMsg('user', `${origDisplay} → ${destDisplay}`);
+    
     setIsThinking(true);
+
+    const newId = messages.length > 0 ? Math.max(...messages.map(m => m.id)) + 1 : 1;
+    const userMsg = { id: newId, role: 'user', text: `${origDisplay} → ${destDisplay}` };
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
 
     const confirmedSource = { lat: pickedOrigin.lat, lon: pickedOrigin.lon, display_name: `${origDisplay}, ${pickedOrigin.country}` };
     const confirmedDest   = { lat: pickedDest.lat,   lon: pickedDest.lon,   display_name: `${destDisplay}, ${pickedDest.country}` };
@@ -602,14 +755,19 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
         confirmedSource,
         confirmedDest,
         history: convHistory,
-      }, { timeout: 30000 });
+      }, { withCredentials: true, timeout: 30000 });
 
       const data = res.data;
       const finalState = { ...pendingState, ...(data.state || {}) };
       setConvState(finalState);
 
+      const aiHistory = [...convHistory, { role: 'ai', text: data.message }];
+      setConvHistory(aiHistory);
+
+      const aiId = newId + 1;
+      let role = 'ai';
       if (data.type === 'COMPLETE' && data.source && data.destination) {
-        addMsg('complete', data.message);
+        role = 'complete';
         const saved = saveRouteToHistory({ state: finalState, source: data.source, destination: data.destination });
         onRouteSaved?.(saved);
         setTimeout(() => {
@@ -621,29 +779,39 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
           });
           onClose?.();
         }, 1200);
-      } else {
-        addMsg('ai', data.message || 'Route confirmed! Calculating...');
       }
+
+      const aiMsg = { id: aiId, role, text: data.message || 'Route confirmed! Calculating...' };
+      const finalMessages = [...updatedMessages, aiMsg];
+      setMessages(finalMessages);
+
+      await saveStateToServer(finalState, finalMessages, aiHistory);
     } catch (err) {
-      console.error('[RoutyChatPanel] Confirm resolve error details:', err.response || err);
-      addMsg('error', 'Could not confirm selection — please try again.');
+      console.error('[RoutyChatPanel] Confirm resolve error:', err.message);
+      const errId = newId + 1;
+      const errMsg = { id: errId, role: 'error', text: 'Could not confirm selection — please try again.' };
+      setMessages([...updatedMessages, errMsg]);
     } finally {
       setIsThinking(false);
     }
-  }, [convHistory, addMsg, onRouteGenerated, onClose, onRouteSaved]);
+  }, [convHistory, messages, onRouteGenerated, onClose, onRouteSaved, saveStateToServer]);
 
   const handleModeSelect = useCallback((mode) => {
     const modeLabels = { sea: 'Sea (maritime)', air: 'Air freight', truck: 'Road' };
     const updatedState = { ...convState, mode };
     setConvState(updatedState);
-    // Feed back to agent
     handleSend(modeLabels[mode] || mode, { mode });
   }, [convState, handleSend]);
 
   const startVoice = useCallback(() => {
     const SR = window.webkitSpeechRecognition || window.SpeechRecognition;
-    if (!SR) { addMsg('error', 'Speech recognition not supported in this browser.'); return; }
+    if (!SR) {
+      const newId = messages.length > 0 ? Math.max(...messages.map(m => m.id)) + 1 : 1;
+      setMessages(msgs => [...msgs, { id: newId, role: 'error', text: 'Speech recognition not supported in this browser.' }]);
+      return;
+    }
     if (isListening) { srRef.current?.stop(); return; }
+    
     const sr = new SR();
     srRef.current = sr;
     sr.continuous = false;
@@ -659,7 +827,15 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
           const t = e.results[i][0].transcript;
           setLiveTranscript('');
           setInput('');
-          handleSend(t);
+          
+          // Voice Mode Confirmation dialog intercept step
+          const extracted = localExtractFromTranscript(t);
+          setVoiceConfirmation({
+            transcript: t,
+            origin: extracted?.origin || 'Not detected',
+            destination: extracted?.destination || 'Not detected',
+            mode: extracted?.mode || 'Not detected',
+          });
         } else {
           interim += e.results[i][0].transcript;
         }
@@ -668,14 +844,27 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
       setInput(interim);
     };
     sr.start();
-  }, [isListening, handleSend, addMsg]);
+  }, [isListening, messages]);
 
-  const handleReset = useCallback(() => {
-    const initMode = MODE_MAP[freightMode] || 'sea';
-    setConvState({ origin: null, destination: null, mode: initMode, date: null, time: null, cargo: null, priority: null, confirmedSource: null, confirmedDest: null });
+  const handleReset = useCallback(async () => {
+    const cleared = { origin: null, destination: null, mode: null, date: null, time: null, cargo: null, priority: null, confirmedSource: null, confirmedDest: null, currentStep: 'mode' };
+    setConvState(cleared);
     setConvHistory([]);
     setMessages([WELCOME]);
-  }, [freightMode]);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setVoiceConfirmation(null);
+
+    try {
+      await axios.post(`${BASE_URL}/api/ai/agent/chat`, {
+        message: 'reset',
+        state: cleared,
+        history: [],
+      }, { withCredentials: true });
+    } catch (err) {
+      console.warn('Failed to reset agent state in DB:', err.message);
+    }
+  }, []);
 
   return (
     <AnimatePresence>
@@ -696,22 +885,80 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="absolute right-0 top-0 bottom-0 z-[4010] flex flex-col animate-fade-in"
-            style={{ width: 360, background: '#0B1220', borderLeft: '1px solid var(--border)' }}
+            className="absolute right-0 top-0 bottom-0 z-[4010] flex flex-col"
+            style={{ width: 360, background: '#0B1220', borderLeft: '1px solid rgba(148,163,184,0.12)' }}
             onClick={e => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(0,194,255,0.14)' }}>
-                  <Bot size={15} style={{ color: 'var(--accent)' }} />
+            {/* Voice Confirmation Dialog Overlay */}
+            {voiceConfirmation && (
+              <div className="absolute inset-0 bg-[#0B1220]/95 backdrop-blur-md z-[4050] p-4 flex flex-col justify-center animate-fade-in">
+                <div className="bg-[#111A2E] border border-cyan-500/30 rounded-2xl p-5 max-w-[90%] mx-auto space-y-4 shadow-xl">
+                  <div className="flex items-center gap-2 text-cyan-400">
+                    <Mic size={18} className="animate-pulse" />
+                    <h4 className="text-xs font-black uppercase tracking-wider">Confirm Voice Transcript</h4>
+                  </div>
+                  
+                  <div className="bg-[#0B1220] p-3 rounded-lg border border-slate-800">
+                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">What I heard:</p>
+                    <p className="text-xs text-slate-200 italic font-medium leading-relaxed">"{voiceConfirmation.transcript}"</p>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Extracted Details:</p>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] font-semibold text-slate-300">
+                      <div className="bg-[#0B1220] px-3 py-2 rounded border border-slate-850">
+                        <span className="text-slate-500 text-[9px] block">Origin</span>
+                        {voiceConfirmation.origin}
+                      </div>
+                      <div className="bg-[#0B1220] px-3 py-2 rounded border border-slate-850">
+                        <span className="text-slate-500 text-[9px] block">Destination</span>
+                        {voiceConfirmation.destination}
+                      </div>
+                      <div className="bg-[#0B1220] px-3 py-2 rounded border border-slate-855 col-span-2">
+                        <span className="text-slate-500 text-[9px] block">Transport Mode</span>
+                        <span className="capitalize">{voiceConfirmation.mode}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2.5 pt-2">
+                    <button
+                      onClick={() => {
+                        const textToSend = voiceConfirmation.transcript;
+                        const stateOverride = {};
+                        if (voiceConfirmation.mode !== 'Not detected') stateOverride.mode = voiceConfirmation.mode;
+                        if (voiceConfirmation.origin !== 'Not detected') stateOverride.origin = voiceConfirmation.origin;
+                        if (voiceConfirmation.destination !== 'Not detected') stateOverride.destination = voiceConfirmation.destination;
+                        setVoiceConfirmation(null);
+                        handleSend(textToSend, stateOverride);
+                      }}
+                      className="flex-1 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-xl text-[10px] font-black uppercase tracking-wider text-slate-900 shadow-md active:scale-95 transition-all text-center"
+                    >
+                      Confirm & Plan
+                    </button>
+                    <button
+                      onClick={() => setVoiceConfirmation(null)}
+                      className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-[10px] font-black uppercase tracking-wider text-slate-300 border border-slate-700 active:scale-95 transition-all text-center"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Routy AI</p>
+              </div>
+            )}
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(148,163,184,0.12)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-cyan-500/10 border border-cyan-500/20">
+                  <Bot size={15} className="text-cyan-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-white">Routy AI</p>
                   <div className="flex items-center gap-1.5">
-                    <div className={`w-1.5 h-1.5 rounded-full ${isThinking ? 'animate-pulse' : 'animate-pulse'}`}
+                    <div className={`w-1.5 h-1.5 rounded-full ${isThinking || isListening ? 'animate-pulse' : ''}`}
                       style={{ background: isThinking ? '#F59E0B' : isListening ? '#EF4444' : '#22C55E' }} />
-                    <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
                       {isThinking ? 'Thinking…' : isListening ? 'Listening…' : 'Online'}
                     </span>
                   </div>
@@ -719,17 +966,11 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={handleReset} title="Reset conversation"
-                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
-                  style={{ color: '#6B7280' }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#F9FAFB'}
-                  onMouseLeave={e => e.currentTarget.style.color = '#6B7280'}>
+                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-800 hover:text-white transition-all text-slate-400">
                   <RotateCcw size={13} />
                 </button>
                 <button onClick={onClose}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
-                  style={{ color: '#6B7280' }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#F9FAFB'}
-                  onMouseLeave={e => e.currentTarget.style.color = '#6B7280'}>
+                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-800 hover:text-white transition-all text-slate-400">
                   <X size={14} />
                 </button>
               </div>
@@ -772,49 +1013,69 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
 
             {/* Quick suggestions (only show when no conversation yet) */}
             {messages.length <= 1 && (
-              <div className="px-4 py-2 flex gap-2 overflow-x-auto flex-shrink-0" style={{ borderTop: '1px solid #374151' }}>
+              <div className="px-4 py-2.5 flex gap-2 overflow-x-auto flex-shrink-0" style={{ borderTop: '1px solid rgba(148,163,184,0.12)' }}>
                 {SUGGESTIONS.map((s, i) => (
                   <button key={i} onClick={() => handleSend(s)}
-                    className="whitespace-nowrap px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-wide transition-all flex-shrink-0"
-                    style={{ background: '#1F2937', color: '#6B7280', border: '1px solid #374151' }}
-                    onMouseEnter={e => { e.currentTarget.style.color = '#3B82F6'; e.currentTarget.style.borderColor = '#3B82F6'; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = '#6B7280'; e.currentTarget.style.borderColor = '#374151'; }}>
+                    className="whitespace-nowrap px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wide border bg-[#1E293B]/60 border-slate-800/80 hover:border-cyan-500/40 hover:text-cyan-400 transition-all text-slate-400 flex-shrink-0">
                     {s}
                   </button>
                 ))}
               </div>
             )}
 
-            {/* Voice listening bar */}
+            {/* Voice listening status bar */}
             <AnimatePresence>
               {isListening && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="px-4 py-2 flex items-center gap-3 flex-shrink-0"
-                  style={{ borderTop: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.05)' }}>
+                  className="px-4 py-2 flex items-center gap-3 flex-shrink-0 border-t border-red-500/20 bg-red-950/10">
                   <div className="flex gap-0.5 items-center">
                     {[0.4, 0.7, 1, 0.8, 0.5, 0.9, 0.6].map((h, i) => (
-                      <div key={i} className="w-0.5 rounded-full animate-pulse"
-                        style={{ height: `${h * 20}px`, background: '#EF4444', animationDelay: `${i * 0.08}s` }} />
+                      <div key={i} className="w-0.5 rounded-full bg-red-500"
+                        style={{ height: `${h * 16}px`, animation: 'pulse 1s infinite', animationDelay: `${i * 0.08}s` }} />
                     ))}
                   </div>
-                  <span className="text-[10px] font-bold" style={{ color: '#FCA5A5' }}>Listening — speak now</span>
+                  <span className="text-[10px] font-bold text-red-300">Listening — speak route description</span>
                 </motion.div>
               )}
             </AnimatePresence>
 
+            {/* Autocomplete Suggestions Picker */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="mx-3 mb-2 bg-[#111A2E] border border-slate-800 rounded-xl max-h-[160px] overflow-y-auto overflow-x-hidden shadow-2xl relative z-[4020] divide-y divide-slate-800/40 animate-fade-in">
+                {suggestions.map((place, idx) => {
+                  const displayName = place.display_name || place.name || 'Unknown Location';
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setInput(displayName);
+                        setSuggestions([]);
+                        setShowSuggestions(false);
+                        inputRef.current?.focus();
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 hover:bg-slate-800/50 text-[11px] text-slate-300 transition-colors flex items-start gap-2"
+                    >
+                      <MapPin size={11} className="text-cyan-400 mt-0.5 flex-shrink-0" />
+                      <span className="truncate">{displayName}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Input row */}
             <div className="p-3 flex-shrink-0" style={{ borderTop: '1px solid rgba(148,163,184,0.12)' }}>
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-2xl transition-all ${isListening ? 'border-red-500' : 'border-transparent focus-within:border-cyan-400'}`}
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-2xl transition-all ${isListening ? 'border-red-500' : 'border-transparent focus-within:border-cyan-500'}`}
                 style={{ background: '#0B1220', border: `2px solid ${isListening ? '#EF4444' : 'rgba(148,163,184,0.12)'}` }}>
                 <input
                   ref={inputRef}
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !isThinking) { e.preventDefault(); handleSend(); } }}
-                  placeholder={isListening ? 'Listening…' : isThinking ? 'Routy is thinking…' : 'Type your message…'}
+                  placeholder={isListening ? 'Listening…' : isThinking ? 'Routy is sifting…' : 'Type or search coordinates…'}
                   disabled={isListening || isThinking}
                   className="flex-1 bg-transparent outline-none text-xs font-semibold"
                   style={{ color: '#F9FAFB', caretColor: '#00C2FF' }}
@@ -848,8 +1109,8 @@ const RoutyChatPanel = ({ isOpen, onClose, onRouteGenerated, freightMode = 'ship
                     : <Send size={12} />}
                 </button>
               </div>
-              <p className="text-center text-[9px] mt-1.5 font-medium" style={{ color: '#374151' }}>
-                Powered by Gemini · RouteGuardian AI
+              <p className="text-center text-[9px] mt-1.5 font-medium text-slate-500">
+                RouteGuardian Conversational Engine
               </p>
             </div>
           </motion.div>

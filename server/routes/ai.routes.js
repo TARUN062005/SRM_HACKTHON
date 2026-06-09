@@ -10,6 +10,8 @@ router.post('/warmup', aiRouteController.warmup);
 router.post('/route/optimize', aiRouteController.optimizeRoute);
 router.post('/intent', aiAgentController.processAIIntent);
 router.post('/agent/chat', aiAgentController.agentChat);
+router.get('/agent/state', aiAgentController.getAgentState);
+router.post('/agent/state', aiAgentController.saveAgentState);
 router.get('/directions', aiRouteController.getDirections);
 router.post('/risk/analyze', aiRouteController.analyzeRisk);
 router.post('/shipment', aiRouteController.createShipment);

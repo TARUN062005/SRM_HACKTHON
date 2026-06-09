@@ -43,30 +43,10 @@ const SettingsPage = () => {
   // Theme Settings
   const [selectedTheme, setSelectedTheme] = useState('dark');
 
-  // Security Form States - Password Update
-  const [passwords, setPasswords] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-  const [showPass, setShowPass] = useState({
-    current: false,
-    new: false,
-    confirm: false,
-  });
-  const [passLoading, setPassLoading] = useState(false);
-
-  // 2FA Mock State
-  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
-  const [verificationCode, setVerificationCode] = useState('');
-  const [is2FASetupActive, setIs2FASetupActive] = useState(false);
-
-  // Active Sessions Mock State
-  const [sessions, setSessions] = useState([
-    { id: 1, current: true,  device: 'Chrome on Windows 11', ip: '192.168.1.14', location: 'Mumbai, IN', date: 'Active now', isMobile: false },
-    { id: 2, current: false, device: 'Safari on iPhone 15 Pro', ip: '172.56.21.98', location: 'New York, USA', date: '2 hours ago', isMobile: true },
-    { id: 3, current: false, device: 'Firefox on macOS', ip: '84.92.115.42', location: 'London, UK', date: '3 days ago', isMobile: false },
-  ]);
+  // Delete account confirmation modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Sync state if user changes
   useEffect(() => {
@@ -157,77 +137,55 @@ const SettingsPage = () => {
     }
   };
 
-  // Simulated Password Change
-  const handlePasswordUpdate = (e) => {
-    e.preventDefault();
-    if (!passwords.currentPassword) {
-      toast.error('Current password is required');
-      return;
-    }
-    if (passwords.newPassword.length < 6) {
-      toast.error('New password must be at least 6 characters long');
-      return;
-    }
-    if (passwords.newPassword !== passwords.confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-    setPassLoading(true);
-    setTimeout(() => {
-      setPassLoading(false);
-      toast.success('Password updated successfully');
-      setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    }, 1200);
-  };
-
-  // Simulated 2FA Confirmation
-  const confirm2FASetup = () => {
-    if (verificationCode.length !== 6 || isNaN(Number(verificationCode))) {
-      toast.error('Please enter a valid 6-digit confirmation code');
-      return;
-    }
-    setIs2FAEnabled(true);
-    setIs2FASetupActive(false);
-    setVerificationCode('');
-    toast.success('Two-factor authentication successfully enabled!');
-  };
-
-  const handle2FAToggle = () => {
-    if (is2FAEnabled) {
-      if (window.confirm('Are you sure you want to disable 2FA? This will decrease account security.')) {
-        setIs2FAEnabled(false);
-        toast.success('2FA disabled');
-      }
-    } else {
-      setIs2FASetupActive(true);
-    }
-  };
-
-  // Revoke device session
-  const revokeSession = (id, deviceName) => {
-    setSessions(prev => prev.filter(s => s.id !== id));
-    toast.success(`Session for ${deviceName} has been revoked`);
-  };
-
   // Suspend or delete account
   const handleAccountAction = async (type) => {
-    const msg = type === 'permanent'
-      ? 'This will permanently delete your account and all data. This cannot be undone!'
-      : 'This will suspend your account. You can restore access later.';
+    if (type === 'permanent') {
+      setIsDeleteModalOpen(true);
+      setDeleteConfirmInput('');
+      return;
+    }
+    const msg = 'This will suspend your account. Disables your credentials temporarily. Your data remains stored but logins will block until reactivation.';
     if (!window.confirm(msg)) return;
     try {
       await axios.delete(`${BASE_URL}/api/user/account?type=${type}`, { withCredentials: true });
-      toast.success(type === 'permanent' ? 'Account deleted' : 'Account suspended');
+      toast.success('Account suspended successfully.');
       logout();
     } catch {
       toast.error('Action failed. Please try again.');
     }
   };
 
-  // Simulated Copy to Clipboard
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Key copied to clipboard');
+  const handleConfirmDeleteAccount = async () => {
+    if (deleteConfirmInput !== 'DELETE') {
+      toast.error('Please type DELETE to confirm.');
+      return;
+    }
+    setDeleteLoading(true);
+    try {
+      await axios.delete(`${BASE_URL}/api/user/account?type=permanent`, { withCredentials: true });
+      toast.success('Account permanently deleted.');
+      setIsDeleteModalOpen(false);
+      logout();
+    } catch {
+      toast.error('Failed to delete account. Please try again.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleLogoutAllSessions = async () => {
+    if (!window.confirm('Are you sure you want to sign out of all active sessions? You will be logged out of this device as well.')) return;
+    try {
+      const res = await axios.post(`${BASE_URL}/api/user/logout-all`, {}, { withCredentials: true });
+      if (res.data?.success) {
+        toast.success('Successfully logged out of all sessions.');
+        logout();
+      } else {
+        toast.error(res.data?.message || 'Failed to logout all sessions.');
+      }
+    } catch (err) {
+      toast.error('Failed to logout all sessions.');
+    }
   };
 
   // Theme card action handlers
@@ -683,330 +641,72 @@ const SettingsPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.15 }}
-                className="space-y-6"
+                className="space-y-6 animate-fade-in"
               >
-                {/* Security Score Header Card */}
-                <div className="bg-[#101826] border border-white/5 rounded-2xl p-6 sm:p-8 shadow-xl">
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Shield className="text-[#00C2FF]" size={18} />
-                    Account Security Dashboard
-                  </h2>
-                  <p className="text-sm text-[#9AA7B5] mt-1">
-                    Keep your account secure by monitoring metrics, configuring 2FA, and reviewing active logins.
-                  </p>
-
-                  {/* Security Stats Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                    <div className="bg-[#0B1220] border border-white/5 rounded-xl p-4 flex flex-col justify-between">
-                      <span className="text-xs font-bold text-[#9AA7B5]">Security Rating</span>
-                      <div className="flex items-baseline gap-1.5 mt-2">
-                        <span className="text-2xl font-black text-[#00D39A]">A+ Grade</span>
-                      </div>
-                      <div className="w-full bg-white/5 h-1.5 rounded-full mt-3 overflow-hidden">
-                        <div className="bg-[#00D39A] h-full rounded-full" style={{ width: '95%' }} />
-                      </div>
-                    </div>
-
-                    <div className="bg-[#0B1220] border border-white/5 rounded-xl p-4 flex flex-col justify-between">
-                      <span className="text-xs font-bold text-[#9AA7B5]">Two-Factor (2FA)</span>
-                      <span className={`text-xl font-bold mt-2 ${is2FAEnabled ? 'text-[#00D39A]' : 'text-[#FFB547]'}`}>
-                        {is2FAEnabled ? 'Active' : 'Unconfigured'}
-                      </span>
-                      <span className="text-[10px] text-[#7C8A99] mt-3">
-                        {is2FAEnabled ? 'Device linked successfully' : 'Requires verification setup'}
-                      </span>
-                    </div>
-
-                    <div className="bg-[#0B1220] border border-white/5 rounded-xl p-4 flex flex-col justify-between">
-                      <span className="text-xs font-bold text-[#9AA7B5]">Email Connection</span>
-                      <span className="text-xl font-bold mt-2 text-white truncate max-w-full">
-                        {user?.email || '—'}
-                      </span>
-                      <div className="mt-3 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#00D39A]" />
-                        <span className="text-[10px] text-[#00D39A] font-bold uppercase tracking-wider">Verified</span>
-                      </div>
-                    </div>
+                {/* Real User Credentials Dashboard */}
+                <div className="bg-[#101826] border border-white/5 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
+                  <div>
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                      <Shield className="text-[#00C2FF]" size={18} />
+                      Identity & Security Parameters
+                    </h2>
+                    <p className="text-sm text-[#9AA7B5] mt-1">
+                      Review your terminal credentials and manage session validation.
+                    </p>
                   </div>
-                </div>
 
-                {/* Grid split for Password change & 2FA toggle */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  
-                  {/* Change Password Panel */}
-                  <div className="bg-[#101826] border border-white/5 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+                  {/* Dynamic User Profile parameters */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    {user?.email && (
+                      <div className="bg-[#0B1220] border border-white/5 rounded-xl p-4 flex flex-col justify-between">
+                        <span className="text-xs font-bold text-[#9AA7B5]">Account Email</span>
+                        <span className="text-sm font-bold text-white mt-1 truncate">{user.email}</span>
+                      </div>
+                    )}
+
+                    {user?.role && (
+                      <div className="bg-[#0B1220] border border-white/5 rounded-xl p-4 flex flex-col justify-between">
+                        <span className="text-xs font-bold text-[#9AA7B5]">Account Clearance Type</span>
+                        <span className="text-sm font-bold text-[#00C2FF] mt-1 capitalize">
+                          {user.role === 'ADMIN' ? 'Administrator' : 'Standard Operator'}
+                        </span>
+                      </div>
+                    )}
+
+                    {user?.createdAt && (
+                      <div className="bg-[#0B1220] border border-white/5 rounded-xl p-4 flex flex-col justify-between">
+                        <span className="text-xs font-bold text-[#9AA7B5]">Node Provisioned Date</span>
+                        <span className="text-sm font-bold text-white mt-1">
+                          {new Date(user.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                        </span>
+                      </div>
+                    )}
+
+                    {user?.lastLogin && (
+                      <div className="bg-[#0B1220] border border-white/5 rounded-xl p-4 flex flex-col justify-between">
+                        <span className="text-xs font-bold text-[#9AA7B5]">Last Terminal Handshake</span>
+                        <span className="text-sm font-bold text-slate-300 mt-1">
+                          {new Date(user.lastLogin).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Sign Out All Sessions */}
+                  <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                        <Key size={15} className="text-[#00C2FF]" /> Update Password
-                      </h3>
+                      <h4 className="text-sm font-bold text-white">Sign Out All Sessions</h4>
                       <p className="text-xs text-[#9AA7B5] mt-1">
-                        Change your password regularly to secure access parameters.
+                        Log out from all other active web sessions. This will invalidate all active session tokens immediately.
                       </p>
-
-                      <form onSubmit={handlePasswordUpdate} className="space-y-4 mt-6">
-                        {/* Current Password */}
-                        <div className="space-y-1">
-                          <label className="block text-[10px] font-bold text-[#9AA7B5] uppercase">Current Password</label>
-                          <div className="relative">
-                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7C8A99]" size={14} />
-                            <input
-                              type={showPass.current ? 'text' : 'password'}
-                              required
-                              value={passwords.currentPassword}
-                              onChange={e => setPasswords({ ...passwords, currentPassword: e.target.value })}
-                              placeholder="••••••••"
-                              className="w-full pl-10 pr-10 py-2 bg-[#0B1220] border border-white/5 rounded-xl text-sm font-medium text-white placeholder-[#7C8A99] focus:outline-none focus:border-[#00C2FF] transition-all"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPass({ ...showPass, current: !showPass.current })}
-                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#7C8A99] hover:text-white"
-                            >
-                              {showPass.current ? <EyeOff size={14} /> : <Eye size={14} />}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* New Password */}
-                        <div className="space-y-1">
-                          <label className="block text-[10px] font-bold text-[#9AA7B5] uppercase">New Password</label>
-                          <div className="relative">
-                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7C8A99]" size={14} />
-                            <input
-                              type={showPass.new ? 'text' : 'password'}
-                              required
-                              value={passwords.newPassword}
-                              onChange={e => setPasswords({ ...passwords, newPassword: e.target.value })}
-                              placeholder="••••••••"
-                              className="w-full pl-10 pr-10 py-2 bg-[#0B1220] border border-white/5 rounded-xl text-sm font-medium text-white placeholder-[#7C8A99] focus:outline-none focus:border-[#00C2FF] transition-all"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPass({ ...showPass, new: !showPass.new })}
-                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#7C8A99] hover:text-white"
-                            >
-                              {showPass.new ? <EyeOff size={14} /> : <Eye size={14} />}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Confirm Password */}
-                        <div className="space-y-1">
-                          <label className="block text-[10px] font-bold text-[#9AA7B5] uppercase">Confirm New Password</label>
-                          <div className="relative">
-                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7C8A99]" size={14} />
-                            <input
-                              type={showPass.confirm ? 'text' : 'password'}
-                              required
-                              value={passwords.confirmPassword}
-                              onChange={e => setPasswords({ ...passwords, confirmPassword: e.target.value })}
-                              placeholder="••••••••"
-                              className="w-full pl-10 pr-10 py-2 bg-[#0B1220] border border-white/5 rounded-xl text-sm font-medium text-white placeholder-[#7C8A99] focus:outline-none focus:border-[#00C2FF] transition-all"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPass({ ...showPass, confirm: !showPass.confirm })}
-                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#7C8A99] hover:text-white"
-                            >
-                              {showPass.confirm ? <EyeOff size={14} /> : <Eye size={14} />}
-                            </button>
-                          </div>
-                        </div>
-
-                        <button
-                          type="submit"
-                          disabled={passLoading}
-                          className="w-full py-2 rounded-xl text-sm font-bold bg-[#00C2FF] hover:bg-[#26d0ff] text-[#041019] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
-                        >
-                          {passLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                          Change Password
-                        </button>
-                      </form>
                     </div>
-                  </div>
-
-                  {/* Two-Factor Panel */}
-                  <div className="bg-[#101826] border border-white/5 rounded-2xl p-6 shadow-xl flex flex-col">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                          <QrCode size={15} className="text-[#00C2FF]" /> Two-Factor Authentication
-                        </h3>
-                        <p className="text-xs text-[#9AA7B5] mt-1">
-                          Protect account entry logs with an OTP passcode.
-                        </p>
-                      </div>
-
-                      {/* Custom Toggle Switch */}
-                      <button
-                        type="button"
-                        onClick={handle2FAToggle}
-                        className={`w-11 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none cursor-pointer flex items-center ${
-                          is2FAEnabled ? 'bg-[#00D39A] justify-end' : 'bg-white/10 justify-start'
-                        }`}
-                      >
-                        <motion.div
-                          layout
-                          className="w-4 h-4 bg-[#081120] rounded-full shadow-md"
-                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                        />
-                      </button>
-                    </div>
-
-                    {/* Setup Details Sub-Menu */}
-                    <div className="flex-1 mt-6 flex flex-col justify-center">
-                      <AnimatePresence mode="wait">
-                        {is2FASetupActive ? (
-                          <motion.div
-                            key="setup"
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="space-y-4"
-                          >
-                            <div className="border border-white/5 bg-[#0B1220] rounded-xl p-4 flex gap-4 items-center">
-                              {/* QR Code Sim representation */}
-                              <div className="w-16 h-16 bg-white rounded flex items-center justify-center p-1.5 flex-shrink-0">
-                                <QrCode size={56} className="text-slate-900" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <span className="text-[10px] font-bold text-[#9AA7B5] uppercase">Secret Setup Key</span>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-xs font-mono text-white truncate">RG-7E2A-99F1-B402</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => copyToClipboard('RG-7E2A-99F1-B402')}
-                                    className="p-1 hover:bg-white/5 text-[#7C8A99] hover:text-white rounded transition-colors"
-                                  >
-                                    <Copy size={11} />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Setup Verification Inputs */}
-                            <div className="space-y-2">
-                              <label className="block text-[10px] font-bold text-[#9AA7B5] uppercase">6-Digit Authenticator Code</label>
-                              <div className="flex gap-3">
-                                <input
-                                  type="text"
-                                  maxLength={6}
-                                  value={verificationCode}
-                                  onChange={e => setVerificationCode(e.target.value)}
-                                  placeholder="000000"
-                                  className="flex-1 px-4 py-2 bg-[#0B1220] border border-white/5 rounded-xl text-center text-sm font-mono tracking-[0.25em] focus:outline-none focus:border-[#00C2FF]"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={confirm2FASetup}
-                                  className="px-4 bg-[#00C2FF] hover:bg-[#26d0ff] text-[#041019] font-bold text-xs rounded-xl hover:shadow-lg transition-all cursor-pointer"
-                                >
-                                  Verify
-                                </button>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => setIs2FASetupActive(false)}
-                              className="text-center w-full text-[10px] text-[#7C8A99] hover:text-white uppercase tracking-wider font-bold transition-all pt-2"
-                            >
-                              Cancel Setup
-                            </button>
-                          </motion.div>
-                        ) : (
-                          <motion.div
-                            key="idle"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="text-center py-6 px-4 bg-[#0B1220] border border-white/5 rounded-xl flex flex-col items-center"
-                          >
-                            {is2FAEnabled ? (
-                              <>
-                                <CheckCircle size={28} className="text-[#00D39A] mb-2" />
-                                <h4 className="text-xs font-bold text-white">2FA Shield Active</h4>
-                                <p className="text-[10px] text-[#9AA7B5] mt-1">
-                                  Your account requires verification code logs upon new workstation sign-ins.
-                                </p>
-                              </>
-                            ) : (
-                              <>
-                                <Shield size={28} className="text-[#FFB547] mb-2" />
-                                <h4 className="text-xs font-bold text-white">Enhance Your Security</h4>
-                                <p className="text-[10px] text-[#9AA7B5] mt-1 max-w-xs">
-                                  Link Google Authenticator or Authy using QR codes to verify login actions.
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={() => setIs2FASetupActive(true)}
-                                  className="mt-4 px-4 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 hover:border-[#00C2FF]/30 text-xs font-semibold tracking-wide transition-all cursor-pointer"
-                                >
-                                  Configure 2FA Setup
-                                </button>
-                              </>
-                            )}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* Active Sessions Panel */}
-                <div className="bg-[#101826] border border-white/5 rounded-2xl p-6 sm:p-8 shadow-xl">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-2">
-                    <Laptop size={15} className="text-[#00C2FF]" /> Active Logged-In Sessions
-                  </h3>
-                  <p className="text-xs text-[#9AA7B5]">
-                    Review the browsers and devices currently signed into your logistics terminal, and revoke session tokens as needed.
-                  </p>
-
-                  <div className="space-y-3 mt-6">
-                    <AnimatePresence>
-                      {sessions.map((sess) => (
-                        <motion.div
-                          key={sess.id}
-                          layout
-                          exit={{ opacity: 0, x: -30, transition: { duration: 0.2 } }}
-                          className="bg-[#0B1220] border border-white/5 rounded-xl p-4 flex items-center justify-between gap-4"
-                        >
-                          <div className="flex items-center gap-3.5 min-w-0">
-                            <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center flex-shrink-0">
-                              {sess.isMobile ? (
-                                <Smartphone size={16} className="text-[#9AA7B5]" />
-                              ) : (
-                                <Laptop size={16} className="text-[#9AA7B5]" />
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="text-xs font-bold text-white truncate">{sess.device}</p>
-                                {sess.current && (
-                                  <span className="text-[8px] font-black uppercase bg-[#00C2FF]/10 text-[#00C2FF] border border-[#00C2FF]/20 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                                    Current
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[10px] text-[#7C8A99] mt-0.5">
-                                IP: {sess.ip} • {sess.location} • {sess.date}
-                              </p>
-                            </div>
-                          </div>
-
-                          {!sess.current && (
-                            <button
-                              type="button"
-                              onClick={() => revokeSession(sess.id, sess.device)}
-                              className="px-3 py-1.5 bg-transparent border border-red-500/10 hover:border-red-500/20 text-red-400 hover:bg-red-500/5 text-xs font-bold rounded-lg transition-all flex-shrink-0 cursor-pointer"
-                            >
-                              Revoke
-                            </button>
-                          )}
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
+                    <button
+                      type="button"
+                      onClick={handleLogoutAllSessions}
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold bg-white/5 border border-white/10 hover:border-[#00C2FF]/30 text-white hover:bg-white/10 transition-all flex-shrink-0 cursor-pointer text-center"
+                    >
+                      Terminate Sessions
+                    </button>
                   </div>
                 </div>
 
@@ -1029,7 +729,7 @@ const SettingsPage = () => {
                       <div>
                         <h4 className="text-xs font-bold text-white">Suspend Account Profile</h4>
                         <p className="text-[11px] text-[#9AA7B5] mt-0.5">
-                          Disable your account credentials temporarily. Your data remains stored but logins will block until reactivation.
+                          Disables your account credentials temporarily. Your data remains stored but logins will block until reactivation.
                         </p>
                       </div>
                       <button
@@ -1064,9 +764,60 @@ const SettingsPage = () => {
                   </div>
                 </div>
 
+                {/* Deletion Confirmation Modal */}
+                {isDeleteModalOpen && (
+                  <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <div 
+                      className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+                      onClick={() => setIsDeleteModalOpen(false)}
+                    />
+                    {/* Modal container */}
+                    <div className="relative w-full max-w-md p-6 rounded-[24px] bg-[#0E1624] border border-red-500/20 shadow-2xl text-white z-10 space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-[#FF5C7A]">
+                          <AlertCircle size={20} />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold">Delete Account Node</h3>
+                          <p className="text-xs text-[#9AA7B5] mt-0.5">Destructive and permanent operation.</p>
+                        </div>
+                      </div>
+                      <p className="text-sm text-[#9AA7B5] leading-relaxed">
+                        This action cannot be undone. All saved shipping vectors, history, and clearances will be completely erased.
+                      </p>
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-black uppercase tracking-wider text-[#9AA7B5]">
+                          Type <span className="text-red-400 font-extrabold">DELETE</span> to confirm
+                        </label>
+                        <input
+                          type="text"
+                          value={deleteConfirmInput}
+                          onChange={e => setDeleteConfirmInput(e.target.value)}
+                          placeholder="DELETE"
+                          className="w-full px-4 py-2.5 bg-[#081120] border border-white/5 rounded-xl text-sm font-semibold text-white placeholder-[#7C8A99] focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 transition-all text-center"
+                        />
+                      </div>
+                      <div className="flex items-center justify-end gap-2.5 pt-2">
+                        <button
+                          onClick={() => setIsDeleteModalOpen(false)}
+                          className="px-4 py-2 bg-transparent border border-white/5 rounded-xl text-xs font-bold text-white hover:border-white/10 transition-all cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleConfirmDeleteAccount}
+                          disabled={deleteConfirmInput !== 'DELETE' || deleteLoading}
+                          className="px-5 py-2 bg-[#FF5C7A] hover:bg-[#ff7a93] disabled:opacity-35 text-[#081120] font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md shadow-red-500/10"
+                        >
+                          {deleteLoading ? 'Deleting...' : 'Confirm Destruction'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
-
           </AnimatePresence>
         </div>
 

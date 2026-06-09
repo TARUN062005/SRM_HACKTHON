@@ -50,8 +50,28 @@ export const AuthProvider = ({ children }) => {
     } catch {
       // Local sign-out should still proceed even if backend logout fails.
     }
+
+    // Clear accessible document cookies
+    try {
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+    } catch (e) {
+      console.warn("Failed to clear document cookies:", e);
+    }
+
+    // Clear all storage
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      console.warn("Failed to clear storage:", e);
+    }
+
     clearAuthData();
-    window.location.href = window.location.origin + '/';
+    window.location.replace(window.location.origin + '/');
   }, [clearAuthData]);
 
   useEffect(() => {

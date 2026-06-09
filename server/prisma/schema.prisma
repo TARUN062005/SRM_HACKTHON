@@ -112,9 +112,9 @@ model User {
   authProvider AuthProvider @default(LOCAL)
 
   // Social IDs
-  googleId   String? @unique
-  githubId   String? @unique
-  facebookId String? @unique
+  googleId   String?
+  githubId   String?
+  facebookId String?
   twitterId  String?
 
   // Profile
@@ -506,4 +506,23 @@ model Shipment {
 
   @@index([routeHash])
 }
+
+model ChatState {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String   @unique @db.ObjectId
+  mode            String?
+  origin          String?
+  destination     String?
+  cargo           String?
+  date            String?
+  time            String?
+  priority        String?
+  confirmedSource Json?
+  confirmedDest   Json?
+  currentStep     String?
+  history         Json?     // stores parsed history objects
+  messages        Json?     // stores Chat bubble array
+  updatedAt       DateTime @updatedAt
+}
+
 

@@ -95,9 +95,9 @@ const MyRoutesSection = ({ routes, onLoad, onClear, isExpanded, onToggle }) => {
 
   return (
     <div className="px-3 pb-3" style={{ borderBottom: `1px solid ${SURFACE_BORDER}` }}>
-      <button
+      <div
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-1 py-2 transition-all"
+        className="w-full flex items-center justify-between px-1 py-2 transition-all cursor-pointer select-none"
         onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
         onMouseLeave={e => e.currentTarget.style.opacity = '1'}
       >
@@ -120,7 +120,7 @@ const MyRoutesSection = ({ routes, onLoad, onClear, isExpanded, onToggle }) => {
             ? <ChevronUp size={12} style={{ color: '#6B7280' }} />
             : <ChevronDown size={12} style={{ color: '#6B7280' }} />}
         </div>
-      </button>
+      </div>
 
       <AnimatePresence>
         {isExpanded && (
@@ -257,6 +257,7 @@ const Dashboard = () => {
 
   const activeRoute    = allRoutes[activeRouteIndex] || allRoutes[0];
   const intel          = activeRoute?.intelligence;
+  const currentReport  = intel?.aiReport || parsedOriginalReport;
 
   // Load route history from the backend Prisma store!
   useEffect(() => {
@@ -664,204 +665,10 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* 2. AI ROUTE INTELLIGENCE REPORT */}
-                <div className="p-4 flex flex-col gap-3.5" style={{ borderBottom: `1px solid ${SURFACE_BORDER}` }}>
-                  <div className="flex justify-between items-center">
-                    <p className="text-[9px] font-black uppercase tracking-widest leading-none text-cyan-400">
-                      2. AI Route Intelligence Report
-                    </p>
-                    {originalAnalysis && (
-                      <span className="text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-900/35 text-cyan-400 border border-cyan-800/50">
-                        Replay Mode
-                      </span>
-                    )}
-                  </div>
-
-                  {intel?.loading ? (
-                    <div className="flex items-center justify-center py-4 gap-2">
-                      <div className="w-4 h-4 rounded-full border-2 border-t-transparent border-cyan-400 animate-spin" />
-                      <span className="text-xs text-slate-400 font-bold">Generating AI Report...</span>
-                    </div>
-                  ) : intel?.error ? (
-                    <div className="p-3 rounded-xl border border-red-500/20 bg-red-500/5 text-xs text-red-300">
-                      Executive report temporarily unavailable.
-                    </div>
-                  ) : intel?.aiReport ? (
-                    <div className="space-y-3">
-                      {/* Executive Summary Card */}
-                      <div className="p-3.5 rounded-2xl border border-cyan-500/25 bg-cyan-900/10 flex gap-2.5">
-                        <Bot size={16} className="text-cyan-400 flex-shrink-0 mt-0.5 animate-pulse" />
-                        <p className="text-[11px] font-semibold leading-relaxed text-slate-200">
-                          {intel.aiReport.executiveSummary}
-                        </p>
-                      </div>
-
-                      {/* Side-by-Side metrics comparison */}
-                      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-3.5 space-y-3">
-                        <div className="flex flex-col gap-1 pb-2 border-b border-slate-850">
-                          <span className="text-[9px] font-bold uppercase text-slate-500">Route</span>
-                          <span className="text-xs font-black text-white truncate">
-                            {selectedSource?.display_name?.split(',')[0]} → {selectedDest?.display_name?.split(',')[0]}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2 pb-2 border-b border-slate-850 text-xs">
-                          <div>
-                            <span className="text-[9px] font-bold uppercase text-slate-500 block mb-0.5">Mode</span>
-                            <span className="font-extrabold text-white capitalize">{freightMode === 'ship' ? 'Sea' : freightMode === 'truck' ? 'Road' : 'Air'}</span>
-                          </div>
-                          <div>
-                            <span className="text-[9px] font-bold uppercase text-slate-500 block mb-0.5">Distance</span>
-                            <span className="font-extrabold text-white">{(activeRoute.distance / 1000).toFixed(0)} km</span>
-                          </div>
-                          <div>
-                            <span className="text-[9px] font-bold uppercase text-slate-500 block mb-0.5">ETA</span>
-                            <span className="font-extrabold text-white">
-                              {freightMode === 'ship' ? `${(activeRoute.duration / 86400).toFixed(1)} days` : freightMode === 'air' ? `${(activeRoute.duration / 3600).toFixed(1)} hrs` : `${(activeRoute.duration / 60).toFixed(0)} mins`}
-                            </span>
-                          </div>
-                        </div>
-
-                        {originalAnalysis ? (
-                          <div className="grid grid-cols-2 gap-3 pt-1">
-                            {/* Original Column */}
-                            <div className="bg-slate-950/50 p-3 rounded-xl border border-slate-850 space-y-2">
-                              <span className="text-[8px] font-black uppercase text-slate-500 block mb-1">Original Analysis</span>
-                              <div className="space-y-1.5 text-[10px]">
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">Risk Score:</span>
-                                  <span className="font-extrabold text-white">{originalAnalysis.riskScore}/100</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">Safety Score:</span>
-                                  <span className="font-extrabold text-white">{originalAnalysis.safetyScore}/100</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">Weather:</span>
-                                  <span className="font-extrabold text-white capitalize">{originalAnalysis.weatherSummary?.toLowerCase()}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">Geopolitical:</span>
-                                  <span className="font-extrabold text-white capitalize">{parsedOriginalReport?.geopoliticalImpact?.toLowerCase() || 'low'}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">Decision:</span>
-                                  <span className="font-extrabold text-white capitalize">{parsedOriginalReport?.operationalRecommendation || 'Proceed'}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Current Column */}
-                            <div className="bg-slate-950/50 p-3 rounded-xl border border-cyan-900/30 space-y-2">
-                              <span className="text-[8px] font-black uppercase text-cyan-400 block mb-1 animate-pulse">Current Analysis</span>
-                              <div className="space-y-1.5 text-[10px]">
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">Risk Score:</span>
-                                  <span className={`font-extrabold ${intel.riskScore >= 68 ? 'text-red-400' : intel.riskScore >= 35 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                    {intel.riskScore}/100
-                                  </span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">Safety Score:</span>
-                                  <span className={`font-extrabold ${intel.safetyScore < 35 ? 'text-red-400' : intel.safetyScore < 68 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                    {intel.safetyScore}/100
-                                  </span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">Weather:</span>
-                                  <span className={`font-extrabold ${intel.aiReport.weatherImpact === 'HIGH' ? 'text-red-400' : intel.aiReport.weatherImpact === 'MEDIUM' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                    {intel.aiReport.weatherImpact}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">Geopolitical:</span>
-                                  <span className={`font-extrabold ${intel.aiReport.geopoliticalImpact === 'HIGH' ? 'text-red-400' : intel.aiReport.geopoliticalImpact === 'MEDIUM' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                    {intel.aiReport.geopoliticalImpact}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">Decision:</span>
-                                  <span className={`font-extrabold ${intel.aiReport.operationalRecommendation === 'Reroute' ? 'text-red-400' : intel.aiReport.operationalRecommendation === 'Delay' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                    {intel.aiReport.operationalRecommendation}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-2 pt-1 text-xs">
-                            {/* Risk Score */}
-                            <div className="flex justify-between items-center">
-                              <span className="font-bold text-slate-400">Risk Score</span>
-                              <span className={`font-extrabold ${intel.riskScore >= 68 ? 'text-red-400' : intel.riskScore >= 35 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                {intel.riskScore}/100
-                              </span>
-                            </div>
-
-                            {/* Safety Score */}
-                            <div className="flex justify-between items-center">
-                              <span className="font-bold text-slate-400">Safety Score</span>
-                              <span className={`font-extrabold ${intel.safetyScore < 35 ? 'text-red-400' : intel.safetyScore < 68 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                {intel.safetyScore}/100
-                              </span>
-                            </div>
-
-                            {/* Weather Impact */}
-                            <div className="flex justify-between items-center">
-                              <span className="font-bold text-slate-400">Weather Impact</span>
-                              <span className={`font-extrabold ${intel.aiReport.weatherImpact === 'HIGH' ? 'text-red-400' : intel.aiReport.weatherImpact === 'MEDIUM' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                {intel.aiReport.weatherImpact}
-                              </span>
-                            </div>
-
-                            {/* Geopolitical Impact */}
-                            <div className="flex justify-between items-center">
-                              <span className="font-bold text-slate-400">Geopolitical Impact</span>
-                              <span className={`font-extrabold ${intel.aiReport.geopoliticalImpact === 'HIGH' ? 'text-red-400' : intel.aiReport.geopoliticalImpact === 'MEDIUM' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                {intel.aiReport.geopoliticalImpact}
-                              </span>
-                            </div>
-
-                            {/* Operational Recommendation */}
-                            <div className="flex justify-between items-center">
-                              <span className="font-bold text-slate-400">Operational Decision</span>
-                              <span className={`font-extrabold ${intel.aiReport.operationalRecommendation === 'Reroute' ? 'text-red-400' : intel.aiReport.operationalRecommendation === 'Delay' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                {intel.aiReport.operationalRecommendation}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Affected Regions */}
-                      {intel.aiReport.affectedRegions?.length > 0 && (
-                        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-3 text-xs space-y-1">
-                          <span className="font-bold text-slate-500 uppercase text-[8px] tracking-wider block">Affected Regions</span>
-                          <p className="font-semibold text-slate-300 leading-normal">
-                            {intel.aiReport.affectedRegions.join(', ')}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Top Risks */}
-                      {intel.aiReport.topRisks?.length > 0 && (
-                        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-3 text-xs space-y-1">
-                          <span className="font-bold text-slate-500 uppercase text-[8px] tracking-wider block">Top Risks Identified</span>
-                          <ul className="list-disc pl-4 space-y-1 mt-1 text-slate-300 font-semibold leading-relaxed">
-                            {intel.aiReport.topRisks.map((risk, i) => (
-                              <li key={i}>{risk}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-
-                {/* 3. RISK ENGINE ASSESSMENT */}
+                {/* 2. RISK ASSESSMENT */}
                 <div className="p-4 flex flex-col gap-3" style={{ borderBottom: `1px solid ${SURFACE_BORDER}` }}>
                   <p className="text-[9px] font-black uppercase tracking-widest leading-none text-slate-400">
-                    3. Risk Engine Assessment
+                    2. Risk Assessment
                   </p>
                   
                   {intel?.loading ? (
@@ -946,11 +753,11 @@ const Dashboard = () => {
                   ) : null}
                 </div>
 
-                {/* 4. WEATHER ALONG ROUTE */}
+                {/* 3. WEATHER ANALYSIS */}
                 {!intel?.loading && intel?.waypointReports?.length > 0 && (
                   <div className="p-4 flex flex-col gap-3" style={{ borderBottom: `1px solid ${SURFACE_BORDER}` }}>
                     <p className="text-[9px] font-black uppercase tracking-widest leading-none text-slate-400">
-                      4. Weather Along Route
+                      3. Weather Analysis
                     </p>
                     <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
                       {intel.waypointReports.map((wp, i) => {
@@ -1009,89 +816,290 @@ const Dashboard = () => {
                   </div>
                 )}
 
-                {/* 5. ACTIVE THREATS */}
-                {!intel?.loading && intel?.events?.length > 0 && (
-                  <div className="p-4 flex flex-col gap-3" style={{ borderBottom: `1px solid ${SURFACE_BORDER}` }}>
-                    <p className="text-[9px] font-black uppercase tracking-widest leading-none" style={{ color: 'var(--danger)' }}>
-                      5. Active Threats
+                {/* 4. AI ROUTE REPORT */}
+                <div className="p-4 flex flex-col gap-3.5" style={{ borderBottom: `1px solid ${SURFACE_BORDER}` }}>
+                  <div className="flex justify-between items-center">
+                    <p className="text-[9px] font-black uppercase tracking-widest leading-none text-cyan-400">
+                      4. AI Route Report
                     </p>
-                    <div className="space-y-2">
-                      {intel.events
-                        .sort((a, b) => (b.intensity || 0) - (a.intensity || 0))
-                        .slice(0, 3)
-                        .map((news, i) => {
-                          const severity = news.intensity >= 0.5 ? 'CRITICAL' : news.intensity >= 0.25 ? 'HIGH' : 'MODERATE';
-                          const style = SEV_STYLES[severity] || SEV_STYLES.MODERATE;
-                          return (
-                            <div key={i} className="p-3 rounded-xl border flex flex-col gap-1.5 cursor-pointer hover:border-red-500/55 transition-colors"
-                              style={{ background: 'rgba(255,92,122,0.06)', borderColor: 'rgba(255,92,122,0.18)' }}
-                              onClick={() => {
-                                window.dispatchEvent(new CustomEvent('open-news-modal', { 
-                                  detail: {
-                                    title: news.headline,
-                                    source_url: news.source_url,
-                                    category: news.label || 'threat',
-                                    published: news.published_at,
-                                    image_url: news.image_url,
-                                    publisher: news.publisher,
-                                    severity: severity,
-                                    confidence: news.confidence,
-                                    intensity: news.intensity
-                                  } 
-                                }));
-                              }}
-                            >
-                              {(() => {
-                                if (news.image_url) {
-                                  return (
-                                    <a href={news.source_url || '#'} target={news.source_url ? "_blank" : undefined} rel="noreferrer" onClick={e => e.stopPropagation()} className="block overflow-hidden rounded-lg mb-1.5">
-                                      <img src={news.image_url} alt={news.headline} loading="lazy" className="w-full h-24 object-cover hover:scale-105 transition-transform duration-300" />
-                                    </a>
-                                  );
-                                }
-                                const colors = {
-                                  CRITICAL: { from: '#7f1d1d', to: '#ef4444', border: 'rgba(239,68,68,0.25)', text: '#ef4444' },
-                                  HIGH:     { from: '#7c2d12', to: '#f97316', border: 'rgba(249,115,22,0.25)', text: '#f97316' },
-                                  MODERATE: { from: '#713f12', to: '#eab308', border: 'rgba(234,179,8,0.25)', text: '#eab308' },
-                                };
-                                const theme = colors[severity] || colors.MODERATE;
-                                const fav = getFavicon(news.source_url);
-                                return (
-                                  <a href={news.source_url || '#'} target={news.source_url ? "_blank" : undefined} rel="noreferrer" onClick={e => e.stopPropagation()} className="block overflow-hidden rounded-lg mb-1.5 border" style={{ borderColor: theme.border }}>
-                                    <div className="w-full h-24 flex flex-col items-center justify-center gap-1.5 p-2"
-                                      style={{ background: `linear-gradient(135deg, ${theme.from}22, ${theme.to}08)` }}>
-                                      {fav ? (
-                                        <img src={fav} alt={news.publisher} className="w-7 h-7 rounded bg-[#0B1220] p-1 border border-white/10" onError={e => { e.target.style.display = 'none'; }} />
-                                      ) : (
-                                        <AlertTriangle size={14} style={{ color: theme.text }} />
-                                      )}
-                                      {news.publisher && <span className="text-[8px] font-black uppercase tracking-wider text-slate-500">{news.publisher}</span>}
-                                    </div>
-                                  </a>
-                                );
-                              })()}
-                              <div className="flex justify-between items-start gap-2">
-                                <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded tracking-wide flex-shrink-0"
-                                  style={{ background: style.card, color: style.dot, borderColor: style.border, border: '1px solid' }}>
-                                  {severity} · {news.label || 'threat'}
-                                </span>
-                                <span className="text-[9px] text-slate-500 font-bold truncate">{news.publisher}</span>
-                              </div>
-                              <p className="text-[11px] font-semibold leading-snug" style={{ color: '#FCA5A5' }}>
-                                {news.headline}
-                              </p>
-                            </div>
-                          );
-                        })}
+                    {originalAnalysis && (
+                      <span className="text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-900/35 text-cyan-400 border border-cyan-800/50">
+                        Replay Mode
+                      </span>
+                    )}
+                  </div>
+
+                  {(intel?.loading && !parsedOriginalReport) ? (
+                    <div className="flex items-center justify-center py-4 gap-2">
+                      <div className="w-4 h-4 rounded-full border-2 border-t-transparent border-cyan-400 animate-spin" />
+                      <span className="text-xs text-slate-400 font-bold">Generating AI Report...</span>
                     </div>
+                  ) : (intel?.error && !parsedOriginalReport) ? (
+                    <div className="p-3 rounded-xl border border-red-500/20 bg-red-500/5 text-xs text-red-300">
+                      Executive report temporarily unavailable.
+                    </div>
+                  ) : currentReport ? (
+                    <div className="space-y-3">
+                      {/* Executive Summary Card */}
+                      <div className="p-3.5 rounded-2xl border border-cyan-500/25 bg-cyan-900/10 flex gap-2.5">
+                        <Bot size={16} className="text-cyan-400 flex-shrink-0 mt-0.5 animate-pulse" />
+                        <p className="text-[11px] font-semibold leading-relaxed text-slate-200">
+                          {intel?.loading && (
+                            <span className="italic text-cyan-400 flex items-center gap-1.5 mb-1.5 block">
+                              <span className="w-2.5 h-2.5 rounded-full border border-t-transparent border-cyan-400 animate-spin inline-block mr-1.5" />
+                              Refreshing live intelligence feed...
+                            </span>
+                          )}
+                          {currentReport.executiveSummary}
+                        </p>
+                      </div>
+
+                      {/* Side-by-Side metrics comparison */}
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-3.5 space-y-3">
+                        <div className="flex flex-col gap-1 pb-2 border-b border-slate-850">
+                          <span className="text-[9px] font-bold uppercase text-slate-500">Route</span>
+                          <span className="text-xs font-black text-white truncate">
+                            {selectedSource?.display_name?.split(',')[0]} → {selectedDest?.display_name?.split(',')[0]}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 pb-2 border-b border-slate-850 text-xs">
+                          <div>
+                            <span className="text-[9px] font-bold uppercase text-slate-500 block mb-0.5">Mode</span>
+                            <span className="font-extrabold text-white capitalize">{freightMode === 'ship' ? 'Sea' : freightMode === 'truck' ? 'Road' : 'Air'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-bold uppercase text-slate-500 block mb-0.5">Distance</span>
+                            <span className="font-extrabold text-white">{(activeRoute.distance / 1000).toFixed(0)} km</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-bold uppercase text-slate-500 block mb-0.5">ETA</span>
+                            <span className="font-extrabold text-white">
+                              {freightMode === 'ship' ? `${(activeRoute.duration / 86400).toFixed(1)} days` : freightMode === 'air' ? `${(activeRoute.duration / 3600).toFixed(1)} hrs` : `${(activeRoute.duration / 60).toFixed(0)} mins`}
+                            </span>
+                          </div>
+                        </div>
+
+                        {originalAnalysis ? (
+                          <div className="grid grid-cols-2 gap-3 pt-1">
+                            {/* Original Column */}
+                            <div className="bg-slate-950/50 p-3 rounded-xl border border-slate-850 space-y-2">
+                              <span className="text-[8px] font-black uppercase text-slate-500 block mb-1">Original Analysis</span>
+                              <div className="space-y-1.5 text-[10px]">
+                                <div className="flex justify-between">
+                                  <span className="text-slate-400">Risk Score:</span>
+                                  <span className="font-extrabold text-white">{originalAnalysis.riskScore}/100</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-slate-400">Safety Score:</span>
+                                  <span className="font-extrabold text-white">{originalAnalysis.safetyScore}/100</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-slate-400">Weather:</span>
+                                  <span className="font-extrabold text-white capitalize">{originalAnalysis.weatherSummary?.toLowerCase()}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-slate-400">Geopolitical:</span>
+                                  <span className="font-extrabold text-white capitalize">{parsedOriginalReport?.geopoliticalImpact?.toLowerCase() || 'low'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-slate-400">Decision:</span>
+                                  <span className="font-extrabold text-white capitalize">{parsedOriginalReport?.operationalRecommendation || 'Proceed'}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Current Column */}
+                            <div className="bg-slate-950/50 p-3 rounded-xl border border-cyan-900/30 space-y-2">
+                              <span className="text-[8px] font-black uppercase text-cyan-400 block mb-1 animate-pulse">Current Analysis</span>
+                              {(!intel || intel.loading) ? (
+                                <div className="flex flex-col items-center justify-center py-4 gap-1.5">
+                                  <div className="w-4 h-4 rounded-full border-2 border-t-transparent border-cyan-400 animate-spin" />
+                                  <span className="text-[9px] text-slate-500">Recalculating...</span>
+                                </div>
+                              ) : (
+                                <div className="space-y-1.5 text-[10px]">
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Risk Score:</span>
+                                    <span className={`font-extrabold ${intel.riskScore >= 68 ? 'text-red-400' : intel.riskScore >= 35 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                      {intel.riskScore}/100
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Safety Score:</span>
+                                    <span className={`font-extrabold ${intel.safetyScore < 35 ? 'text-red-400' : intel.safetyScore < 68 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                      {intel.safetyScore}/100
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Weather:</span>
+                                    <span className={`font-extrabold ${intel.aiReport?.weatherImpact === 'HIGH' ? 'text-red-400' : intel.aiReport?.weatherImpact === 'MEDIUM' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                      {intel.aiReport?.weatherImpact || '—'}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Geopolitical:</span>
+                                    <span className={`font-extrabold ${intel.aiReport?.geopoliticalImpact === 'HIGH' ? 'text-red-400' : intel.aiReport?.geopoliticalImpact === 'MEDIUM' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                      {intel.aiReport?.geopoliticalImpact || '—'}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Decision:</span>
+                                    <span className={`font-extrabold ${intel.aiReport?.operationalRecommendation === 'Reroute' ? 'text-red-400' : intel.aiReport?.operationalRecommendation === 'Delay' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                      {intel.aiReport?.operationalRecommendation || '—'}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2 pt-1 text-xs">
+                            {/* Risk Score */}
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-slate-400">Risk Score</span>
+                              <span className={`font-extrabold ${intel.riskScore >= 68 ? 'text-red-400' : intel.riskScore >= 35 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {intel.riskScore}/100
+                              </span>
+                            </div>
+
+                            {/* Safety Score */}
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-slate-400">Safety Score</span>
+                              <span className={`font-extrabold ${intel.safetyScore < 35 ? 'text-red-400' : intel.safetyScore < 68 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {intel.safetyScore}/100
+                              </span>
+                            </div>
+
+                            {/* Weather Impact */}
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-slate-400">Weather Impact</span>
+                              <span className={`font-extrabold ${currentReport.weatherImpact === 'HIGH' ? 'text-red-400' : currentReport.weatherImpact === 'MEDIUM' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {currentReport.weatherImpact}
+                              </span>
+                            </div>
+
+                            {/* Geopolitical Impact */}
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-slate-400">Geopolitical Impact</span>
+                              <span className={`font-extrabold ${currentReport.geopoliticalImpact === 'HIGH' ? 'text-red-400' : currentReport.geopoliticalImpact === 'MEDIUM' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {currentReport.geopoliticalImpact}
+                              </span>
+                            </div>
+
+                            {/* Operational Recommendation */}
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-slate-400">Operational Decision</span>
+                              <span className={`font-extrabold ${currentReport.operationalRecommendation === 'Reroute' ? 'text-red-400' : currentReport.operationalRecommendation === 'Delay' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {currentReport.operationalRecommendation}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Affected Regions */}
+                      {currentReport.affectedRegions?.length > 0 && (
+                        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-3 text-xs space-y-1">
+                          <span className="font-bold text-slate-500 uppercase text-[8px] tracking-wider block">Affected Regions</span>
+                          <p className="font-semibold text-slate-300 leading-normal">
+                            {currentReport.affectedRegions.join(', ')}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Top Risks */}
+                      {currentReport.topRisks?.length > 0 && (
+                        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-3 text-xs space-y-1">
+                          <span className="font-bold text-slate-500 uppercase text-[8px] tracking-wider block">Top Risks Identified</span>
+                          <ul className="list-disc pl-4 space-y-1 mt-1 text-slate-300 font-semibold leading-relaxed">
+                            {currentReport.topRisks.map((risk, i) => (
+                              <li key={i}>{risk}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 5. RECOMMENDED ACTIONS */}
+                {currentReport && (
+                  <div className="p-4 flex flex-col gap-3" style={{ borderBottom: `1px solid ${SURFACE_BORDER}` }}>
+                    <p className="text-[9px] font-black uppercase tracking-widest leading-none text-slate-400">
+                      5. Recommended Actions
+                    </p>
+                    
+                    {/* Operational Recommendation Status Card */}
+                    {currentReport.operationalRecommendation && (() => {
+                      const rec = currentReport.operationalRecommendation;
+                      const isReroute = rec === 'Reroute';
+                      const isDelay = rec === 'Delay';
+                      
+                      const title = isReroute ? 'Action Required: Reroute' : isDelay ? 'Caution Advised: Delay Transit' : 'Proceed with Transit';
+                      const color = isReroute ? '#EF4444' : isDelay ? '#F59E0B' : '#22C55E';
+                      const bg = isReroute ? 'rgba(239,68,68,0.1)' : isDelay ? 'rgba(245,158,11,0.1)' : 'rgba(34,197,94,0.1)';
+                      const border = isReroute ? 'rgba(239,68,68,0.25)' : isDelay ? 'rgba(245,158,11,0.25)' : 'rgba(34,197,94,0.25)';
+                      
+                      const details = isReroute 
+                        ? 'Critical threat detected along path (active conflict zone, port strike, or severe weather). Operations command instructs immediately rerouting to the recommended mode or alternative waypoint chain.'
+                        : isDelay 
+                        ? 'Moderate threat detected along path (severe weather warning or border delay). Operators are recommended to temporarily delay departure or schedule secondary checkins until threat clears.'
+                        : 'No critical threat or severe weather detected. Proceed with standard logistics schedule. Maintain standard radio contact and real-time transit telemetry.';
+
+                      return (
+                        <div className="p-3.5 rounded-xl border flex flex-col gap-2" style={{ background: bg, borderColor: border }}>
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle size={14} style={{ color }} className={isReroute ? 'animate-bounce' : ''} />
+                            <span className="text-xs font-black uppercase tracking-wide" style={{ color }}>
+                              {title}
+                            </span>
+                          </div>
+                          <p className="text-[11px] font-semibold leading-relaxed text-slate-200">
+                            {details}
+                          </p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Gemini Route Comparison Recommendations (aiRec) */}
+                    {aiRecLoading ? (
+                      <div className="flex items-center gap-2 py-2">
+                        <div className="w-3.5 h-3.5 rounded-full border-2 border-t-transparent border-cyan-400 animate-spin" />
+                        <span className="text-[10px] text-slate-400 font-bold">Analyzing route alternatives...</span>
+                      </div>
+                    ) : aiRec ? (
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 space-y-2 mt-1">
+                        <div className="flex items-center gap-1.5">
+                          <Bot size={11} style={{ color: 'var(--accent)' }} className="animate-pulse" />
+                          <span className="text-[9px] font-black uppercase text-cyan-400">AI Alternative Route Analysis</span>
+                        </div>
+                        <div className="text-[10px] space-y-2 leading-relaxed">
+                          <div>
+                            <span className="text-slate-500 font-bold block uppercase text-[8px]">Best Option</span>
+                            <span className="text-white font-extrabold">{aiRec.label}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500 font-bold block uppercase text-[8px]">Comparison Reasoning</span>
+                            <span className="text-slate-300 font-semibold">{aiRec.reasoning}</span>
+                          </div>
+                          {aiRec.tradeoff && (
+                            <div>
+                              <span className="text-slate-500 font-bold block uppercase text-[8px]">Key Tradeoff</span>
+                              <span className="text-amber-200 font-semibold">{aiRec.tradeoff}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 )}
 
-                {/* 6. INTELLIGENCE NEWS FEED */}
+                {/* 6. INCIDENT FEED */}
                 {!intel?.loading && intel?.events?.length > 0 && (
                   <div className="p-4 flex flex-col gap-3" style={{ borderBottom: `1px solid ${SURFACE_BORDER}` }}>
                     <p className="text-[9px] font-black uppercase tracking-widest leading-none text-slate-400">
-                      6. Intelligence News Feed ({intel.events.length})
+                      6. Incident Feed ({intel.events.length})
                     </p>
                     <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
                       {intel.events.map((news, i) => {
@@ -1181,157 +1189,8 @@ const Dashboard = () => {
                   </div>
                 )}
 
-                {/* 7. RECOMMENDED ACTIONS */}
-                {!intel?.loading && (
-                  <div className="p-4 flex flex-col gap-3" style={{ borderBottom: `1px solid ${SURFACE_BORDER}` }}>
-                    <p className="text-[9px] font-black uppercase tracking-widest leading-none text-slate-400">
-                      7. Recommended Actions
-                    </p>
-                    
-                    {/* Operational Recommendation Status Card */}
-                    {intel?.aiReport?.operationalRecommendation && (() => {
-                      const rec = intel.aiReport.operationalRecommendation;
-                      const isReroute = rec === 'Reroute';
-                      const isDelay = rec === 'Delay';
-                      
-                      const title = isReroute ? 'Action Required: Reroute' : isDelay ? 'Caution Advised: Delay Transit' : 'Proceed with Transit';
-                      const color = isReroute ? '#EF4444' : isDelay ? '#F59E0B' : '#22C55E';
-                      const bg = isReroute ? 'rgba(239,68,68,0.1)' : isDelay ? 'rgba(245,158,11,0.1)' : 'rgba(34,197,94,0.1)';
-                      const border = isReroute ? 'rgba(239,68,68,0.25)' : isDelay ? 'rgba(245,158,11,0.25)' : 'rgba(34,197,94,0.25)';
-                      
-                      const details = isReroute 
-                        ? 'Critical threat detected along path (active conflict zone, port strike, or severe weather). Operations command instructs immediately rerouting to the recommended mode or alternative waypoint chain.'
-                        : isDelay 
-                        ? 'Moderate threat detected along path (severe weather warning or border delay). Operators are recommended to temporarily delay departure or schedule secondary checkins until threat clears.'
-                        : 'No critical threat or severe weather detected. Proceed with standard logistics schedule. Maintain standard radio contact and real-time transit telemetry.';
-
-                      return (
-                        <div className="p-3.5 rounded-xl border flex flex-col gap-2" style={{ background: bg, borderColor: border }}>
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle size={14} style={{ color }} className={isReroute ? 'animate-bounce' : ''} />
-                            <span className="text-xs font-black uppercase tracking-wide" style={{ color }}>
-                              {title}
-                            </span>
-                          </div>
-                          <p className="text-[11px] font-semibold leading-relaxed text-slate-200">
-                            {details}
-                          </p>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Gemini Route Comparison Recommendations (aiRec) */}
-                    {aiRecLoading ? (
-                      <div className="flex items-center gap-2 py-2">
-                        <div className="w-3.5 h-3.5 rounded-full border-2 border-t-transparent border-cyan-400 animate-spin" />
-                        <span className="text-[10px] text-slate-400 font-bold">Analyzing route alternatives...</span>
-                      </div>
-                    ) : aiRec ? (
-                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 space-y-2 mt-1">
-                        <div className="flex items-center gap-1.5">
-                          <Bot size={11} style={{ color: 'var(--accent)' }} className="animate-pulse" />
-                          <span className="text-[9px] font-black uppercase text-cyan-400">AI Alternative Route Analysis</span>
-                        </div>
-                        <div className="text-[10px] space-y-2 leading-relaxed">
-                          <div>
-                            <span className="text-slate-500 font-bold block uppercase text-[8px]">Best Option</span>
-                            <span className="text-white font-extrabold">{aiRec.label}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-500 font-bold block uppercase text-[8px]">Comparison Reasoning</span>
-                            <span className="text-slate-300 font-semibold">{aiRec.reasoning}</span>
-                          </div>
-                          {aiRec.tradeoff && (
-                            <div>
-                              <span className="text-slate-500 font-bold block uppercase text-[8px]">Key Tradeoff</span>
-                              <span className="text-amber-200 font-semibold">{aiRec.tradeoff}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-
               </motion.div>
             </AnimatePresence>
-
-            {/* Latest Risk Intelligence Gallery Section */}
-            {latestIncidents.length > 0 && (
-              <div className="p-4 flex flex-col gap-3" style={{ borderTop: `1px solid ${SURFACE_BORDER}` }}>
-                <p className="text-[10px] font-black uppercase tracking-widest leading-none text-slate-400">
-                  Latest Risk Intelligence
-                </p>
-                <div className="space-y-3">
-                  {latestIncidents.slice(0, 5).map((news, i) => {
-                    const severity = news.severity === 'CRITICAL' ? 'CRITICAL' : news.severity === 'HIGH' ? 'HIGH' : 'MODERATE';
-                    const style = SEV_STYLES[severity] || SEV_STYLES.MODERATE;
-                    return (
-                      <motion.div
-                        key={i}
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.99 }}
-                        onClick={() => {
-                          if (news.source_url) {
-                            window.open(news.source_url, '_blank');
-                          }
-                          if (news.lat != null && news.lon != null) {
-                            setCenterMapTo([news.lat, news.lon]);
-                          }
-                        }}
-                        className="p-3 rounded-xl border flex flex-col gap-2 cursor-pointer transition-all hover:border-slate-700"
-                        style={{ background: 'rgba(15,23,42,0.9)', borderColor: SURFACE_BORDER }}
-                      >
-                        {(() => {
-                          if (news.image_url) {
-                            return (
-                              <div className="w-full h-24 overflow-hidden rounded-lg">
-                                <img src={news.image_url} alt={news.title} className="w-full h-full object-cover" />
-                              </div>
-                            );
-                          }
-                          const fav = getFavicon(news.source_url || news.link);
-                          const colors = {
-                            CRITICAL: { from: '#7f1d1d', to: '#ef4444', border: 'rgba(239,68,68,0.25)', text: '#ef4444' },
-                            HIGH:     { from: '#7c2d12', to: '#f97316', border: 'rgba(249,115,22,0.25)', text: '#f97316' },
-                            MODERATE: { from: '#713f12', to: '#eab308', border: 'rgba(234,179,8,0.25)', text: '#eab308' },
-                          };
-                          const theme = colors[severity] || colors.MODERATE;
-                          return (
-                            <div className="w-full h-20 overflow-hidden rounded-lg border" style={{ borderColor: theme.border }}>
-                              <div className="w-full h-full flex flex-col items-center justify-center gap-1 p-2"
-                                style={{ background: `linear-gradient(135deg, ${theme.from}22, ${theme.to}08)` }}>
-                                {fav ? (
-                                  <img src={fav} alt={news.source} className="w-7 h-7 rounded bg-[#0B1220] p-1 border border-white/10" onError={e => { e.target.style.display = 'none'; }} />
-                                ) : (
-                                  <Radio size={12} style={{ color: theme.text }} className="opacity-60 animate-pulse" />
-                                )}
-                                {news.source && <span className="text-[8px] font-black uppercase tracking-wider text-slate-500">{news.source}</span>}
-                              </div>
-                            </div>
-                          );
-                        })()}
-                        <div>
-                          <div className="flex justify-between items-center gap-2 mb-1">
-                            <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded tracking-wide"
-                              style={{ background: style.badge || style.card, color: style.dot || style.badgeText, borderColor: style.border, border: '1px solid' }}>
-                              {severity} · {news.category || 'threat'}
-                            </span>
-                            <span className="text-[8px] text-slate-400 font-extrabold truncate">{news.source}</span>
-                          </div>
-                          <h4 className="text-[10px] font-semibold leading-snug line-clamp-2 text-white">
-                            {news.title}
-                          </h4>
-                          <p className="text-[8px] text-slate-500 font-semibold mt-1">
-                            {news.published ? timeAgo(new Date(news.published).getTime()) : ''}
-                          </p>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}

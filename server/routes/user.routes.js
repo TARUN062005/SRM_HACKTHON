@@ -9,6 +9,7 @@ router.post('/request-reactivation', userController.requestReactivation);
 router.use(verifyToken);
 router.get('/profile', userController.getProfile);
 router.post('/active-ping', userController.activePing);
+router.post('/logout-all', userController.logoutAllSessions);
 
 // ✅ Update account settings + upload profileImage
 router.patch('/settings', upload.single('profileImage'), userController.updateSettings);

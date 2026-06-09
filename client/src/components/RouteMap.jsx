@@ -1096,6 +1096,10 @@ export const RouteMap = ({
 
       {/* MAP */}
       <MapContainer center={[25, 15]} zoom={2}
+        minZoom={2} maxZoom={18}
+        maxBounds={[[-85, -180], [85, 180]]}
+        maxBoundsViscosity={1.0}
+        preferCanvas={true}
         style={{ position: 'absolute', inset: 0, height: '100%', width: '100%' }}
         zoomControl={false} dragging attributionControl={false}>
         <CenterMapControl centerCoord={centerMapTo} />
@@ -1103,10 +1107,10 @@ export const RouteMap = ({
         <MapReset resetSignal={resetSignal} />
         <ZoomControl position="bottomright" />
         <LocateMeButton />
-        <TileLayer url={tileUrls[mapType]} attribution='&copy; CARTO' maxZoom={20} />
+        <TileLayer url={tileUrls[mapType]} attribution='&copy; CARTO' maxZoom={20} noWrap={true} bounds={[[-85, -180], [85, 180]]} />
         {showSeamarks && (
           <TileLayer url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
-            attribution='&copy; OpenSeaMap' opacity={0.8} maxZoom={18} />
+            attribution='&copy; OpenSeaMap' opacity={0.8} maxZoom={18} noWrap={true} bounds={[[-85, -180], [85, 180]]} />
         )}
 
         {/* Risk zone threat overlays */}

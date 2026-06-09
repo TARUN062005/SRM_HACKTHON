@@ -20,7 +20,7 @@ class UserService {
 
   async findBySocialId(provider, socialId) {
     const field = `${provider}Id`;
-    return await prisma.user.findUnique({
+    return await prisma.user.findFirst({
       where: { [field]: socialId }
     });
   }
