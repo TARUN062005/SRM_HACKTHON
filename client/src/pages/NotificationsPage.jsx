@@ -7,6 +7,7 @@ import {
   Clock, ExternalLink, Globe, RefreshCw, Search, X,
   FileText, MapPin, Filter, Calendar
 } from "lucide-react";
+import { getFallbackImage } from "./Dashboard";
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -14,6 +15,33 @@ const SEV_CONFIG = {
   CRITICAL: { icon: ShieldAlert,  color: "#FF5C7A", bg: "rgba(255,92,122,0.12)", border: "rgba(255,92,122,0.3)" },
   HIGH:     { icon: AlertTriangle, color: "#FF9F43", bg: "rgba(255,159,67,0.12)", border: "rgba(255,159,67,0.3)" },
   MODERATE: { icon: AlertCircle,   color: "#00C2FF", bg: "rgba(0,194,255,0.12)",  border: "rgba(0,194,255,0.3)"  },
+  LOW:      { icon: AlertCircle,   color: "#10B981", bg: "rgba(16,185,129,0.12)",  border: "rgba(16,185,129,0.3)"  },
+};
+
+const getDomain = (urlStr) => {
+  if (!urlStr) return "";
+  try {
+    return new URL(urlStr).hostname;
+  } catch (e) {
+    return "";
+  }
+};
+
+const getCategoryBadgeStyle = (category) => {
+  const cat = (category || '').toLowerCase().trim();
+  if (cat.includes('conflict') || cat.includes('protest') || cat.includes('terrorism') || cat.includes('dispute')) {
+    return { bg: 'rgba(239, 68, 68, 0.12)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.25)' };
+  }
+  if (cat.includes('weather') || cat.includes('storm') || cat.includes('disaster')) {
+    return { bg: 'rgba(245, 158, 11, 0.12)', text: '#f59e0b', border: 'rgba(245, 158, 11, 0.25)' };
+  }
+  if (cat.includes('piracy') || cat.includes('maritime') || cat.includes('sea')) {
+    return { bg: 'rgba(59, 130, 246, 0.12)', text: '#3b82f6', border: 'rgba(59, 130, 246, 0.25)' };
+  }
+  if (cat.includes('sanctions') || cat.includes('border') || cat.includes('port') || cat.includes('restriction') || cat.includes('closure')) {
+    return { bg: 'rgba(168, 85, 247, 0.12)', text: '#a855f7', border: 'rgba(168, 85, 247, 0.25)' };
+  }
+  return { bg: 'rgba(16, 185, 129, 0.12)', text: '#10b981', border: 'rgba(16, 185, 129, 0.25)' };
 };
 
 const formatDate = (dateString) => {
@@ -257,7 +285,7 @@ const NotificationsPage = () => {
 
               {/* Severity Quick Toggles */}
               <div className="flex bg-[#0B1220] border border-white/5 rounded-xl p-1">
-                {["all", "CRITICAL", "HIGH", "MODERATE"].map((s) => (
+                {["all", "CRITICAL", "HIGH", "MODERATE", "LOW"].map((s) => (
                   <button
                     key={s}
                     onClick={() => setSelectedSeverity(s)}
@@ -328,7 +356,10 @@ const NotificationsPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <AnimatePresence>
               {filteredAlerts.map((n, idx) => {
-                const sevConf = SEV_CONFIG[n.severity?.toUpperCase()] || SEV_CONFIG.MODERATE;
+                const domain = n.source_url ? getDomain(n.source_url) : "";
+                const faviconUrl = domain ? `https://www.google.com/s2/favicons?sz=64&domain=${domain}` : null;
+                const catStyle = getCategoryBadgeStyle(n.category);
+                const sevConf = SEV_CONFIG[n.severity?.toUpperCase()] || SEV_CONFIG.LOW;
 
                 return (
                   <motion.div
@@ -337,28 +368,30 @@ const NotificationsPage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -12 }}
                     transition={{ duration: 0.2, delay: Math.min(idx * 0.03, 0.3) }}
-                    className="bg-[#101826] border border-white/5 rounded-2xl overflow-hidden transition-all duration-300 flex flex-col group hover:border-white/10 hover:shadow-xl cursor-pointer"
+                    className="bg-[#101826] rounded-2xl overflow-hidden transition-all duration-300 flex flex-col group hover:shadow-2xl cursor-pointer"
                     style={{
-                      borderTop: `4px solid ${sevConf.color}`
+                      border: `1.5px solid ${sevConf.border || 'rgba(255,255,255,0.05)'}`,
+                      borderTop: `5px solid ${sevConf.color}`,
+                      boxShadow: `0 4px 20px -2px rgba(0, 0, 0, 0.4), 0 0 12px 0 ${sevConf.bg}`
                     }}
                     onClick={() => handleOpenAlert(n)}
                   >
                     {/* Cover / Icon Header */}
                     <div className="relative h-44 overflow-hidden bg-[#0B1220] border-b border-white/5">
                       <img
-                        src={n.image_url || '/logistics_fallback.png'}
+                        src={n.image_url || getFallbackImage(n.category)}
                         alt={n.title}
                         loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         onError={(e) => {
                           e.currentTarget.onerror = null;
-                          e.currentTarget.src = '/logistics_fallback.png';
+                          e.currentTarget.src = getFallbackImage(n.category);
                         }}
                       />
                       <div className="absolute top-3 right-3 z-10">
                         <span
-                          className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-lg"
-                          style={{ background: sevConf.bg, color: sevConf.color, backdropFilter: "blur(4px)" }}
+                          className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-lg border"
+                          style={{ background: sevConf.bg, color: sevConf.color, borderColor: sevConf.border, backdropFilter: "blur(4px)" }}
                         >
                           {n.severity}
                         </span>
@@ -369,10 +402,25 @@ const NotificationsPage = () => {
                     <div className="p-5 flex-1 flex flex-col justify-between gap-4">
                       <div className="space-y-2.5">
                         <div className="flex justify-between items-center gap-2 text-[10px] text-[#7C8A99] font-bold">
-                          <span className="capitalize px-2 py-0.5 rounded bg-[#0B1220] text-slate-300">
+                          <span 
+                            className="capitalize px-2 py-0.5 rounded border text-[10px] font-black tracking-wide"
+                            style={{ backgroundColor: catStyle.bg, color: catStyle.text, borderColor: catStyle.border }}
+                          >
                             {n.category || "General"}
                           </span>
-                          <span className="truncate max-w-[150px]">{n.source}</span>
+                          <div className="flex items-center gap-1.5 truncate max-w-[150px]">
+                            {faviconUrl ? (
+                              <img
+                                src={faviconUrl}
+                                alt={n.source}
+                                className="w-3.5 h-3.5 rounded-sm flex-shrink-0"
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              />
+                            ) : (
+                              <Globe size={11} className="text-[#7C8A99] flex-shrink-0" />
+                            )}
+                            <span className="truncate">{n.source || "Geo Engine"}</span>
+                          </div>
                         </div>
 
                         <h3 className="text-sm font-bold leading-snug text-white line-clamp-2 group-hover:text-[#00C2FF] transition-colors duration-200">
@@ -387,14 +435,26 @@ const NotificationsPage = () => {
                       </div>
 
                       <div className="space-y-3 pt-3 border-t border-white/5">
-                        <div className="flex justify-between items-center text-[10px] text-[#7C8A99] font-bold">
-                          <div className="flex items-center gap-1.5">
-                            <Clock size={11} />
-                            <span>{formatDate(n.published)}</span>
+                        {/* Country / Region */}
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-405">
+                          <MapPin size={11} className="text-[#00C2FF] flex-shrink-0" />
+                          <span className="truncate text-slate-400">{n.country || 'Global waters/transit'}</span>
+                        </div>
+
+                        {/* Metrics: Date, Accuracy, Impact */}
+                        <div className="grid grid-cols-3 gap-1.5 text-[9px] text-[#7C8A99] font-bold leading-none bg-[#0B1220] p-2 rounded-xl border border-white/5">
+                          <div className="flex flex-col gap-1 text-left">
+                            <span className="text-[7px] uppercase text-slate-500 font-black">Date</span>
+                            <span className="truncate text-white">{formatDate(n.published)}</span>
                           </div>
-                          {n.confidence != null && (
-                            <span>Accuracy: {Math.round(n.confidence * 100)}%</span>
-                          )}
+                          <div className="flex flex-col gap-1 text-center border-l border-white/5">
+                            <span className="text-[7px] uppercase text-slate-500 font-black">Accuracy</span>
+                            <span className="text-cyan-400 font-extrabold">{n.confidence != null ? `${Math.round(n.confidence * 100)}%` : 'N/A'}</span>
+                          </div>
+                          <div className="flex flex-col gap-1 text-right border-l border-white/5">
+                            <span className="text-[7px] uppercase text-slate-500 font-black">Impact</span>
+                            <span className="text-amber-400 font-extrabold">{n.intensity != null ? `${Math.round(n.intensity * 100)}%` : 'N/A'}</span>
+                          </div>
                         </div>
 
                         <div className="flex gap-2">
@@ -451,7 +511,7 @@ const NotificationsPage = () => {
                 <div className="flex items-start justify-between p-6 bg-[#101826] border-b border-white/5">
                   <div className="flex items-start gap-4">
                     {(() => {
-                      const tc = SEV_CONFIG[openAlert.severity?.toUpperCase()] || SEV_CONFIG.MODERATE;
+                      const tc = SEV_CONFIG[openAlert.severity?.toUpperCase()] || SEV_CONFIG.LOW;
                       const TI = tc.icon;
                       return (
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: tc.bg, border: `1px solid ${tc.border}` }}>
@@ -461,14 +521,22 @@ const NotificationsPage = () => {
                     })()}
                     <div>
                       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-[#0B1220] text-slate-300 border border-white/5">
-                          {openAlert.category || "General"}
-                        </span>
+                        {(() => {
+                          const catStyle = getCategoryBadgeStyle(openAlert.category);
+                          return (
+                            <span 
+                              className="text-[9px] font-black uppercase px-2 py-0.5 rounded border"
+                              style={{ backgroundColor: catStyle.bg, color: catStyle.text, borderColor: catStyle.border }}
+                            >
+                              {openAlert.category || "General"}
+                            </span>
+                          );
+                        })()}
                         <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded border"
                           style={{
-                            background: openAlert.severity === 'CRITICAL' ? 'rgba(255,92,122,0.15)' : openAlert.severity === 'HIGH' ? 'rgba(255,159,67,0.15)' : 'rgba(0,194,255,0.15)',
-                            color: openAlert.severity === 'CRITICAL' ? '#FF5C7A' : openAlert.severity === 'HIGH' ? '#FF9F43' : '#00C2FF',
-                            borderColor: 'currentColor'
+                            background: tc.bg,
+                            color: tc.color,
+                            borderColor: tc.border
                           }}
                         >
                           {openAlert.severity}
@@ -491,12 +559,12 @@ const NotificationsPage = () => {
                 <div className="p-6 overflow-y-auto space-y-6 flex-1 custom-scrollbar">
                   <div className="rounded-xl overflow-hidden border border-white/5 bg-[#0B1220]">
                     <img
-                      src={openAlert.image_url || '/logistics_fallback.png'}
+                      src={openAlert.image_url || getFallbackImage(openAlert.category)}
                       alt="News Cover"
                       className="w-full h-56 object-cover"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
-                        e.currentTarget.src = '/logistics_fallback.png';
+                        e.currentTarget.src = getFallbackImage(openAlert.category);
                       }}
                     />
                   </div>
@@ -520,7 +588,17 @@ const NotificationsPage = () => {
                   <div className="grid grid-cols-2 gap-4 p-4 rounded-xl text-xs bg-[#0B1220] border border-white/5">
                     <div>
                       <p className="font-semibold text-[10px] uppercase tracking-wider text-[#9AA7B5]">Publisher</p>
-                      <p className="font-bold mt-1 text-white">{openAlert.source || "GEO_RISK_ENGINE"}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {openAlert.source_url && (
+                          <img
+                            src={`https://www.google.com/s2/favicons?sz=64&domain=${getDomain(openAlert.source_url)}`}
+                            alt={openAlert.source}
+                            className="w-4 h-4 rounded-sm"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        )}
+                        <p className="font-bold text-white">{openAlert.source || "GEO_RISK_ENGINE"}</p>
+                      </div>
                     </div>
                     <div>
                       <p className="font-semibold text-[10px] uppercase tracking-wider text-[#9AA7B5]">Published Date</p>

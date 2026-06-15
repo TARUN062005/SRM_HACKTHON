@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { X, Shield, Newspaper, CloudRain, ArrowRight, ExternalLink, TrendingUp, ChevronDown, ChevronUp, Radio, Zap, AlertTriangle, Anchor, Info, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getFallbackImage } from '../pages/Dashboard';
 
 const SEV = {
   CRITICAL: { label: 'CRITICAL', color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.25)', dotCls: 'bg-red-500'     },
   HIGH:     { label: 'HIGH',     color: '#f97316', bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.25)', dotCls: 'bg-orange-500'  },
   MODERATE: { label: 'MODERATE', color: '#eab308', bg: 'rgba(234,179,8,0.12)',  border: 'rgba(234,179,8,0.25)',  dotCls: 'bg-yellow-500'  },
   CAUTION:  { label: 'CAUTION',  color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.25)', dotCls: 'bg-amber-500'   },
+  LOW:      { label: 'LOW',      color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.25)',  dotCls: 'bg-emerald-500' },
   STABLE:   { label: 'STABLE',   color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.25)',  dotCls: 'bg-emerald-500' },
 };
 
@@ -298,42 +300,18 @@ export const RiskIntelPanel = ({
                           }));
                         }}
                       >
-                        {(() => {
-                          if (image) {
-                            return (
-                              <a href={link || '#'} target={link ? "_blank" : undefined} rel="noreferrer" onClick={e => e.stopPropagation()} className="block overflow-hidden rounded-lg mb-2">
-                                <img src={image} alt={title} loading="lazy" className="w-full h-24 object-cover hover:scale-105 transition-transform duration-300" />
-                              </a>
-                            );
-                          }
-                          const domain = getDomain(link);
-                          const favicon = domain ? `https://www.google.com/s2/favicons?sz=64&domain=${domain}` : null;
-                          const colors = {
-                            CRITICAL: { from: '#7f1d1d', to: '#ef4444', border: 'rgba(239,68,68,0.25)', text: '#ef4444' },
-                            HIGH:     { from: '#7c2d12', to: '#f97316', border: 'rgba(249,115,22,0.25)', text: '#f97316' },
-                            MODERATE: { from: '#713f12', to: '#eab308', border: 'rgba(234,179,8,0.25)', text: '#eab308' },
-                            CAUTION:  { from: '#78350f', to: '#f59e0b', border: 'rgba(245,158,11,0.25)', text: '#f59e0b' },
-                            STABLE:   { from: '#064e3b', to: '#22c55e', border: 'rgba(34,197,94,0.25)', text: '#22c55e' },
-                          };
-                          const theme = colors[severityUpper] || colors.MODERATE;
-                          return (
-                            <a href={link || '#'} target={link ? "_blank" : undefined} rel="noreferrer" onClick={e => e.stopPropagation()} className="block overflow-hidden rounded-lg mb-2 border" style={{ borderColor: theme.border }}>
-                              <div className="w-full h-24 flex flex-col items-center justify-center gap-1.5 p-2"
-                                style={{ background: `linear-gradient(135deg, ${theme.from}22, ${theme.to}08)` }}>
-                                {favicon ? (
-                                  <img src={favicon} alt={publisher || domain} className="w-8 h-8 rounded bg-[#0B1220] p-1 border border-white/10" onError={e => { e.target.style.display = 'none'; }} />
-                                ) : (
-                                  <svg className="w-6 h-6 opacity-60" viewBox="0 0 24 24" fill="none" stroke={theme.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                    <line x1="12" y1="9" x2="12" y2="13"/>
-                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
-                                  </svg>
-                                )}
-                                {publisher && <span className="text-[8px] font-black uppercase tracking-wider text-slate-500">{publisher}</span>}
-                              </div>
-                            </a>
-                          );
-                        })()}
+                        <a href={link || '#'} target={link ? "_blank" : undefined} rel="noreferrer" onClick={e => e.stopPropagation()} className="block overflow-hidden rounded-lg mb-2">
+                          <img
+                            src={image || getFallbackImage(type)}
+                            alt={title}
+                            loading="lazy"
+                            className="w-full h-24 object-cover hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = getFallbackImage(type);
+                            }}
+                          />
+                        </a>
                         <div className="flex items-start gap-2 mb-2">
                           <Newspaper size={11} className="flex-shrink-0 mt-0.5" style={{ color: aCfg.color }} />
                           <p className="text-[11px] font-semibold flex-1 leading-snug hover:text-cyan-400 transition-colors" style={{ color: 'var(--text-primary)' }}>
@@ -341,11 +319,24 @@ export const RiskIntelPanel = ({
                           </p>
                         </div>
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase"
                               style={{ background: aCfg.bg, color: aCfg.color }}>
                               {type || 'alert'}
                             </span>
+                            {publisher && (
+                              <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400">
+                                {link && (
+                                  <img
+                                    src={`https://www.google.com/s2/favicons?sz=64&domain=${getDomain(link)}`}
+                                    alt={publisher}
+                                    className="w-3 h-3 rounded-sm flex-shrink-0"
+                                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                  />
+                                )}
+                                <span>{publisher}</span>
+                              </div>
+                            )}
                             {date && (
                               <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>
                                 {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}

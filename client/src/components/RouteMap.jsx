@@ -6,6 +6,7 @@ import axios from 'axios';
 import { X, Layers, Crosshair, Anchor, AlertTriangle, Shield, Radio } from 'lucide-react';
 import { RiskIntelPanel } from './RiskIntelPanel';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getFallbackImage } from '../pages/Dashboard';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 
@@ -58,7 +59,7 @@ const makePinIcon = (label, bg, shadowColor) =>
   });
 
 const makeWarningIcon = (severity) => {
-  const color = severity === 'CRITICAL' ? '#EF4444' : severity === 'HIGH' ? '#F59E0B' : '#EAB308';
+  const color = severity === 'CRITICAL' ? '#EF4444' : severity === 'HIGH' ? '#ea580c' : severity === 'MODERATE' ? '#F59E0B' : '#10B981';
   return L.divIcon({
     html: `<div style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;
       background:${color}22;border:1.5px solid ${color};border-radius:50%;box-shadow:0 0 10px ${color}33;">
@@ -90,6 +91,28 @@ const hDistKm = (p1, p2) => {
   const dLo = (p2[0] - p1[0]) * (Math.PI / 180);
   const a = Math.sin(dLa / 2) ** 2 + Math.cos(p1[1] * Math.PI / 180) * Math.cos(p2[1] * Math.PI / 180) * Math.sin(dLo / 2) ** 2;
   return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const getRiskLevel = (score) => {
+  if (score == null) return 'UNKNOWN';
+  const num = parseFloat(score);
+  if (isNaN(num)) return 'UNKNOWN';
+  const val = num > 0 && num <= 1.0 ? Math.round(num * 100) : Math.round(num);
+  if (val <= 20) return 'LOW';
+  if (val <= 40) return 'MODERATE';
+  if (val <= 60) return 'HIGH';
+  return 'CRITICAL';
+};
+
+const getThreatSymbol = (label) => {
+  const l = (label || '').toLowerCase().trim();
+  if (l.includes('conflict') || l.includes('war') || l.includes('military') || l.includes('combat') || l.includes('shoot') || l.includes('strike') || l.includes('protest') || l.includes('terrorism') || l.includes('dispute')) return '⚔️';
+  if (l.includes('sanction') || l.includes('restrict') || l.includes('block') || l.includes('prohibit') || l.includes('closure') || l.includes('border') || l.includes('barr')) return '🚫';
+  if (l.includes('piracy') || l.includes('pirate') || l.includes('hijack')) return '🏴‍☠️';
+  if (l.includes('weather') || l.includes('storm') || l.includes('rain') || l.includes('typhoon') || l.includes('cyclone') || l.includes('monsoon') || l.includes('wind') || l.includes('gale') || l.includes('snow') || l.includes('fog')) return '⛈️';
+  if (l.includes('maritime') || l.includes('shipping') || l.includes('sea') || l.includes('ocean') || l.includes('vessel') || l.includes('port')) return '⚓';
+  if (l.includes('air') || l.includes('flight') || l.includes('plane') || l.includes('airspace')) return '✈️';
+  return '⚠️';
 };
 
 const ClusteredIncidentMarkers = ({ events }) => {
@@ -151,66 +174,64 @@ const ClusteredIncidentMarkers = ({ events }) => {
       {clusters.map((cluster, ci) => {
         if (cluster.events.length === 1) {
           const event = cluster.events[0];
-          const severity = event.intensity >= 0.5 ? 'CRITICAL' : event.intensity >= 0.25 ? 'HIGH' : 'MODERATE';
-          const severityColor = severity === 'CRITICAL' ? '#EF4444' : severity === 'HIGH' ? '#F59E0B' : '#22C55E';
+          const severity = getRiskLevel(event.intensity != null ? event.intensity * 100 : null);
+          const severityColor = severity === 'CRITICAL' ? '#EF4444' : severity === 'HIGH' ? '#ea580c' : severity === 'MODERATE' ? '#F59E0B' : '#10B981';
+          const emoji = getThreatSymbol(event.label || event.category);
           
-          // Custom divicon with warning symbol inside a glowing dot
+          // Custom divicon with unique threat emoji inside a glowing dot
           const pinIcon = L.divIcon({
-            html: `<div style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">
-              <div style="position:absolute;width:24px;height:24px;border-radius:50%;background:${severityColor};opacity:0.3;animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
-              <div style="position:relative;width:14px;height:14px;border-radius:50%;background:${severityColor};border:2px solid white;box-shadow:0 0 8px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;">
-                <span style="color:white;font-size:8px;font-weight:950;font-family:system-ui;">!</span>
+            html: `<div style="position:relative;width:28px;height:28px;display:flex;align-items:center;justify-content:center;">
+              <div style="position:absolute;width:28px;height:28px;border-radius:50%;background:${severityColor};opacity:0.35;animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
+              <div style="position:relative;width:20px;height:20px;border-radius:50%;background:${severityColor};border:1.5px solid white;box-shadow:0 0 8px rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;line-height:1;">
+                <span style="color:white;font-size:10px;font-family:system-ui;display:flex;align-items:center;justify-content:center;">${emoji}</span>
               </div>
             </div>`,
-            className: '', iconSize: [24, 24], iconAnchor: [12, 12]
+            className: '', iconSize: [28, 28], iconAnchor: [14, 14]
           });
           
           return (
             <Marker key={`event-${ci}`} position={[cluster.lat, cluster.lon]} icon={pinIcon}>
               <Popup>
                 <div className="p-2.5 max-w-xs text-xs" style={{ background: '#0F172A', color: '#F8FAFC', borderRadius: '12px' }}>
-                  {(() => {
-                    if (event.image_url) {
-                      return (
-                        <a href={event.source_url || '#'} target={event.source_url ? "_blank" : undefined} rel="noreferrer" className={event.source_url ? "block mb-2" : "block mb-2 pointer-events-none"}>
-                          <img src={event.image_url} alt={event.headline} loading="lazy" className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/logistics_fallback.png'; }} />
-                        </a>
-                      );
-                    }
-                    const getDomain = (url) => {
-                      if (!url) return '';
-                      try { return new URL(url).hostname; } catch { return ''; }
-                    };
-                    const domain = getDomain(event.source_url);
-                    const favicon = domain ? `https://www.google.com/s2/favicons?sz=64&domain=${domain}` : null;
-                    const colors = {
-                      CRITICAL: { from: '#7f1d1d', to: '#ef4444', border: 'rgba(239,68,68,0.25)', text: '#ef4444' },
-                      HIGH:     { from: '#7c2d12', to: '#f97316', border: 'rgba(249,115,22,0.25)', text: '#f97316' },
-                      MODERATE: { from: '#713f12', to: '#eab308', border: 'rgba(234,179,8,0.25)', text: '#eab308' },
-                    };
-                    const theme = colors[severity] || colors.MODERATE;
-                    return (
-                      <a href={event.source_url || '#'} target={event.source_url ? "_blank" : undefined} rel="noreferrer" className={event.source_url ? "block mb-2 border rounded-lg overflow-hidden" : "block mb-2 border rounded-lg overflow-hidden pointer-events-none"} style={{ borderColor: theme.border }}>
-                        <div className="w-full h-20 flex flex-col items-center justify-center gap-1 p-2"
-                          style={{ background: `linear-gradient(135deg, ${theme.from}22, ${theme.to}08)` }}>
-                          {favicon ? (
-                            <img src={favicon} alt={event.publisher || domain} className="w-7 h-7 rounded bg-[#0B1220] p-1 border border-white/10" onError={e => { e.target.style.display = 'none'; }} />
-                          ) : (
-                            <Radio size={12} style={{ color: theme.text }} className="opacity-60 animate-pulse" />
-                          )}
-                          {event.publisher && <span className="text-[8px] font-black uppercase tracking-wider text-slate-500">{event.publisher}</span>}
-                        </div>
-                      </a>
-                    );
-                  })()}
+                  <a href={event.source_url || '#'} target={event.source_url ? "_blank" : undefined} rel="noreferrer" className={event.source_url ? "block mb-2" : "block mb-2 pointer-events-none"}>
+                    <img
+                      src={event.image_url || getFallbackImage(event.label || event.category)}
+                      alt={event.headline}
+                      loading="lazy"
+                      className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = getFallbackImage(event.label || event.category);
+                      }}
+                    />
+                  </a>
                   <p className="font-black text-sm mb-1 leading-snug" style={{ color: severityColor }}>{event.headline}</p>
                   <p className="text-[9px] uppercase font-extrabold tracking-wider opacity-85 mb-1.5" style={{ color: severityColor }}>
-                    {event.label || 'threat'} · {event.confidence != null ? `${(event.confidence * 100).toFixed(0)}% confidence` : ''}
+                    {severity} · {event.label || 'threat'} · {event.confidence != null ? `${(event.confidence * 100).toFixed(0)}% confidence` : ''}
                   </p>
                   {event.publisher && (
-                    <p className="text-[10px] mb-1" style={{ color: '#94A3B8' }}>
-                      Publisher: <span className="font-bold">{event.publisher}</span>
-                    </p>
+                    <div className="text-[10px] mb-1 flex items-center gap-1.5" style={{ color: '#94A3B8' }}>
+                      <span>Publisher:</span>
+                      <div className="flex items-center gap-1">
+                        {(() => {
+                          try {
+                            const domain = event.source_url ? new URL(event.source_url).hostname : "";
+                            if (domain) {
+                              return (
+                                <img
+                                  src={`https://www.google.com/s2/favicons?sz=64&domain=${domain}`}
+                                  alt={event.publisher}
+                                  className="w-3.5 h-3.5 rounded-sm flex-shrink-0"
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                />
+                              );
+                            }
+                          } catch (err) {}
+                          return null;
+                        })()}
+                        <span className="font-bold text-white">{event.publisher}</span>
+                      </div>
+                    </div>
                   )}
                   {event.published_at && (
                     <p className="text-[9px] opacity-60 mb-2">
@@ -1119,6 +1140,66 @@ export const RouteMap = ({
           const zoneColor = zone.severity === 'CRITICAL' ? '#dc2626'
             : zone.severity === 'HIGH' ? '#ea580c'
             : '#d97706';
+          
+          const popupContent = (
+            <div className="p-2.5 max-w-xs text-xs" style={{ background: '#0F172A', color: '#F8FAFC', borderRadius: '12px' }}>
+              {zone.image_url || getFallbackImage(zone.type) ? (
+                <div className="block mb-2">
+                  <img
+                    src={zone.image_url || getFallbackImage(zone.type)}
+                    alt={zone.name}
+                    loading="lazy"
+                    className="w-full h-20 object-cover rounded-lg"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = getFallbackImage(zone.type);
+                    }}
+                  />
+                </div>
+              ) : null}
+              <p className="font-black text-sm mb-1 leading-snug" style={{ color: zoneColor }}>{zone.name}</p>
+              <p className="text-[9px] uppercase font-extrabold tracking-wider opacity-85 mb-1.5" style={{ color: zoneColor }}>
+                {zone.severity} · {zone.type}
+              </p>
+              <p className="text-[10px] text-slate-300 mb-2 leading-normal">{zone.reason}</p>
+              {zone.publisher && (
+                <div className="text-[10px] mb-1 flex items-center gap-1.5" style={{ color: '#94A3B8' }}>
+                  <span>Source:</span>
+                  <div className="flex items-center gap-1">
+                    {(() => {
+                      try {
+                        const domain = zone.source_url ? new URL(zone.source_url).hostname : "";
+                        if (domain) {
+                          return (
+                            <img
+                              src={`https://www.google.com/s2/favicons?sz=64&domain=${domain}`}
+                              alt={zone.publisher}
+                              className="w-3.5 h-3.5 rounded-sm flex-shrink-0"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                          );
+                        }
+                      } catch (err) {}
+                      return null;
+                    })()}
+                    <span className="font-bold text-white">{zone.publisher}</span>
+                  </div>
+                </div>
+              )}
+              {zone.published_at && (
+                <p className="text-[9px] opacity-60 mb-2">
+                  Published Date: {new Date(zone.published_at).toLocaleDateString()}
+                </p>
+              )}
+              {zone.source_url && (
+                <a href={zone.source_url} target="_blank" rel="noreferrer" 
+                  className="inline-flex items-center justify-center w-full px-3 py-1.5 rounded-lg text-[10px] font-black uppercase text-white bg-cyan-600 hover:bg-cyan-500 transition-colors text-center mt-1">
+                  Read Article
+                </a>
+              )}
+            </div>
+          );
+
           return (
             <React.Fragment key={zone.id}>
               <Circle
@@ -1134,18 +1215,7 @@ export const RouteMap = ({
                 }}
               >
                 <Popup>
-                  <div className="p-1" style={{ minWidth: 180, maxWidth: 220 }}>
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span style={{ fontSize: 13 }}>
-                        {zone.type === 'conflict' ? '⚔️' : zone.type === 'piracy' ? '🏴' : '🚩'}
-                      </span>
-                      <p className="font-black text-slate-800 text-xs">{zone.name}</p>
-                    </div>
-                    <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: zoneColor }} className="mb-1">
-                      {zone.severity} · {zone.type}
-                    </p>
-                    <p style={{ fontSize: 10, color: '#475569', lineHeight: 1.4 }}>{zone.reason}</p>
-                  </div>
+                  {popupContent}
                 </Popup>
               </Circle>
               <Marker
@@ -1153,18 +1223,7 @@ export const RouteMap = ({
                 icon={makeWarningIcon(zone.severity)}
               >
                 <Popup>
-                  <div className="p-1" style={{ minWidth: 180, maxWidth: 220 }}>
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span style={{ fontSize: 13 }}>
-                        {zone.type === 'conflict' ? '⚔️' : zone.type === 'piracy' ? '🏴' : '🚩'}
-                      </span>
-                      <p className="font-black text-slate-800 text-xs">{zone.name}</p>
-                    </div>
-                    <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: zoneColor }} className="mb-1">
-                      {zone.severity} · {zone.type}
-                    </p>
-                    <p style={{ fontSize: 10, color: '#475569', lineHeight: 1.4 }}>{zone.reason}</p>
-                  </div>
+                  {popupContent}
                 </Popup>
               </Marker>
             </React.Fragment>

@@ -184,6 +184,7 @@ class GeoRiskService {
         });
 
         if (response.data) {
+          console.log('[DIAGNOSTIC - GEO_RISK_ENGINE RAW PAYLOAD]', JSON.stringify(response.data, null, 2));
           const recMode = response.data.recommended_mode;
           const recModeData = response.data.modes?.[recMode] || {};
 
