@@ -564,6 +564,21 @@ class AuthController {
     }
   }
 
+  async getCsrfToken(req, res) {
+    try {
+      let csrfToken = req.cookies?.['XSRF-TOKEN'];
+      if (!csrfToken) {
+        const crypto = require('crypto');
+        csrfToken = crypto.randomBytes(24).toString('hex');
+        res.cookie('XSRF-TOKEN', csrfToken, csrfCookieOptions());
+      }
+      return res.status(200).json({ success: true, csrfToken });
+    } catch (error) {
+      console.error('Failed to get/generate CSRF token:', error.message);
+      return res.status(500).json({ success: false, message: 'Failed to retrieve CSRF token' });
+    }
+  }
+
   async forgotPassword(req, res) {
     try {
       const { email } = req.body;

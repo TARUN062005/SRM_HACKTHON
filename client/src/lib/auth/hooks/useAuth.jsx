@@ -7,6 +7,20 @@ const AuthContext = createContext(null);
 axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL || '';
 axios.defaults.withCredentials = true;
 
+let csrfTokenMemory = null;
+
+export const fetchCsrfToken = async () => {
+  try {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+    const res = await axios.get(`${backendUrl}/api/auth/csrf-token`, { withCredentials: true });
+    if (res.data?.csrfToken) {
+      csrfTokenMemory = res.data.csrfToken;
+    }
+  } catch (err) {
+    console.warn('[AUTH] Failed to fetch CSRF token from bootstrap endpoint:', err.message);
+  }
+};
+
 // Request interceptor to attach X-XSRF-TOKEN header on mutating requests
 axios.interceptors.request.use(
   (config) => {
@@ -16,7 +30,7 @@ axios.interceptors.request.use(
       if (parts.length === 2) return parts.pop().split(';').shift();
       return null;
     };
-    const xsrfToken = getCookie('XSRF-TOKEN');
+    const xsrfToken = csrfTokenMemory || getCookie('XSRF-TOKEN');
     if (xsrfToken && ['post', 'put', 'delete', 'patch'].includes(config.method?.toLowerCase())) {
       config.headers['X-XSRF-TOKEN'] = xsrfToken;
       config.headers['X-CSRF-Token'] = xsrfToken;
@@ -51,6 +65,8 @@ export const AuthProvider = ({ children }) => {
     } catch {
       // Local sign-out should still proceed even if backend logout fails.
     }
+
+    csrfTokenMemory = null;
 
     // Clear accessible document cookies
     try {
@@ -163,6 +179,7 @@ export const AuthProvider = ({ children }) => {
   const initAuth = useCallback(async () => {
     console.info('[AUTH] Session restore started');
     try {
+      await fetchCsrfToken();
       const res = await API.get('/api/auth/profile');
       if (res.data?.success) {
         setUser(res.data.user);
