@@ -4,9 +4,9 @@ const aiRouteController = require('../controller/aiRouteController');
 const aiAgentController = require('../controller/aiAgentController');
 const { verifyToken } = require('../middleware/authmiddleware');
 
-router.use(verifyToken);
-
 router.post('/warmup', aiRouteController.warmup);
+
+router.use(verifyToken);
 router.post('/route/optimize', aiRouteController.optimizeRoute);
 router.post('/intent', aiAgentController.processAIIntent);
 router.post('/agent/chat', aiAgentController.agentChat);

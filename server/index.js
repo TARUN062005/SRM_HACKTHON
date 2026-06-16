@@ -167,6 +167,7 @@ const authLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: {
     success: false,
     message: 'Too many authentication attempts. Please try again after 15 minutes.',
@@ -178,6 +179,7 @@ const aiChatLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: {
     success: false,
     message: 'Too many chat requests. Please slow down and try again in a minute.',
@@ -189,6 +191,7 @@ const routeSearchLimiter = rateLimit({
   max: 50,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: {
     success: false,
     message: 'Too many route search requests. Please try again later.',
@@ -200,6 +203,7 @@ const riskAnalysisLimiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: {
     success: false,
     message: 'Too many risk analysis requests. Please try again later.',
@@ -211,6 +215,7 @@ const shipmentCreationLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: {
     success: false,
     message: 'Too many shipment operations. Please try again later.',
@@ -222,6 +227,7 @@ const generalLimiter = rateLimit({
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: {
     success: false,
     message: 'Too many requests, please try again later',

@@ -272,6 +272,14 @@ export const ShipmentCreationFlow = ({
     onClearRoute?.();
   }, [freightMode, onClearRoute]);
 
+  // Clean up abort controllers on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllers.current.source) abortControllers.current.source.abort();
+      if (abortControllers.current.dest) abortControllers.current.dest.abort();
+    };
+  }, []);
+
   const ready = (slot) => {
     if (!needsRes) return slot.selected;
     return slot.slotState?.status === 'confirmed' && slot.slotState?.chosen;
@@ -341,16 +349,16 @@ export const ShipmentCreationFlow = ({
   useEffect(() => {
     const slot = src;
     if (activeDropdown !== 'source' || slot.selected || slot.slotState?.status === 'picking') return;
-    // 300ms debounce
-    const t = setTimeout(() => fetchLocations(slot.query, 'source'), 300);
+    // 250ms debounce
+    const t = setTimeout(() => fetchLocations(slot.query, 'source'), 250);
     return () => clearTimeout(t);
   }, [src.query, activeDropdown, src.selected, src.slotState]);
 
   useEffect(() => {
     const slot = dst;
     if (activeDropdown !== 'dest' || slot.selected || slot.slotState?.status === 'picking') return;
-    // 300ms debounce
-    const t = setTimeout(() => fetchLocations(slot.query, 'dest'), 300);
+    // 250ms debounce
+    const t = setTimeout(() => fetchLocations(slot.query, 'dest'), 250);
     return () => clearTimeout(t);
   }, [dst.query, activeDropdown, dst.selected, dst.slotState]);
 

@@ -91,18 +91,36 @@ class AirportResolver {
           searchIcao: normalize(icao),
         };
       }).filter(Boolean);
+
+      this.prefixIndex = new Map();
+      this.airports.forEach(airport => {
+        const terms = [...airport.searchName.split(' '), ...airport.searchCity.split(' '), airport.searchIata, airport.searchIcao].filter(Boolean);
+        for (const term of terms) {
+          for (let len = 1; len <= term.length; len++) {
+            const prefix = term.substring(0, len);
+            if (!this.prefixIndex.has(prefix)) {
+              this.prefixIndex.set(prefix, new Set());
+            }
+            this.prefixIndex.get(prefix).add(airport);
+          }
+        }
+      });
     })();
 
     return this.loadingPromise;
   }
 
   async searchByName(query, limit = 5) {
+    const startTime = Date.now();
     await this.ensureDataset();
     const q = normalize(query);
     if (!q) return [];
 
+    const firstWord = q.split(' ')[0];
+    const candidates = this.prefixIndex.get(firstWord) || new Set();
+
     const scored = [];
-    for (const airport of this.airports) {
+    for (const airport of candidates) {
       let score = 0;
       if (airport.searchIata && airport.searchIata === q) score += 50;
       if (airport.searchIcao && airport.searchIcao === q) score += 45;
@@ -116,7 +134,9 @@ class AirportResolver {
     }
 
     scored.sort((a, b) => b.score - a.score);
-    return scored.slice(0, limit).map(item => item.airport);
+    const result = scored.slice(0, limit).map(item => item.airport);
+    console.log(`[AIRPORT SEARCH TIME] query="${query}" time=${Date.now() - startTime}ms candidates=${candidates.size} results=${result.length}`);
+    return result;
   }
 
   async findNearest(lat, lon) {

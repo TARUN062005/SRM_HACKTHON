@@ -70,31 +70,37 @@ function getPrimaryClientUrl() {
   return 'http://localhost:5173';
 }
 
-function accessCookieOptions() {
+function accessCookieOptions(req) {
+  const host = req ? (req.headers.host || '') : '';
+  const isProduction = process.env.NODE_ENV === 'production' || (host && !host.includes('localhost') && !host.includes('127.0.0.1'));
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 15 * 60 * 1000, // 15 minutes
     path: '/',
   };
 }
 
-function refreshCookieOptions() {
+function refreshCookieOptions(req) {
+  const host = req ? (req.headers.host || '') : '';
+  const isProduction = process.env.NODE_ENV === 'production' || (host && !host.includes('localhost') && !host.includes('127.0.0.1'));
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/',
   };
 }
 
-function csrfCookieOptions() {
+function csrfCookieOptions(req) {
+  const host = req ? (req.headers.host || '') : '';
+  const isProduction = process.env.NODE_ENV === 'production' || (host && !host.includes('localhost') && !host.includes('127.0.0.1'));
   return {
     httpOnly: false, // Must be accessible to client-side JS
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/',
   };
@@ -176,9 +182,9 @@ class AuthController {
         finalizeOAuthCodeUsed(code);
         await ActivityService.log(user.id, 'Login Success', 'Logged in via Google', req.ip);
 
-        res.cookie('access_token', accessToken, accessCookieOptions());
-        res.cookie('refresh_token', refreshToken, refreshCookieOptions());
-        res.cookie('XSRF-TOKEN', csrfToken, csrfCookieOptions());
+        res.cookie('access_token', accessToken, accessCookieOptions(req));
+        res.cookie('refresh_token', refreshToken, refreshCookieOptions(req));
+        res.cookie('XSRF-TOKEN', csrfToken, csrfCookieOptions(req));
 
         // Trigger server-side background warmup for GeoRiskEngine
         try {
@@ -235,9 +241,9 @@ class AuthController {
         finalizeOAuthCodeUsed(code);
         await ActivityService.log(user.id, 'Login Success', 'Logged in via GitHub', req.ip);
 
-        res.cookie('access_token', accessToken, accessCookieOptions());
-        res.cookie('refresh_token', refreshToken, refreshCookieOptions());
-        res.cookie('XSRF-TOKEN', csrfToken, csrfCookieOptions());
+        res.cookie('access_token', accessToken, accessCookieOptions(req));
+        res.cookie('refresh_token', refreshToken, refreshCookieOptions(req));
+        res.cookie('XSRF-TOKEN', csrfToken, csrfCookieOptions(req));
 
         // Trigger server-side background warmup for GeoRiskEngine
         try {
@@ -269,9 +275,9 @@ class AuthController {
       try {
         decoded = authManager.verifyToken(refreshToken);
       } catch (err) {
-        res.clearCookie('access_token', { ...accessCookieOptions(), maxAge: undefined });
-        res.clearCookie('refresh_token', { ...refreshCookieOptions(), maxAge: undefined });
-        res.clearCookie('XSRF-TOKEN', { ...csrfCookieOptions(), maxAge: undefined });
+        res.clearCookie('access_token', { ...accessCookieOptions(req), maxAge: undefined });
+        res.clearCookie('refresh_token', { ...refreshCookieOptions(req), maxAge: undefined });
+        res.clearCookie('XSRF-TOKEN', { ...csrfCookieOptions(req), maxAge: undefined });
         return res.status(401).json({ success: false, message: 'Session expired' });
       }
 
@@ -288,17 +294,17 @@ class AuthController {
         if (session) {
           await prisma.session.delete({ where: { token: refreshToken } }).catch(() => {});
         }
-        res.clearCookie('access_token', { ...accessCookieOptions(), maxAge: undefined });
-        res.clearCookie('refresh_token', { ...refreshCookieOptions(), maxAge: undefined });
-        res.clearCookie('XSRF-TOKEN', { ...csrfCookieOptions(), maxAge: undefined });
+        res.clearCookie('access_token', { ...accessCookieOptions(req), maxAge: undefined });
+        res.clearCookie('refresh_token', { ...refreshCookieOptions(req), maxAge: undefined });
+        res.clearCookie('XSRF-TOKEN', { ...csrfCookieOptions(req), maxAge: undefined });
         return res.status(401).json({ success: false, message: 'Session invalid or expired' });
       }
 
       const user = await userService.findById(decoded.id);
       if (!user || !user.isActive) {
-        res.clearCookie('access_token', { ...accessCookieOptions(), maxAge: undefined });
-        res.clearCookie('refresh_token', { ...refreshCookieOptions(), maxAge: undefined });
-        res.clearCookie('XSRF-TOKEN', { ...csrfCookieOptions(), maxAge: undefined });
+        res.clearCookie('access_token', { ...accessCookieOptions(req), maxAge: undefined });
+        res.clearCookie('refresh_token', { ...refreshCookieOptions(req), maxAge: undefined });
+        res.clearCookie('XSRF-TOKEN', { ...csrfCookieOptions(req), maxAge: undefined });
         return res.status(401).json({ success: false, message: 'User suspended or not found' });
       }
 
@@ -315,8 +321,8 @@ class AuthController {
         userAgent: req.headers['user-agent'] || null,
       });
 
-      res.cookie('access_token', newAccessToken, accessCookieOptions());
-      res.cookie('refresh_token', newRefreshToken, refreshCookieOptions());
+      res.cookie('access_token', newAccessToken, accessCookieOptions(req));
+      res.cookie('refresh_token', newRefreshToken, refreshCookieOptions(req));
       return res.status(200).json({ success: true, message: 'Token refreshed successfully' });
     } catch (error) {
       console.error('Session refresh error:', error.message);
@@ -330,9 +336,9 @@ class AuthController {
       if (refreshToken) {
         await userService.deleteSession(refreshToken);
       }
-      res.clearCookie('access_token', { ...accessCookieOptions(), maxAge: undefined });
-      res.clearCookie('refresh_token', { ...refreshCookieOptions(), maxAge: undefined });
-      res.clearCookie('XSRF-TOKEN', { ...csrfCookieOptions(), maxAge: undefined });
+      res.clearCookie('access_token', { ...accessCookieOptions(req), maxAge: undefined });
+      res.clearCookie('refresh_token', { ...refreshCookieOptions(req), maxAge: undefined });
+      res.clearCookie('XSRF-TOKEN', { ...csrfCookieOptions(req), maxAge: undefined });
       return res.status(200).json({ success: true, message: 'Logged out successfully' });
     } catch (error) {
       return res.status(500).json({ success: false, message: 'Failed to logout' });
@@ -529,15 +535,15 @@ class AuthController {
 
       await ActivityService.log(user.id, 'Login Success', 'Logged in via local credentials', req.ip);
 
-      const aOptions = accessCookieOptions();
-      const rOptions = refreshCookieOptions();
+      const aOptions = accessCookieOptions(req);
+      const rOptions = refreshCookieOptions(req);
       if (rememberMe) {
         rOptions.maxAge = rememberDuration;
       }
 
       res.cookie('access_token', accessToken, aOptions);
       res.cookie('refresh_token', refreshToken, rOptions);
-      res.cookie('XSRF-TOKEN', csrfToken, csrfCookieOptions());
+      res.cookie('XSRF-TOKEN', csrfToken, csrfCookieOptions(req));
 
       // Trigger server-side background warmup for GeoRiskEngine
       try {
@@ -570,7 +576,7 @@ class AuthController {
       if (!csrfToken) {
         const crypto = require('crypto');
         csrfToken = crypto.randomBytes(24).toString('hex');
-        res.cookie('XSRF-TOKEN', csrfToken, csrfCookieOptions());
+        res.cookie('XSRF-TOKEN', csrfToken, csrfCookieOptions(req));
       }
       return res.status(200).json({ success: true, csrfToken });
     } catch (error) {

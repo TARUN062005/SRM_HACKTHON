@@ -87,18 +87,36 @@ class PortResolver {
           searchAlt,
         };
       }).filter(Boolean);
+
+      this.prefixIndex = new Map();
+      this.ports.forEach(port => {
+        const terms = [...port.searchName.split(' '), ...port.searchAlt.split(' '), port.unlocode].filter(Boolean);
+        for (const term of terms) {
+          for (let len = 1; len <= term.length; len++) {
+            const prefix = term.substring(0, len);
+            if (!this.prefixIndex.has(prefix)) {
+              this.prefixIndex.set(prefix, new Set());
+            }
+            this.prefixIndex.get(prefix).add(port);
+          }
+        }
+      });
     })();
 
     return this.loadingPromise;
   }
 
   async searchByName(query, limit = 5) {
+    const startTime = Date.now();
     await this.ensureDataset();
     const q = normalize(query);
     if (!q) return [];
 
+    const firstWord = q.split(' ')[0];
+    const candidates = this.prefixIndex.get(firstWord) || new Set();
+
     const scored = [];
-    for (const port of this.ports) {
+    for (const port of candidates) {
       let score = 0;
       if (port.unlocode && normalize(port.unlocode) === q) score += 50;
       if (port.searchName === q) score += 40;
@@ -111,7 +129,9 @@ class PortResolver {
     }
 
     scored.sort((a, b) => b.score - a.score);
-    return scored.slice(0, limit).map(item => item.port);
+    const result = scored.slice(0, limit).map(item => item.port);
+    console.log(`[PORT SEARCH TIME] query="${query}" time=${Date.now() - startTime}ms candidates=${candidates.size} results=${result.length}`);
+    return result;
   }
 
   async findNearest(lat, lon) {

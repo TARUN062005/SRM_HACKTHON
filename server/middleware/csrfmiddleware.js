@@ -62,9 +62,11 @@ const csrfProtection = (req, res, next) => {
 const setCsrfToken = (req, res, next) => {
   if (!req.cookies['XSRF-TOKEN']) {
     const token = crypto.randomBytes(24).toString('hex');
+    const host = req.headers.host || '';
+    const isProduction = process.env.NODE_ENV === 'production' || (!host.includes('localhost') && !host.includes('127.0.0.1'));
     res.cookie('XSRF-TOKEN', token, {
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/'
     });

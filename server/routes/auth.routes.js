@@ -26,7 +26,7 @@ router.get('/csrf-token', authController.getCsrfToken);
 
 // --- Protected User Routes ---
 router.post('/refresh', authController.refresh);
-router.post('/logout', verifyToken, authController.logout);
+router.post('/logout', authController.logout);
 router.get('/profile', verifyToken, setCsrfToken, authController.getProfile);
 
 // --- Admin Management Routes ---

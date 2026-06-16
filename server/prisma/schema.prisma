@@ -503,11 +503,13 @@ model Shipment {
   riskSummary    String?
   aiReport       String?
   newsAlerts     Json?
+  waypointReports Json?
   status         String   @default("active")
   createdAt      DateTime @default(now())
 
   @@index([routeHash])
   @@index([userId])
+  @@index([createdAt])
 }
 
 model ChatState {
