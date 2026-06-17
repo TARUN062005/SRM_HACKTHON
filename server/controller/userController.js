@@ -76,6 +76,8 @@ class UserController {
       if (req.file) {
         const publicUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
         updateData.profileImage = publicUrl;
+      } else if (req.body.removeProfileImage === 'true') {
+        updateData.profileImage = null;
       }
 
       const updatedUser = await userService.update(req.user.id, updateData);

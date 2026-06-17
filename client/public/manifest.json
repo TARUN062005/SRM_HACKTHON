@@ -1,0 +1,15 @@
+{
+  "short_name": "RouteGuardian",
+  "name": "RouteGuardian Logistics Intelligence",
+  "icons": [
+    {
+      "src": "/LOGO.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#030712",
+  "theme_color": "#00C2FF",
+  "display": "standalone"
+}

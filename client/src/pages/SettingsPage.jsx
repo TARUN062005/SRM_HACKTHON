@@ -47,6 +47,7 @@ const SettingsPage = () => {
   const [updateLoading, setUpdateLoading] = useState(false);
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [profilePreview, setProfilePreview]     = useState(user?.profileImage || '');
+  const [removeProfileImage, setRemoveProfileImage] = useState(false);
 
   // Theme Settings
   const [selectedTheme, setSelectedTheme] = useState('dark');
@@ -73,6 +74,8 @@ const SettingsPage = () => {
         country:  user.country  || '',
       });
       setProfilePreview(user.profileImage || '');
+      setRemoveProfileImage(false);
+      setProfileImageFile(null);
     }
   }, [user]);
 
@@ -102,6 +105,7 @@ const SettingsPage = () => {
       URL.revokeObjectURL(profilePreview);
     }
     setProfilePreview(URL.createObjectURL(file));
+    setRemoveProfileImage(false);
     toast.success('New photo loaded. Click "Save Changes" to apply.');
   };
 
@@ -111,8 +115,7 @@ const SettingsPage = () => {
       URL.revokeObjectURL(profilePreview);
     }
     setProfilePreview('');
-    // We send an empty string or clear option to server
-    setFormData(prev => ({ ...prev, profileImage: '' }));
+    setRemoveProfileImage(true);
     toast.success('Photo removed. Save changes to update database.');
   };
 
@@ -122,10 +125,14 @@ const SettingsPage = () => {
     setUpdateLoading(true);
     try {
       const fd = new FormData();
-      Object.entries(formData).forEach(([k, v]) => fd.append(k, v || ''));
+      Object.entries(formData).forEach(([k, v]) => {
+        if (k !== 'profileImage') {
+          fd.append(k, v || '');
+        }
+      });
       if (profileImageFile) {
         fd.append('profileImage', profileImageFile);
-      } else if (profilePreview === '') {
+      } else if (removeProfileImage) {
         fd.append('removeProfileImage', 'true');
       }
 

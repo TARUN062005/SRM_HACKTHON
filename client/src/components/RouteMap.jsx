@@ -6,7 +6,7 @@ import axios from 'axios';
 import { X, Layers, Crosshair, Anchor, AlertTriangle, Shield, Radio } from 'lucide-react';
 import { RiskIntelPanel } from './RiskIntelPanel';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getFallbackImage } from '../pages/Dashboard';
+import { getFallbackImage } from '../lib/imageUtils';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 

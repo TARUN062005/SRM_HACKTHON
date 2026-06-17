@@ -13,6 +13,7 @@ import {
   Bot, History, Trash2, ChevronRight, Radio, Newspaper,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getFallbackImage } from '../lib/imageUtils';
 
 const getFavicon = (url) => {
   try {
@@ -54,35 +55,7 @@ const SEV_STYLES = {
   STABLE:   { card: 'rgba(34,197,94,0.08)', border: '#22C55E', dot: '#22C55E', badge: 'rgba(34,197,94,0.2)', badgeText: '#22C55E', text: '#A7F3D0' },
 };
 
-// Unique, aesthetic, high-fidelity SVGs based on threat category
-// Unique, aesthetic, high-fidelity SVGs based on threat category
-export const getFallbackImage = (category) => {
-  const cat = (category || '').toLowerCase().trim();
-  
-  const conflictSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" width="100%" height="100%"><rect width="400" height="250" fill="%23111827"/><defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%237f1d1d"/><stop offset="100%" stop-color="%23111827"/></linearGradient></defs><rect width="400" height="250" fill="url(%23g1)" opacity="0.6"/><circle cx="200" cy="110" r="50" fill="%23ef4444" opacity="0.1"/><path d="M200 65 L240 85 V125 C240 155 200 175 200 175 C200 175 160 155 160 125 V85 Z" fill="none" stroke="%23ef4444" stroke-width="3" stroke-linejoin="round"/><path d="M185 105 L215 135 M215 105 L185 135" stroke="%23ef4444" stroke-width="4" stroke-linecap="round"/><text x="200" y="210" fill="%23fca5a5" font-family="system-ui" font-size="12" font-weight="900" text-anchor="middle" letter-spacing="2">CONFLICT ZONE ALERT</text></svg>`;
-  
-  const weatherSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" width="100%" height="100%"><rect width="400" height="250" fill="%23111827"/><defs><linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%2378350f"/><stop offset="100%" stop-color="%23111827"/></linearGradient></defs><rect width="400" height="250" fill="url(%23g2)" opacity="0.6"/><path d="M170 120 A 25 25 0 0 1 210 90 A 35 35 0 0 1 260 120 A 25 25 0 0 1 240 150 L 165 150 A 20 20 0 0 1 170 120 Z" fill="none" stroke="%23f59e0b" stroke-width="3" stroke-linejoin="round"/><path d="M210 145 L195 175 L215 175 L200 205" fill="none" stroke="%23f59e0b" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><text x="200" y="225" fill="%23fcd34d" font-family="system-ui" font-size="12" font-weight="900" text-anchor="middle" letter-spacing="2">WEATHER HAZARD WARNING</text></svg>`;
-  
-  const piracySvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" width="100%" height="100%"><rect width="400" height="250" fill="%23111827"/><defs><linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%231e3a8a"/><stop offset="100%" stop-color="%23111827"/></linearGradient></defs><rect width="400" height="250" fill="url(%23g3)" opacity="0.6"/><circle cx="200" cy="110" r="50" fill="%232563eb" opacity="0.1"/><path d="M160 75 L240 155 M240 75 L160 155" stroke="%232563eb" stroke-width="3" stroke-linecap="round"/><circle cx="200" cy="115" r="25" fill="%23111827" stroke="%232563eb" stroke-width="3"/><path d="M190 115 L200 100 L210 115 Z" fill="%232563eb"/><text x="200" y="210" fill="%2393c5fd" font-family="system-ui" font-size="12" font-weight="900" text-anchor="middle" letter-spacing="2">PIRACY &amp; HIJACK ALERT</text></svg>`;
-  
-  const sanctionsSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" width="100%" height="100%"><rect width="400" height="250" fill="%23111827"/><defs><linearGradient id="g4" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23581c87"/><stop offset="100%" stop-color="%23111827"/></linearGradient></defs><rect width="400" height="250" fill="url(%23g4)" opacity="0.6"/><rect x="150" y="90" width="100" height="70" rx="6" fill="none" stroke="%23a855f7" stroke-width="3"/><path d="M175 90 V75 C175 60 225 60 225 75 V90" fill="none" stroke="%23a855f7" stroke-width="3"/><circle cx="200" cy="125" r="7" fill="%23a855f7"/><path d="M200 132 V145" stroke="%23a855f7" stroke-width="3"/><text x="200" y="210" fill="%23d8b4fe" font-family="system-ui" font-size="12" font-weight="900" text-anchor="middle" letter-spacing="2">TRADE SANCTIONS WARNING</text></svg>`;
-  
-  const maritimeSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" width="100%" height="100%"><rect width="400" height="250" fill="%23111827"/><defs><linearGradient id="g_maritime" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%230f766e"/><stop offset="100%" stop-color="%23111827"/></linearGradient></defs><rect width="400" height="250" fill="url(%23g_maritime)" opacity="0.6"/><path d="M140 120 L150 145 H250 L260 120 Z" fill="none" stroke="%2314b8a6" stroke-width="3" stroke-linejoin="round"/><path d="M165 120 V100 H235 V120" fill="none" stroke="%2314b8a6" stroke-width="3" stroke-linejoin="round"/><path d="M130 155 C160 165 240 165 270 155" fill="none" stroke="%2314b8a6" stroke-width="2" stroke-linecap="round"/><text x="200" y="210" fill="%2399f6e4" font-family="system-ui" font-size="12" font-weight="900" text-anchor="middle" letter-spacing="2">MARITIME SECURITY ALERT</text></svg>`;
-
-  const airspaceSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" width="100%" height="100%"><rect width="400" height="250" fill="%23111827"/><defs><linearGradient id="g_airspace" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23312e81"/><stop offset="100%" stop-color="%23111827"/></linearGradient></defs><rect width="400" height="250" fill="url(%23g_airspace)" opacity="0.6"/><circle cx="200" cy="110" r="50" fill="%236366f1" opacity="0.1"/><path d="M200 65 L215 105 H255 L220 125 L235 165 L200 145 L165 165 L180 125 L145 105 H185 Z" fill="none" stroke="%236366f1" stroke-width="3" stroke-linejoin="round"/><circle cx="200" cy="115" r="45" fill="none" stroke="%23ef4444" stroke-width="2" stroke-dasharray="6,6"/><text x="200" y="210" fill="%23c7d2fe" font-family="system-ui" font-size="12" font-weight="900" text-anchor="middle" letter-spacing="2">AIRSPACE HAZARD REPORT</text></svg>`;
-
-  const defaultSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" width="100%" height="100%"><rect width="400" height="250" fill="%23111827"/><defs><linearGradient id="g5" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23064e3b"/><stop offset="100%" stop-color="%23111827"/></linearGradient></defs><rect width="400" height="250" fill="url(%23g5)" opacity="0.6"/><path d="M150 140 H250 L260 115 H140 Z" fill="none" stroke="%2310b981" stroke-width="3" stroke-linejoin="round"/><rect x="160" y="90" width="80" height="25" fill="none" stroke="%2310b981" stroke-width="3"/><circle cx="175" cy="155" r="8" fill="%2310b981"/><circle cx="225" cy="155" r="8" fill="%2310b981"/><text x="200" y="210" fill="%23a7f3d0" font-family="system-ui" font-size="12" font-weight="900" text-anchor="middle" letter-spacing="2">ROUTE TRANSIT ADVISORY</text></svg>`;
-
-  const c = cat.toLowerCase();
-  if (c.includes('conflict') || c.includes('protest') || c.includes('terrorism') || c.includes('dispute') || c.includes('war') || c.includes('violence')) return conflictSvg;
-  if (c.includes('weather') || c.includes('storm') || c.includes('disaster') || c.includes('typhoon') || c.includes('blizzard') || c.includes('hurricane') || c.includes('rain') || c.includes('wind') || c.includes('flood')) return weatherSvg;
-  if (c.includes('piracy') || c.includes('hijack') || c.includes('hostage') || c.includes('pirate')) return piracySvg;
-  if (c.includes('sanctions') || c.includes('embargo') || c.includes('restriction') || c.includes('border') || c.includes('closure') || c.includes('customs')) return sanctionsSvg;
-  if (c.includes('maritime') || c.includes('port') || c.includes('vessel') || c.includes('ship') || c.includes('ocean') || c.includes('sea') || c.includes('collision') || c.includes('breakdown')) return maritimeSvg;
-  if (c.includes('airspace') || c.includes('aviation') || c.includes('flight') || c.includes('plane') || c.includes('drone') || c.includes('sky') || c.includes('air') || c.includes('jamming')) return airspaceSvg;
-  
-  return defaultSvg;
-};
+// Fallback image provider imported from imageUtils
 
 // Robust score decimal percentage scaling formatter
 export const formatScore = (val) => {
@@ -438,6 +411,17 @@ const Dashboard = () => {
           setOriginalAnalysis(pending);
           setReplayingShipment(pending);
           setIsMissionControlOpen(false);
+
+          if (pending.loadTimeMs) {
+            toast.success(`Shipment restored in ${pending.loadTimeMs}ms`, {
+              icon: '⚡',
+              style: {
+                background: '#0B1220',
+                color: '#00C2FF',
+                border: '1px solid rgba(0, 194, 255, 0.2)'
+              }
+            });
+          }
         }
       } catch (err) {
         console.error('Failed to parse replay shipment:', err);
@@ -610,11 +594,16 @@ const Dashboard = () => {
       if (coords.length >= 2) {
         const origCoords = coords[0];
         const destCoords = coords[coords.length - 1];
-        const sourceMatches = selectedSource && Math.abs(selectedSource.lat - origCoords[1]) < 0.001 && Math.abs((selectedSource.lon || selectedSource.lng) - origCoords[0]) < 0.001;
-        const destMatches = selectedDest && Math.abs(selectedDest.lat - destCoords[1]) < 0.001 && Math.abs((selectedDest.lon || selectedDest.lng) - destCoords[0]) < 0.001;
-        if (!sourceMatches || !destMatches) {
-          setReplayingShipment(null);
-          setOriginalAnalysis(null);
+        if (selectedSource && selectedDest) {
+          const sourceMatches = Math.abs(selectedSource.lat - origCoords[1]) < 0.001 && 
+                                Math.abs((selectedSource.lon || selectedSource.lng) - origCoords[0]) < 0.001;
+          const destMatches = Math.abs(selectedDest.lat - destCoords[1]) < 0.001 && 
+                              Math.abs((selectedDest.lon || selectedDest.lng) - destCoords[0]) < 0.001;
+          if (!sourceMatches || !destMatches) {
+            console.log('[REPLAY] Coordinates changed away from replay, clearing replayingShipment');
+            setReplayingShipment(null);
+            setOriginalAnalysis(null);
+          }
         }
       }
     }

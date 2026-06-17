@@ -25,18 +25,21 @@ const csrfProtection = (req, res, next) => {
 
   const cleanPath = (p) => {
     if (!p) return '';
-    let cleaned = p.trim().toLowerCase().split('?')[0];
-    // Strip leading /api if present
-    if (cleaned.startsWith('/api')) {
-      cleaned = cleaned.substring(4);
-    }
-    // Strip trailing slash
-    if (cleaned.endsWith('/') && cleaned.length > 1) {
-      cleaned = cleaned.substring(0, cleaned.length - 1);
-    }
+    // Strip query parameters
+    let cleaned = p.split('?')[0];
+    // Normalize consecutive slashes
+    cleaned = cleaned.replace(/\/{2,}/g, '/');
+    // Convert to lowercase and trim
+    cleaned = cleaned.trim().toLowerCase();
+    // Strip leading /api/ or api/
+    cleaned = cleaned.replace(/^\/?api/, '');
     // Ensure leading slash
     if (!cleaned.startsWith('/')) {
       cleaned = '/' + cleaned;
+    }
+    // Strip trailing slash if any
+    if (cleaned.endsWith('/') && cleaned.length > 1) {
+      cleaned = cleaned.substring(0, cleaned.length - 1);
     }
     return cleaned;
   };
@@ -81,7 +84,8 @@ const csrfProtection = (req, res, next) => {
 const setCsrfToken = (req, res, next) => {
   if (!req.cookies['XSRF-TOKEN']) {
     const token = crypto.randomBytes(24).toString('hex');
-    const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https' || 
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https' || isProduction ||
                      (req.headers.host && !req.headers.host.includes('localhost') && !req.headers.host.includes('127.0.0.1'));
     res.cookie('XSRF-TOKEN', token, {
       secure: isSecure,

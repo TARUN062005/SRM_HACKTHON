@@ -7,8 +7,9 @@ import {
   LayoutDashboard, Map, AlertTriangle, Package,
   Settings, LogOut, Bell, User, Loader2,
   Mail, Megaphone, Anchor, ChevronDown, Navigation,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Shield
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const SIDEBAR_W  = 240;
 const COLLAPSED_W = 64;
@@ -27,6 +28,12 @@ const DashboardLayout = () => {
 
   const [collapsed, setCollapsed]                   = useState(false);
   const [isProfileOpen, setIsProfileOpen]           = useState(false);
+  const [avatarError, setAvatarError]               = useState(false);
+
+  // Reset avatar image error when the user profileImage changes
+  useEffect(() => {
+    setAvatarError(false);
+  }, [user?.profileImage]);
 
   const profileRef = useRef(null);
 
@@ -283,57 +290,95 @@ const DashboardLayout = () => {
             )}
 
             {/* Profile */}
-            <div className="relative" ref={profileRef}>
+            <div className="relative animate-fade-in" ref={profileRef}>
               <button
                 onClick={() => setIsProfileOpen(v => !v)}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-xl transition-all"
-                style={{ color: "#9CA3AF" }}
-                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#F9FAFB"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#9CA3AF"; }}
+                className="flex items-center gap-2.5 pl-2 pr-3.5 py-1.5 rounded-2xl border border-slate-800/80 bg-slate-950/45 hover:bg-[#101826]/70 hover:border-slate-700/60 shadow-md transition-all cursor-pointer active:scale-95 group relative"
               >
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black overflow-hidden" style={{ background: "var(--accent)", color: "#020713" }}>
-                  {user?.profileImage
-                    ? <img src={user.profileImage} alt="profile" className="w-full h-full object-cover" />
-                    : user?.name?.charAt(0)?.toUpperCase() || "U"}
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black overflow-hidden shadow-inner border border-slate-800 bg-cyan-500 text-slate-950 group-hover:border-cyan-400 transition-colors relative">
+                  {user?.profileImage && !avatarError ? (
+                    <img 
+                      src={user.profileImage} 
+                      alt="profile" 
+                      className="w-full h-full object-cover" 
+                      onError={() => setAvatarError(true)}
+                    />
+                  ) : (
+                    user?.name?.charAt(0)?.toUpperCase() || "U"
+                  )}
+                  {/* Active telemetry indicator dot */}
+                  <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-slate-950 shadow-[0_0_8px_#10b981] animate-pulse" />
                 </div>
-                <span className="text-sm font-semibold hidden sm:block" style={{ color: "#F9FAFB" }}>
+                <span className="text-xs font-bold hidden sm:block text-slate-300 group-hover:text-white transition-colors">
                   {user?.name?.split(" ")[0] || "User"}
                 </span>
-                <ChevronDown size={13} />
+                <ChevronDown 
+                  size={12} 
+                  className="text-slate-500 group-hover:text-slate-300 transition-transform duration-300"
+                  style={{ transform: isProfileOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+                />
               </button>
 
-              {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-52 rounded-2xl shadow-2xl py-2 z-[3100]" style={{ background: "rgba(15,23,42,0.92)", border: "1px solid var(--border)" }}>
-                  <div className="px-4 py-2.5" style={{ borderBottom: "1px solid var(--border)" }}>
-                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#6B7280" }}>Account</p>
-                    <p className="text-sm font-bold truncate mt-0.5" style={{ color: "#F9FAFB" }}>{user?.name}</p>
-                    <p className="text-xs truncate" style={{ color: "#6B7280" }}>{user?.email}</p>
-                  </div>
+              <AnimatePresence>
+                {isProfileOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                    className="absolute right-0 mt-3 w-64 rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.6)] py-4 z-[3100] backdrop-blur-xl border border-white/10 flex flex-col overflow-hidden bg-slate-950/90"
+                  >
+                    {/* Centered Profile Details and Clearance Badge */}
+                    <div className="px-5 pb-4.5 flex flex-col items-center text-center border-b border-white/5">
+                      <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-cyan-500/25 shadow-[0_0_15px_rgba(0,194,255,0.15)] bg-slate-950 flex items-center justify-center mb-3">
+                        {user?.profileImage && !avatarError ? (
+                          <img 
+                            src={user.profileImage} 
+                            alt="profile" 
+                            className="w-full h-full object-cover" 
+                            onError={() => setAvatarError(true)}
+                          />
+                        ) : (
+                          <span className="text-xl font-black text-cyan-400">
+                            {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm font-black text-slate-100 truncate max-w-full leading-tight">{user?.name || "Operative"}</p>
+                      <p className="text-[10px] text-slate-500 font-semibold truncate max-w-full mt-0.5 mb-3.5">{user?.email}</p>
+                      
+                      <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[9px] font-black uppercase tracking-[0.15em] select-none shadow-sm">
+                        <Shield size={9} className="text-cyan-400" /> {user?.role || 'operator'} Clearance
+                      </div>
+                    </div>
 
-                  {[
-                    { to: "/profile",  icon: User,     label: "My Profile" },
-                    { to: "/settings", icon: Settings, label: "Settings"   },
-                  ].map(({ to, icon: Icon, label }) => (
-                    <Link key={to} to={to} onClick={() => setIsProfileOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-all"
-                      style={{ color: "#9CA3AF" }}
-                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#F9FAFB"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#9CA3AF"; }}>
-                      <Icon size={15} /> {label}
-                    </Link>
-                  ))}
+                    <div className="py-1.5">
+                      {[
+                        { to: "/profile",  icon: User,     label: "My Profile" },
+                        { to: "/settings", icon: Settings, label: "Settings"   },
+                      ].map(({ to, icon: Icon, label }) => (
+                        <Link key={to} to={to} onClick={() => setIsProfileOpen(false)}
+                          className="flex items-center gap-3 px-5 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 transition-all hover:text-[#00C2FF] hover:bg-white/5 group/item"
+                        >
+                          <Icon size={14} className="text-slate-500 group-hover/item:text-[#00C2FF] group-hover/item:translate-x-0.5 transition-all" /> 
+                          <span className="group-hover/item:translate-x-0.5 transition-transform">{label}</span>
+                        </Link>
+                      ))}
+                    </div>
 
-                  <div className="my-1.5 mx-3 rg-divider" style={{ height: 1 }} />
+                    <div className="border-t border-white/5 mx-4 my-1" />
 
-                  <button onClick={handleLogout}
-                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-semibold transition-all"
-                    style={{ color: "#EF4444" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.1)"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                    <LogOut size={15} /> Sign Out
-                  </button>
-                </div>
-              )}
+                    <div className="py-1">
+                      <button onClick={handleLogout}
+                        className="flex items-center gap-3 w-full px-5 py-3 text-xs font-bold uppercase tracking-wider text-red-400 hover:text-red-300 hover:bg-red-950/20 transition-all text-left cursor-pointer group/logout"
+                      >
+                        <LogOut size={14} className="text-red-400 group-hover/logout:-translate-x-0.5 transition-transform" /> 
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </header>

@@ -7,7 +7,7 @@ import {
   Clock, ExternalLink, Globe, RefreshCw, Search, X,
   FileText, MapPin, Filter, Calendar
 } from "lucide-react";
-import { getFallbackImage } from "./Dashboard";
+import { getFallbackImage } from "../lib/imageUtils";
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
 

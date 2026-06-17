@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Shield, Newspaper, CloudRain, ArrowRight, ExternalLink, TrendingUp, ChevronDown, ChevronUp, Radio, Zap, AlertTriangle, Anchor, Info, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getFallbackImage } from '../pages/Dashboard';
+import { getFallbackImage } from '../lib/imageUtils';
 
 const SEV = {
   CRITICAL: { label: 'CRITICAL', color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.25)', dotCls: 'bg-red-500'     },

@@ -7,7 +7,7 @@ import { loadRouteHistory, clearRouteHistory } from '../components/RoutyChatPane
 import {
   Anchor, Plane, Truck, ChevronRight, Trash2,
   Package, MapPin, Clock, Shield, AlertTriangle, RefreshCw,
-  ArrowRight, Activity,
+  ArrowRight, Activity, Loader2
 } from 'lucide-react';
 
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, itemName }) => {
@@ -116,6 +116,7 @@ const ShipmentsPage = () => {
   const [loading, setLoading] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [shipmentToDelete, setShipmentToDelete] = useState(null);
+  const [loadingRouteId, setLoadingRouteId] = useState(null);
 
   const handleDeleteShipment = useCallback(async () => {
     if (!shipmentToDelete) return;
@@ -193,8 +194,13 @@ const ShipmentsPage = () => {
   }, [fetchShipments]);
 
   const handleOpenRoute = useCallback(async (r) => {
+    if (loadingRouteId) return;
+    const startTime = Date.now();
+    setLoadingRouteId(r.id);
     try {
       const res = await axios.get(`/api/ai/shipment/${r.id}`);
+      const duration = Date.now() - startTime;
+      console.log(`[SHIPMENT LOAD TIME] Loaded shipment ${r.id} in ${duration}ms`);
       if (res.data?.success) {
         const fullShipment = res.data.shipment;
         sessionStorage.setItem('pendingRoute', JSON.stringify({
@@ -214,14 +220,20 @@ const ShipmentsPage = () => {
           riskSummary: fullShipment.riskSummary,
           aiReport: fullShipment.aiReport,
           newsAlerts: fullShipment.newsAlerts,
-          waypointReports: fullShipment.waypointReports
+          waypointReports: fullShipment.waypointReports,
+          loadTimeMs: duration
         }));
         navigate('/dashboard');
+      } else {
+        toast.error("Failed to load shipment details");
       }
     } catch (err) {
       console.error('[ShipmentsPage] Error fetching full shipment details:', err.message);
+      toast.error("Failed to load shipment details");
+    } finally {
+      setLoadingRouteId(null);
     }
-  }, [navigate]);
+  }, [navigate, loadingRouteId]);
 
   const sortedAndFiltered = useMemo(() => {
     const list = filter === 'all'
@@ -490,10 +502,15 @@ const ShipmentsPage = () => {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleOpenRoute(r)}
-                            className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800/80 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-105"
+                            className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800/80 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-105 flex items-center justify-center min-w-[28px] min-h-[28px]"
                             title="Load on Map"
+                            disabled={loadingRouteId !== null}
                           >
-                            <ChevronRight size={14} />
+                            {loadingRouteId === r.id ? (
+                              <Loader2 size={14} className="animate-spin text-cyan-400" />
+                            ) : (
+                              <ChevronRight size={14} />
+                            )}
                           </button>
                           <button
                             onClick={() => {
