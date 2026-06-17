@@ -6,6 +6,8 @@ const { parse } = require('csv-parse/sync');
 const DEFAULT_URL = 'https://ourairports.com/data/airports.csv';
 const MAX_AGE_DAYS = 14;
 
+const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+
 function normalize(value) {
   return (value || '').toString().toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -72,10 +74,23 @@ class AirportResolver {
         const iata = row.iata_code || '';
         const icao = row.ident || row.gps_code || '';
         const city = row.municipality || '';
-        const country = row.iso_country || '';
+        const countryCode = (row.iso_country || '').toUpperCase();
+        let country = '';
+        if (countryCode) {
+          try {
+            country = regionNames.of(countryCode);
+            if (country === 'Unknown Region') {
+              country = countryCode;
+            }
+          } catch (e) {
+            country = countryCode;
+          }
+        }
         const lat = parseFloat(row.latitude_deg);
         const lon = parseFloat(row.longitude_deg);
         if (!name || Number.isNaN(lat) || Number.isNaN(lon)) return null;
+
+        const searchCountry = normalize(country);
 
         return {
           name,
@@ -89,12 +104,25 @@ class AirportResolver {
           searchCity: normalize(city),
           searchIata: normalize(iata),
           searchIcao: normalize(icao),
+          searchCountry,
         };
       }).filter(Boolean);
 
       this.prefixIndex = new Map();
       this.airports.forEach(airport => {
-        const terms = [...airport.searchName.split(' '), ...airport.searchCity.split(' '), airport.searchIata, airport.searchIcao].filter(Boolean);
+        const strippedName = airport.searchName.replace(/\s+/g, '');
+        const strippedCity = airport.searchCity.replace(/\s+/g, '');
+        const strippedCountry = airport.searchCountry.replace(/\s+/g, '');
+        const terms = [
+          ...airport.searchName.split(' '),
+          ...airport.searchCity.split(' '),
+          ...(airport.searchCountry ? airport.searchCountry.split(' ') : []),
+          airport.searchIata,
+          airport.searchIcao,
+          strippedName,
+          strippedCity,
+          strippedCountry
+        ].filter(Boolean);
         for (const term of terms) {
           for (let len = 1; len <= term.length; len++) {
             const prefix = term.substring(0, len);
@@ -117,19 +145,30 @@ class AirportResolver {
     if (!q) return [];
 
     const firstWord = q.split(' ')[0];
-    const candidates = this.prefixIndex.get(firstWord) || new Set();
+    const qStripped = q.replace(/\s+/g, '');
+    const candidates = new Set([
+      ...(this.prefixIndex.get(firstWord) || []),
+      ...(this.prefixIndex.get(qStripped) || [])
+    ]);
 
     const scored = [];
     for (const airport of candidates) {
       let score = 0;
+      const nameStripped = airport.searchName.replace(/\s+/g, '');
+      const cityStripped = airport.searchCity.replace(/\s+/g, '');
+      const countryStripped = (airport.searchCountry || '').replace(/\s+/g, '');
+
       if (airport.searchIata && airport.searchIata === q) score += 50;
       if (airport.searchIcao && airport.searchIcao === q) score += 45;
-      if (airport.searchName === q) score += 35;
-      if (airport.searchCity === q) score += 25;
-      if (airport.searchName.startsWith(q)) score += 20;
-      if (airport.searchCity.startsWith(q)) score += 12;
-      if (airport.searchName.includes(q)) score += 10;
-      if (airport.searchCity.includes(q)) score += 6;
+      if (airport.searchName === q || nameStripped === qStripped) score += 35;
+      if (airport.searchCity === q || cityStripped === qStripped) score += 25;
+      if (airport.searchCountry && (airport.searchCountry === q || countryStripped === qStripped)) score += 30;
+      if (airport.searchName.startsWith(q) || nameStripped.startsWith(qStripped)) score += 20;
+      if (airport.searchCity.startsWith(q) || cityStripped.startsWith(qStripped)) score += 12;
+      if (airport.searchCountry && (airport.searchCountry.startsWith(q) || countryStripped.startsWith(qStripped))) score += 15;
+      if (airport.searchName.includes(q) || nameStripped.includes(qStripped)) score += 10;
+      if (airport.searchCity.includes(q) || cityStripped.includes(qStripped)) score += 6;
+      if (airport.searchCountry && (airport.searchCountry.includes(q) || countryStripped.includes(qStripped))) score += 8;
       if (score > 0) scored.push({ airport, score });
     }
 

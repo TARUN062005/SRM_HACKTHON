@@ -277,12 +277,12 @@ const ClusteredIncidentMarkers = ({ events }) => {
 };
 
 // ── Navigation simulator dot ─────────────────────────────────────
-const NavigationSimulator = ({ coords, isActive, isNavigating, speedMultiplier, freightMode }) => {
+const NavigationSimulator = ({ coords, isActive, isNavigating, speedMultiplier, freightMode, simResetToken }) => {
   const map = useMap();
   const [position, setPosition] = useState(coords?.[0] ?? null);
   const [rotation, setRotation] = useState(0);
   const indexRef = useRef(0);
-  const timerRef = useRef();
+  const animationRef = useRef();
 
   const getBearing = (p1, p2) => {
     if (!p1 || !p2) return 0;
@@ -293,21 +293,71 @@ const NavigationSimulator = ({ coords, isActive, isNavigating, speedMultiplier, 
     return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
   };
 
+  // Reset simulator to beginning when coordinates or reset token changes
   useEffect(() => {
-    clearTimeout(timerRef.current);
-    if (!isActive || !coords?.length || !isNavigating) { if (!isNavigating) indexRef.current = 0; return; }
-    const step = () => {
-      const inc = Math.max(1, Math.floor(speedMultiplier * 2));
-      const next = Math.min(indexRef.current + inc, coords.length - 1);
-      setRotation(getBearing(coords[indexRef.current], coords[next]));
-      setPosition(coords[next]);
-      indexRef.current = next;
-      map.panTo(coords[next], { animate: true, duration: 0.12 });
-      if (next >= coords.length - 1) indexRef.current = 0;
-      timerRef.current = setTimeout(step, 280 / speedMultiplier);
+    indexRef.current = 0;
+    if (coords?.length > 0) {
+      setPosition(coords[0]);
+    }
+  }, [coords, simResetToken]);
+
+  useEffect(() => {
+    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    if (!isActive || !coords?.length || !isNavigating) return;
+
+    let lastTime = performance.now();
+    let currentIdx = indexRef.current;
+    let t = 0; // fraction between currentIdx and currentIdx + 1
+
+    const animate = (time) => {
+      const delta = time - lastTime;
+      lastTime = time;
+
+      // Complete 1 coordinates index gap in 280ms / speedMultiplier
+      const stepDuration = Math.max(10, 280 / speedMultiplier);
+      t += delta / stepDuration;
+
+      while (t >= 1) {
+        t -= 1;
+        currentIdx++;
+        if (currentIdx >= coords.length - 1) {
+          currentIdx = 0;
+        }
+      }
+
+      indexRef.current = currentIdx;
+
+      const p1 = coords[currentIdx];
+      const p2 = coords[currentIdx + 1] || p1;
+
+      if (p1 && p2 && isValidCoord(p1) && isValidCoord(p2)) {
+        const lat = p1[0] + (p2[0] - p1[0]) * t;
+        const lon = p1[1] + (p2[1] - p1[1]) * t;
+        const interpPos = [lat, lon];
+        setPosition(interpPos);
+
+        const bearing = getBearing(p1, p2);
+        setRotation(bearing);
+
+        // Pan map only if the marker goes outside the map's padded bounds (edge-detection)
+        try {
+          const currentBounds = map.getBounds();
+          if (currentBounds && currentBounds.isValid()) {
+            const paddedBounds = currentBounds.pad(-0.1);
+            if (!paddedBounds.contains(interpPos)) {
+              map.panTo(interpPos, { animate: true, duration: 0.5 });
+            }
+          }
+        } catch (_) {}
+      }
+
+      animationRef.current = requestAnimationFrame(animate);
     };
-    timerRef.current = setTimeout(step, 100);
-    return () => clearTimeout(timerRef.current);
+
+    animationRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
   }, [isActive, coords, isNavigating, speedMultiplier, map]);
 
   if (!isActive || !position || !isValidCoord(position)) return null;
@@ -452,6 +502,7 @@ export const RouteMap = ({
   onClearRoute, onRouteData,
   activeRouteIndex = 0, onSetActiveRoute,
   isNavigating = false, simSpeed = 2,
+  simResetToken = 0,
   aiRecommendation = null,
   resetSignal = null,
   replayingShipment = null,
@@ -950,6 +1001,7 @@ export const RouteMap = ({
                 isNavigating={isNavigating}
                 speedMultiplier={simSpeed}
                 freightMode={freightMode}
+                simResetToken={simResetToken}
               />
             )}
 

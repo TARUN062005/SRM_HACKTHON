@@ -90,7 +90,20 @@ class PortResolver {
 
       this.prefixIndex = new Map();
       this.ports.forEach(port => {
-        const terms = [...port.searchName.split(' '), ...port.searchAlt.split(' '), port.unlocode].filter(Boolean);
+        const searchCountry = normalize(port.countryCode);
+        port.searchCountry = searchCountry;
+        const strippedName = port.searchName.replace(/\s+/g, '');
+        const strippedAlt = port.searchAlt.replace(/\s+/g, '');
+        const strippedCountry = searchCountry.replace(/\s+/g, '');
+        const terms = [
+          ...port.searchName.split(' '),
+          ...port.searchAlt.split(' '),
+          ...searchCountry.split(' '),
+          port.unlocode,
+          strippedName,
+          strippedAlt,
+          strippedCountry
+        ].filter(Boolean);
         for (const term of terms) {
           for (let len = 1; len <= term.length; len++) {
             const prefix = term.substring(0, len);
@@ -113,18 +126,29 @@ class PortResolver {
     if (!q) return [];
 
     const firstWord = q.split(' ')[0];
-    const candidates = this.prefixIndex.get(firstWord) || new Set();
+    const qStripped = q.replace(/\s+/g, '');
+    const candidates = new Set([
+      ...(this.prefixIndex.get(firstWord) || []),
+      ...(this.prefixIndex.get(qStripped) || [])
+    ]);
 
     const scored = [];
     for (const port of candidates) {
       let score = 0;
+      const nameStripped = port.searchName.replace(/\s+/g, '');
+      const altStripped = port.searchAlt.replace(/\s+/g, '');
+      const countryStripped = (port.searchCountry || '').replace(/\s+/g, '');
+
       if (port.unlocode && normalize(port.unlocode) === q) score += 50;
-      if (port.searchName === q) score += 40;
-      if (port.searchAlt === q) score += 35;
-      if (port.searchName.startsWith(q)) score += 20;
-      if (port.searchAlt.startsWith(q)) score += 15;
-      if (port.searchName.includes(q)) score += 10;
-      if (port.searchAlt.includes(q)) score += 8;
+      if (port.searchName === q || nameStripped === qStripped) score += 40;
+      if (port.searchAlt === q || altStripped === qStripped) score += 35;
+      if (port.searchCountry && (port.searchCountry === q || countryStripped === qStripped)) score += 30;
+      if (port.searchName.startsWith(q) || nameStripped.startsWith(qStripped)) score += 20;
+      if (port.searchAlt.startsWith(q) || altStripped.startsWith(qStripped)) score += 15;
+      if (port.searchCountry && (port.searchCountry.startsWith(q) || countryStripped.startsWith(qStripped))) score += 12;
+      if (port.searchName.includes(q) || nameStripped.includes(qStripped)) score += 10;
+      if (port.searchAlt.includes(q) || altStripped.includes(qStripped)) score += 8;
+      if (port.searchCountry && (port.searchCountry.includes(q) || countryStripped.includes(qStripped))) score += 6;
       if (score > 0) scored.push({ port, score });
     }
 

@@ -218,6 +218,7 @@ const Dashboard = () => {
   const [activeRouteIndex, setActiveRouteIndex] = useState(0);
   const [isNavigating, setIsNavigating]         = useState(false);
   const [simSpeed, setSimSpeed]                 = useState(2);
+  const [simResetToken, setSimResetToken]       = useState(0);
   const [showIntel, setShowIntel]               = useState(true);
   const [showRouty, setShowRouty]               = useState(false);
   const [savedRoutes, setSavedRoutes]           = useState([]);
@@ -879,34 +880,67 @@ const Dashboard = () => {
                   </div>
 
                   {/* Simulation controls */}
-                  <div className="mt-1">
-                    <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-850">
-                      <button
-                        onClick={() => setIsNavigating(v => !v)}
-                        className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
-                        style={{
-                          background: isNavigating ? 'var(--danger)' : ACCENT,
-                          boxShadow: isNavigating ? '0 0 12px rgba(255,92,122,0.4)' : '0 0 12px rgba(0,194,255,0.4)',
-                        }}
-                      >
-                        {isNavigating
-                          ? <Square size={10} className="text-white" fill="white" />
-                          : <Play size={11} className="text-white translate-x-0.5" fill="white" />}
-                      </button>
-                      <div className="flex-1">
-                        <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider mb-1" style={{ color: '#6B7280' }}>
-                          <span>{isNavigating ? 'Simulating…' : 'Simulate Route'}</span>
-                          <span style={{ color: ACCENT }}>×{simSpeed}</span>
+                  <div className="mt-2.5">
+                    <div className="flex flex-col gap-2 p-3.5 rounded-2xl bg-[#0F172A]/90 border border-slate-800/80 shadow-[0_4px_20px_rgba(0,0,0,0.5)] backdrop-blur-md">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-1.5 h-1.5 rounded-full ${isNavigating ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]' : 'bg-slate-600'}`} />
+                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-450">MISSION TELEMETRY</span>
                         </div>
-                        <input
-                          type="range" min="1" max="10" step="1" value={simSpeed}
-                          onChange={e => setSimSpeed(Number(e.target.value))}
-                          className="w-full h-1 rounded-full cursor-pointer"
-                          style={{ accentColor: ACCENT }}
-                        />
+                        <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest">{isNavigating ? 'RUNNING' : 'STANDBY'}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2.5">
+                        {/* Play/Pause Button */}
+                        <button
+                          onClick={() => setIsNavigating(v => !v)}
+                          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all border shadow-md animate-fade-in"
+                          style={{
+                            background: isNavigating ? 'rgba(245,158,11,0.12)' : 'rgba(0,194,255,0.12)',
+                            borderColor: isNavigating ? 'rgba(245,158,11,0.35)' : 'rgba(0,194,255,0.35)',
+                            boxShadow: isNavigating ? '0 0 12px rgba(245,158,11,0.15)' : '0 0 12px rgba(0,194,255,0.15)',
+                          }}
+                        >
+                          {isNavigating
+                            ? <Square size={12} className="text-amber-400" fill="currentColor" />
+                            : <Play size={14} className="text-cyan-400 translate-x-0.5" fill="currentColor" />}
+                        </button>
+                        
+                        {/* Stop Button */}
+                        <button
+                          onClick={() => {
+                            setIsNavigating(false);
+                            setSimResetToken(t => t + 1);
+                          }}
+                          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all border border-slate-800 bg-slate-900/60 hover:bg-slate-805 hover:border-slate-700 shadow-md"
+                          title="Reset Telemetry to Start"
+                        >
+                          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" className="text-slate-400">
+                            <rect x="4" y="4" width="16" height="16" rx="2" />
+                          </svg>
+                        </button>
+
+                        {/* Speed selector chips */}
+                        <div className="flex-1 flex gap-1 bg-slate-950/50 p-1 rounded-xl border border-slate-900">
+                          {[1, 2, 5, 10].map(speed => (
+                            <button
+                              key={speed}
+                              onClick={() => setSimSpeed(speed)}
+                              className="flex-1 py-1 text-[10px] font-black rounded-lg transition-all"
+                              style={{
+                                background: simSpeed === speed ? 'var(--accent)' : 'transparent',
+                                color: simSpeed === speed ? '#0F172A' : 'var(--text-secondary)',
+                                boxShadow: simSpeed === speed ? '0 2px 8px rgba(0,194,255,0.3)' : 'none',
+                              }}
+                            >
+                              {speed}x
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
+
                 </div>
 
                 {/* 2. RISK ASSESSMENT */}
@@ -1502,6 +1536,7 @@ const Dashboard = () => {
           onSetActiveRoute={setActiveRouteIndex}
           isNavigating={isNavigating}
           simSpeed={simSpeed}
+          simResetToken={simResetToken}
           aiRecommendation={aiRec}
           resetSignal={modeResetToken}
           replayingShipment={replayingShipment}

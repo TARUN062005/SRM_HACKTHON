@@ -31,7 +31,7 @@ const modeColor = (mode) => {
 };
 
 // ── Search dropdown ───────────────────────────────────────────────────────────
-const LocationInput = ({ placeholder, dotColor, query, setQuery, results, searching, slot, selected, activeDropdown, setActiveDropdown, onSelect, onClear, freightMode }) => {
+const LocationInput = ({ placeholder, dotColor, query, setQuery, results, searching, slot, selected, activeDropdown, setActiveDropdown, onSelect, onClear, freightMode, onBlur }) => {
   const focused = activeDropdown === slot;
   const colors  = modeColor(freightMode);
 
@@ -51,6 +51,7 @@ const LocationInput = ({ placeholder, dotColor, query, setQuery, results, search
           placeholder={placeholder}
           onChange={e => setQuery(e.target.value)}
           onFocus={() => setActiveDropdown(slot)}
+          onBlur={onBlur}
           className="rg-input flex-1 text-sm font-medium min-w-0"
         />
         {searching
@@ -431,6 +432,55 @@ export const ShipmentCreationFlow = ({
   };
 
   // ── Select handlers ───────────────────────────────────────────────────────
+  const triggerSearchAndSelectFirst = async (query, which) => {
+    const currentSlot = getSlot(which);
+    if (currentSlot.selected) return;
+
+    const modeKey = freightMode === 'ship' ? 'sea' : freightMode === 'truck' ? 'road' : freightMode;
+    try {
+      const res = await axios.get(`${BASE_URL}/api/ai/search`, {
+        params: { q: query, limit: 6, mode: modeKey },
+        timeout: 6000,
+      });
+      const data = filterResultsByMode(res.data || []);
+      if (data.length > 0) {
+        setSlot(which, (currentState) => {
+          if (!currentState.selected) {
+            setTimeout(() => {
+              handleSelect(data[0], which);
+            }, 0);
+          }
+          return {};
+        });
+      }
+    } catch (err) {
+      console.warn(`[SEARCH ON BLUR FAILED]`, err.message);
+    }
+  };
+
+  const handleInputBlur = (which) => {
+    setTimeout(() => {
+      setSlot(which, (currentState) => {
+        if (currentState.selected) return {};
+
+        const qVal = (currentState.query || '').trim();
+        if (qVal.length >= 2) {
+          if (currentState.results && currentState.results.length > 0) {
+            const bestMatch = currentState.results[0];
+            setTimeout(() => {
+              handleSelect(bestMatch, which);
+            }, 0);
+          } else {
+            setTimeout(() => {
+              triggerSearchAndSelectFirst(qVal, which);
+            }, 0);
+          }
+        }
+        return {};
+      });
+    }, 250);
+  };
+
   const handleSelect = (loc, which) => {
     if (freightMode === 'ship' && !loc._isPort) {
       setSlot(which, { error: 'Select a seaport for maritime routes.', results: [] });
@@ -504,6 +554,7 @@ export const ShipmentCreationFlow = ({
             onSelect={handleSelect}
             onClear={() => clearSlot(which)}
             freightMode={freightMode}
+            onBlur={() => handleInputBlur(which)}
           />
         )}
 

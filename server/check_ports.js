@@ -1,36 +1,23 @@
 const fs = require('fs');
 const path = require('path');
-const { parse } = require('csv-parse/sync');
+const PortResolver = require('./services/PortResolver');
 
-const datasetPath = path.join(__dirname, 'datasets', 'ports', 'UpdatedPub150.csv');
+const resolver = new PortResolver();
 
-if (!fs.existsSync(datasetPath)) {
-    console.log("File does not exist:", datasetPath);
-    process.exit(1);
+async function run() {
+    await resolver.ensureDataset();
+    console.log("Ports count loaded:", resolver.ports.length);
+    console.log("Prefix index keys sample:", Array.from(resolver.prefixIndex.keys()).slice(0, 30));
+
+    const queries = ['durban', 'mumbai', 'singapore', 'africa', 'capetown', 'cape'];
+    for (const q of queries) {
+        const results = await resolver.searchByName(q, 5);
+        console.log(`\nSearch for "${q}":`);
+        console.log("Results found:", results.length);
+        results.forEach(p => {
+            console.log(` - ${p.name} (Code: ${p.countryCode}, Lat: ${p.lat}, Lon: ${p.lon})`);
+        });
+    }
 }
 
-const csv = fs.readFileSync(datasetPath, 'utf8');
-const records = parse(csv, {
-    columns: true,
-    skip_empty_lines: true,
-    relax_column_count: true,
-    relax_quotes: true,
-});
-
-const sizes = Array.from(new Set(records.map(r => r['Harbor Size'] || '')));
-console.log("Harbor Sizes:", sizes);
-
-const indiaPorts = records.filter(r => {
-    const cc = (r['Country Code'] || '').toLowerCase();
-    return cc === 'india';
-});
-
-console.log("\nIndia Ports sample (first 10):");
-for (let i = 0; i < Math.min(10, indiaPorts.length); i++) {
-    console.log({
-        name: indiaPorts[i]['Main Port Name'],
-        size: indiaPorts[i]['Harbor Size'],
-        type: indiaPorts[i]['Harbor Type'],
-        unlocode: indiaPorts[i]['UN/LOCODE']
-    });
-}
+run().catch(console.error);
