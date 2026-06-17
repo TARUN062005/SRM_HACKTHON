@@ -71,6 +71,9 @@ const NotificationsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedDateRange, setSelectedDateRange] = useState("all");
 
+  const activeSev = openAlert ? (SEV_CONFIG[openAlert.severity?.toUpperCase()] || SEV_CONFIG.LOW) : null;
+  const ThreatIcon = activeSev?.icon;
+
   const handleOpenAlert = async (alert) => {
     setOpenAlert(alert);
     setModalContent("");
@@ -510,15 +513,11 @@ const NotificationsPage = () => {
                 {/* Modal Header */}
                 <div className="flex items-start justify-between p-6 bg-[#101826] border-b border-white/5">
                   <div className="flex items-start gap-4">
-                    {(() => {
-                      const tc = SEV_CONFIG[openAlert.severity?.toUpperCase()] || SEV_CONFIG.LOW;
-                      const TI = tc.icon;
-                      return (
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: tc.bg, border: `1px solid ${tc.border}` }}>
-                          <TI size={18} style={{ color: tc.color }} />
-                        </div>
-                      );
-                    })()}
+                    {ThreatIcon && (
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: activeSev.bg, border: `1px solid ${activeSev.border}` }}>
+                        <ThreatIcon size={18} style={{ color: activeSev.color }} />
+                      </div>
+                    )}
                     <div>
                       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                         {(() => {
@@ -532,15 +531,17 @@ const NotificationsPage = () => {
                             </span>
                           );
                         })()}
-                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded border"
-                          style={{
-                            background: tc.bg,
-                            color: tc.color,
-                            borderColor: tc.border
-                          }}
-                        >
-                          {openAlert.severity}
-                        </span>
+                        {activeSev && (
+                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded border"
+                            style={{
+                              background: activeSev.bg,
+                              color: activeSev.color,
+                              borderColor: activeSev.border
+                            }}
+                          >
+                            {openAlert.severity}
+                          </span>
+                        )}
                       </div>
                       <h3 className="text-base font-black leading-snug text-white pr-4">
                         {openAlert.title}
