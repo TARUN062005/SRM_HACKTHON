@@ -66,15 +66,30 @@ class PortResolver {
       });
 
       this.ports = records.map(row => {
-        const name = row['Main Port Name'] || row['PORT_NAME'] || row['Name'];
+        const name = row['Main Port Name'] || row['PORT_NAME'] || row['Name'] || '';
         const altName = row['Alternate Port Name'] || row['ALT_NAME'] || '';
         const unlocode = row['UN/LOCODE'] || row['UNLOCODE'] || row['UNLocode'] || '';
         const countryCode = row['Country Code'] || row['COUNTRY_CODE'] || row['Country'] || '';
         const lat = parseFloat(row['Latitude']);
         const lon = parseFloat(row['Longitude']);
         if (!name || Number.isNaN(lat) || Number.isNaN(lon)) return null;
+
         const searchName = normalize(name);
         const searchAlt = normalize(altName);
+        const searchCountry = normalize(countryCode);
+
+        // Filter out all default UAE/Dubai ports to snap/resolve strictly to commercial ports only
+        if (
+          searchCountry.includes('united arab emirates') ||
+          searchCountry === 'ae' ||
+          searchName.includes('dubayy') ||
+          searchAlt.includes('dubayy') ||
+          searchName.includes('dubai') ||
+          searchAlt.includes('dubai')
+        ) {
+          return null;
+        }
+
         return {
           name,
           altName,
@@ -88,9 +103,61 @@ class PortResolver {
         };
       }).filter(Boolean);
 
+      // Inject UAE commercial seaports strictly
+      const uaeCommercialPorts = [
+        {
+          name: 'Jebel Ali Port',
+          altName: 'Mina Jebel Ali; Mina Jabal Ali',
+          unlocode: 'AE JEA',
+          countryCode: 'AE',
+          lat: 25.016667,
+          lon: 55.049999,
+          searchName: 'jebel ali port',
+          searchAlt: 'mina jebel ali mina jabal ali',
+          searchCountry: 'ae'
+        },
+        {
+          name: 'Port Rashid',
+          altName: 'Mina Rashid; Dubai',
+          unlocode: 'AE DXB',
+          countryCode: 'AE',
+          lat: 25.266667,
+          lon: 55.299999,
+          searchName: 'port rashid',
+          searchAlt: 'mina rashid dubai',
+          searchCountry: 'ae'
+        },
+        {
+          name: 'Khalifa Port',
+          altName: 'Mina Khalifa',
+          unlocode: 'AE KHL',
+          countryCode: 'AE',
+          lat: 24.85,
+          lon: 54.68,
+          searchName: 'khalifa port',
+          searchAlt: 'mina khalifa',
+          searchCountry: 'ae'
+        },
+        {
+          name: 'Abu Dhabi Port',
+          altName: 'Mina Zayed; Abu Zaby',
+          unlocode: 'AE AUH',
+          countryCode: 'AE',
+          lat: 24.500000,
+          lon: 54.333333,
+          searchName: 'abu dhabi port',
+          searchAlt: 'mina zayed abu zaby',
+          searchCountry: 'ae'
+        }
+      ];
+      this.ports.push(...uaeCommercialPorts);
+
       this.prefixIndex = new Map();
       this.ports.forEach(port => {
-        const searchCountry = normalize(port.countryCode);
+        let searchCountry = normalize(port.countryCode);
+        if (searchCountry === 'ae') {
+          searchCountry = 'ae united arab emirates uae';
+        }
         port.searchCountry = searchCountry;
         const strippedName = port.searchName.replace(/\s+/g, '');
         const strippedAlt = port.searchAlt.replace(/\s+/g, '');

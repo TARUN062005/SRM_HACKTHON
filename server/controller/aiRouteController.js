@@ -1572,16 +1572,9 @@ exports.analyzeRisk = async (req, res) => {
     if (hasCriticalWeather) weatherImpact = 'HIGH';
     else if (hasCautionWeather) weatherImpact = 'MEDIUM';
 
-    if (!geoRiskResult) {
-      let friendlyMessage = 'Risk intelligence temporarily unavailable.';
-      if (geoRiskError && geoRiskError.response) {
-        const status = geoRiskError.response.status;
-        const detail = geoRiskError.response.data?.detail || geoRiskError.response.data?.error || geoRiskError.response.data?.message;
-        if (status === 400 || status === 422) {
-          friendlyMessage = typeof detail === 'string' ? detail : (detail?.message || 'Geocoding or validation failed on risk engine.');
-        }
-      }
+    console.log('[GEO_RISK RAW RESPONSE]', geoRiskResult ? JSON.stringify(geoRiskResult, null, 2) : 'null');
 
+    if (!geoRiskResult) {
       const affectedRegions = weatherReports.map(w => w.place?.split(',')[0]).filter(Boolean).slice(0, 3);
       const topRisks = ['Geopolitical risk service currently offline.'];
       while (topRisks.length < 3) {
@@ -1591,14 +1584,14 @@ exports.analyzeRisk = async (req, res) => {
       const currentModeMapped = mode === 'ship' || mode === 'sea' ? 'Sea' : mode === 'air' ? 'Air' : 'Road';
       
       const fallbackReport = {
-        executiveSummary: friendlyMessage,
+        executiveSummary: 'Risk Analysis Unavailable',
         routeOverview: `Transit from ${origin} to ${destination} using ${currentModeMapped} mode.`,
-        geopoliticalAssessment: 'Geopolitical analysis is offline.',
+        geopoliticalAssessment: 'Risk Analysis Unavailable',
         weatherAssessment: `Weather corridor assessment indicates a ${weatherImpact.toLowerCase()} impact.`,
         operationalImpact: `Logistical operations are currently impacted by ${weatherImpact.toLowerCase()} weather risk.`,
         topThreats: topRisks,
         recommendedActions: hasCriticalWeather ? 'Reroute to avoid severe weather.' : hasCautionWeather ? 'Delay transit until weather clears.' : 'Proceed with standard caution.',
-        alternativeModeAnalysis: 'Alternative mode evaluation is temporarily unavailable.',
+        alternativeModeAnalysis: 'Risk Mapping Failed',
         operatorDecision: hasCriticalWeather ? 'REROUTE' : hasCautionWeather ? 'DELAY' : 'PROCEED'
       };
 
@@ -1626,7 +1619,7 @@ exports.analyzeRisk = async (req, res) => {
         riskZones: [],
         zoneIntersections: [],
         waypointReports: weatherReports,
-        summary: friendlyMessage,
+        summary: 'Risk Engine Response Missing',
         severity: 'UNKNOWN',
         riskLevel: 'UNKNOWN',
         risk_level: 'UNKNOWN',
@@ -1634,7 +1627,7 @@ exports.analyzeRisk = async (req, res) => {
         ai_report: fallbackReport
       };
 
-      console.log('[DIAGNOSTIC - ANALYZE RISK RESPONSE (DEGRADED)]', JSON.stringify(intelligence, null, 2));
+      console.log('[BACKEND TRANSFORMED RESPONSE]', JSON.stringify(intelligence, null, 2));
       return res.json({
         success: true,
         isDegraded: true,
@@ -1856,7 +1849,7 @@ Generate a JSON object matching this schema (do not include markdown syntax, bac
       ai_report: aiReport
     };
 
-    console.log('[DIAGNOSTIC - ANALYZE RISK RESPONSE]', JSON.stringify(intelligence, null, 2));
+    console.log('[BACKEND TRANSFORMED RESPONSE]', JSON.stringify(intelligence, null, 2));
     res.json({ success: true, intelligence });
   } catch (error) {
     console.error('analyzeRisk error:', error.message);
@@ -1917,7 +1910,6 @@ exports.createShipment = async (req, res) => {
         destination,
         mode,
         distance: parseFloat(distance) || 0,
-        node_id: null,
         eta: parseFloat(eta) || 0,
         riskScore: riskScore != null ? parseFloat(riskScore) : null,
         safetyScore: safetyScore != null ? parseFloat(safetyScore) : null,

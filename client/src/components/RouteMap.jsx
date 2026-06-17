@@ -641,6 +641,7 @@ export const RouteMap = ({
               });
 
               if (intelRes.data && intelRes.data.success) {
+                console.log('[FRONTEND RECEIVED RESPONSE]', JSON.stringify(intelRes.data, null, 2));
                 success = true;
                 setAllRoutes(curr => {
                   const updated = curr.map(cr => cr.id === route.id ? { ...cr, intelligence: intelRes.data.intelligence } : cr);

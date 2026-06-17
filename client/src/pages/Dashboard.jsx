@@ -292,6 +292,24 @@ const Dashboard = () => {
     console.log('[DIAGNOSTIC - DASHBOARD REPORT STATE]', currentReport);
   }, [currentReport]);
 
+  useEffect(() => {
+    console.log('[DASHBOARD STATE]', {
+      riskScore: intel?.riskScore,
+      safetyScore: intel?.safetyScore,
+      alertsCount: intel?.alertsCount,
+      recommendedMode: intel?.recommendedMode,
+      hasActiveRoute: !!activeRoute,
+      isNavigating,
+      replayingShipment: replayingShipment ? {
+        id: replayingShipment.id,
+        origin: replayingShipment.origin,
+        destination: replayingShipment.destination,
+        riskScore: replayingShipment.riskScore || replayingShipment.risk_score,
+        safetyScore: replayingShipment.safetyScore || replayingShipment.safety_score
+      } : null
+    });
+  }, [intel, activeRoute, isNavigating, replayingShipment]);
+
   const [showFullWeather, setShowFullWeather] = useState(false);
 
   const sampledWeatherReports = useMemo(() => {
@@ -462,6 +480,7 @@ const Dashboard = () => {
           try {
             const res = await axios.post('/api/ai/shipment', item.payload);
             if (res.data && res.data.success) {
+              console.log('[FRONTEND RECEIVED RESPONSE]', JSON.stringify(res.data, null, 2));
               success = true;
               didSyncAny = true;
               updatedQueue = updatedQueue.filter(q => q.tempId !== item.tempId);
@@ -689,6 +708,7 @@ const Dashboard = () => {
     try {
       const res = await axios.get(`/api/ai/shipment/${r.id}`);
       if (res.data?.success) {
+        console.log('[FRONTEND RECEIVED RESPONSE]', JSON.stringify(res.data, null, 2));
         const fullShipment = res.data.shipment;
         const coords = fullShipment.routeGeometry?.coordinates || [];
         if (coords.length >= 2) {
