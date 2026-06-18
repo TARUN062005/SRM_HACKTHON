@@ -637,7 +637,9 @@ export const RouteMap = ({
                 origin: start.display_name,
                 destination: end.display_name,
                 mode: freightMode,
-                routeCoords: route.geometry.coordinates
+                routeCoords: route.geometry.coordinates,
+                distance: route.distance,
+                duration: route.duration,
               });
 
               if (intelRes.data && intelRes.data.success) {
@@ -661,12 +663,22 @@ export const RouteMap = ({
 
           if (!success) {
             console.error('[RouteMap] All risk intelligence fetch retries exhausted. Developer logs trace:', lastError?.message);
+            // Phase 7: Pass backend _meta into error state so Dashboard can show failureReason
+            const backendMeta = lastError?.response?.data?._meta || {
+              engineStatus: 'ERROR',
+              responseDuration: null,
+              analyzedAt: new Date().toISOString(),
+              failureReason: lastError?.code === 'ECONNABORTED'
+                ? 'Risk Engine Timed Out'
+                : lastError?.message || 'Risk Engine Unavailable',
+            };
             setAllRoutes(curr => {
               const updated = curr.map(cr => cr.id === route.id ? {
                 ...cr,
                 intelligence: {
                   error: true,
-                  summary: 'Risk intelligence temporarily unavailable.'
+                  summary: 'Risk intelligence temporarily unavailable.',
+                  _meta: backendMeta,
                 }
               } : cr);
               onRouteDataRef.current?.({ allRoutes: updated, activeRouteIndex: 0 });

@@ -1053,8 +1053,15 @@ const Dashboard = () => {
                       <span className="text-xs text-slate-400 font-bold">{intel.statusText || 'Waking Geo Risk Engine...'}</span>
                     </div>
                   ) : intel?.error ? (
-                    <div className="p-3.5 rounded-xl border border-red-500/20 bg-red-500/5 text-xs text-red-300">
-                      Risk intelligence temporarily unavailable.
+                    <div className="p-3.5 rounded-xl border border-red-500/20 bg-red-500/5 space-y-2">
+                      <p className="text-xs font-bold text-red-300">
+                        {intel._meta?.failureReason || 'Risk intelligence temporarily unavailable.'}
+                      </p>
+                      {intel._meta?.responseDuration && (
+                        <p className="text-[10px] text-slate-500">
+                          Engine responded in {(intel._meta.responseDuration / 1000).toFixed(1)}s
+                        </p>
+                      )}
                     </div>
                   ) : intel ? (
                     <div className="space-y-3">
@@ -1063,13 +1070,25 @@ const Dashboard = () => {
                         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col justify-center">
                           <span className="text-[9px] font-bold uppercase text-slate-500 mb-0.5">Risk Score</span>
                           <span className="text-base font-black text-white">
-                            {formatScore(intel.riskScore) != null ? `${formatScore(intel.riskScore)} / 100` : 'N/A'}
+                            {formatScore(intel.riskScore) != null
+                              ? `${formatScore(intel.riskScore)} / 100`
+                              : intel._meta?.engineStatus === 'TIMEOUT'
+                              ? <span className="text-[11px] text-amber-400 font-bold">Timed Out</span>
+                              : intel._meta?.engineStatus === 'ERROR'
+                              ? <span className="text-[11px] text-red-400 font-bold">Unavailable</span>
+                              : 'Pending...'}
                           </span>
                         </div>
                         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col justify-center">
                           <span className="text-[9px] font-bold uppercase text-slate-500 mb-0.5">Safety Score</span>
                           <span className="text-base font-black text-white">
-                            {formatScore(intel.safetyScore) != null ? `${formatScore(intel.safetyScore)} / 100` : 'N/A'}
+                            {formatScore(intel.safetyScore) != null
+                              ? `${formatScore(intel.safetyScore)} / 100`
+                              : intel._meta?.engineStatus === 'TIMEOUT'
+                              ? <span className="text-[11px] text-amber-400 font-bold">Timed Out</span>
+                              : intel._meta?.engineStatus === 'ERROR'
+                              ? <span className="text-[11px] text-red-400 font-bold">Unavailable</span>
+                              : 'Pending...'}
                           </span>
                         </div>
                         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col justify-center col-span-2">
@@ -1090,6 +1109,38 @@ const Dashboard = () => {
                           </div>
                         </div>
                       </div>
+
+                      {/* Engine metadata card — Phase 7 */}
+                      {intel._meta && (
+                        <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-2.5 flex flex-col gap-1">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-slate-600">Engine Diagnostics</span>
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[9px]">
+                            <span className="text-slate-500">Status</span>
+                            <span className={`font-bold ${
+                              intel._meta.engineStatus === 'OK' ? 'text-emerald-400' :
+                              intel._meta.engineStatus === 'TIMEOUT' ? 'text-amber-400' : 'text-red-400'
+                            }`}>{intel._meta.engineStatus}</span>
+                            {intel._meta.responseDuration != null && (
+                              <>
+                                <span className="text-slate-500">Response</span>
+                                <span className="text-slate-300 font-semibold">{(intel._meta.responseDuration / 1000).toFixed(2)}s</span>
+                              </>
+                            )}
+                            {intel._meta.analyzedAt && (
+                              <>
+                                <span className="text-slate-500">Analyzed</span>
+                                <span className="text-slate-300 font-semibold">{new Date(intel._meta.analyzedAt).toLocaleTimeString()}</span>
+                              </>
+                            )}
+                            {intel._meta.failureReason && (
+                              <>
+                                <span className="text-slate-500">Reason</span>
+                                <span className="text-amber-300 font-semibold truncate">{intel._meta.failureReason}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Mode details */}
                       {(() => {

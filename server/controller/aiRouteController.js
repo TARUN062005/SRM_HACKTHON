@@ -501,20 +501,47 @@ function routePassesNear(checkpoints, zone) {
   return checkpoints.some(cp => hDistKm([cp[0], cp[1]], [zone.lon, zone.lat]) < buffer);
 }
 
-function getCheckpoints(coords, mode) {
+/**
+ * Phase 2: Adaptive waypoint sampling based on route distance.
+ * Caps waypoints to prevent Open-Meteo timeout on long-haul routes.
+ *
+ * Distance     → Max Waypoints
+ * 0–2,500 km   → 15
+ * 2,500–7,000  → 25
+ * 7,000+ km    → 30
+ */
+function getCheckpoints(coords, mode, routeDistanceKm = null) {
   if (!coords || coords.length < 2) return coords || [];
-  
-  let L = 0;
-  for (let i = 1; i < coords.length; i++) {
-    L += hDistKm(coords[i - 1], coords[i]);
+
+  // Calculate route length if not pre-supplied
+  let L = routeDistanceKm;
+  if (!L) {
+    L = 0;
+    for (let i = 1; i < coords.length; i++) {
+      L += hDistKm(coords[i - 1], coords[i]);
+    }
   }
-  
-  // Target a weather checkpoint approximately every 50 km
+
+  // Phase 2: Adaptive max-waypoint cap
+  let maxWaypoints;
+  if (L < 2500) {
+    maxWaypoints = 15;
+  } else if (L < 7000) {
+    maxWaypoints = 25;
+  } else {
+    maxWaypoints = 30;
+  }
+
+  // Original interval-based count, then apply cap
   const intervalKm = 50;
   let count = Math.max(2, Math.round(L / intervalKm) + 1);
-  if (count > 50) {
-    count = 50;
+  const originalCount = count;
+  if (count > maxWaypoints) {
+    count = maxWaypoints;
   }
+
+  const reduction = originalCount > count ? (((originalCount - count) / originalCount) * 100).toFixed(1) : '0';
+  console.log(`[WAYPOINT OPTIMIZATION]\nroute_distance=${Math.round(L)}km\noriginal_waypoints=${originalCount}\nsampled_waypoints=${count}\nreduction=${reduction}%`);
 
   const result = [];
   const total = coords.length;
@@ -523,6 +550,27 @@ function getCheckpoints(coords, mode) {
     result.push(coords[idx]);
   }
   return result;
+}
+
+/**
+ * Phase 5: Bounded parallel batch processing utility.
+ * Processes items in batches of batchSize, logging timing per batch.
+ */
+async function batchProcess(items, batchSize, fn, label = 'RISK QUERY') {
+  const results = [];
+  const totalBatches = Math.ceil(items.length / batchSize);
+  console.log(`[${label}] waypoints=${items.length}, batch_size=${batchSize}, total_batches=${totalBatches}`);
+
+  for (let b = 0; b < totalBatches; b++) {
+    const batch = items.slice(b * batchSize, (b + 1) * batchSize);
+    const batchStart = Date.now();
+    const batchResults = await Promise.all(batch.map(fn));
+    const batchMs = Date.now() - batchStart;
+    console.log(`[${label}] batch_${b + 1}: ${batch.length} queries, ${batchMs}ms`);
+    results.push(...batchResults);
+  }
+
+  return results;
 }
 
 /**
@@ -935,9 +983,11 @@ const reverseGeocodePhoton = async (lat, lon, mode, index, totalCheckpoints) => 
   return null; // post-processing will fill intermediate nodes
 };
 
-const getWeatherAlongRoute = async (coords, mode) => {
+const getWeatherAlongRoute = async (coords, mode, distanceMeters = null) => {
   try {
-    const checkpoints = getCheckpoints(coords, mode);
+    // Phase 2: Pass pre-computed distance (in km) to adaptive sampler
+    const distanceKm = distanceMeters ? distanceMeters / 1000 : null;
+    const checkpoints = getCheckpoints(coords, mode, distanceKm);
     if (checkpoints.length === 0) return [];
 
     // Batch Weather Queries to Open-Meteo in a single request!
@@ -1560,6 +1610,7 @@ exports.optimizeRoute = async (req, res) => {
 };
 
 exports.analyzeRisk = async (req, res) => {
+  const requestStart = Date.now();
   try {
     console.log('[DIAGNOSTIC - ANALYZE RISK REQUEST]', JSON.stringify(req.body, null, 2));
     const { origin, destination, mode, routeCoords, distance, duration } = req.body;
@@ -1567,17 +1618,20 @@ exports.analyzeRisk = async (req, res) => {
       return res.status(400).json({ error: 'Missing origin or destination' });
     }
 
+    // Phase 6: Request log
+    console.log(`[RISK REQUEST]\norigin="${origin}"\ndestination="${destination}"\nmode=${mode || 'unspecified'}\nwaypoints=${routeCoords?.length || 0}\ntimestamp=${new Date().toISOString()}`);
+
     const geoRiskService = require('../services/GeoRiskService');
 
-    // Fetch GeoRisk and Weather in parallel
+    // Fetch GeoRisk and Weather in parallel; pass mode for Phase 3 logging + Phase 4 cache key
     let geoRiskError = null;
     const [geoRiskResult, weatherReports] = await Promise.all([
-      geoRiskService.analyzeRoute(origin, destination).catch(err => {
+      geoRiskService.analyzeRoute(origin, destination, mode).catch(err => {
         console.warn(`[analyzeRisk] GeoRiskEngine error: ${err.message}`);
         geoRiskError = err;
         return null;
       }),
-      routeCoords && Array.isArray(routeCoords) ? getWeatherAlongRoute(routeCoords, mode) : Promise.resolve([])
+      routeCoords && Array.isArray(routeCoords) ? getWeatherAlongRoute(routeCoords, mode, distance) : Promise.resolve([])
     ]);
 
     // Format weather impact
@@ -1866,11 +1920,41 @@ Generate a JSON object matching this schema (do not include markdown syntax, bac
       ai_report: aiReport
     };
 
+    // Phase 6: Success log with duration
+    const responseDuration = Date.now() - requestStart;
+    console.log(`[RISK RESPONSE]\nstatus=200\nduration=${responseDuration}ms\nrisk_score=${riskScore ?? 'N/A'}\nsafety_score=${safetyScore ?? 'N/A'}\nrecommended_mode=${geoRiskResult.recommended_mode}\nalerts=${filteredEvents.length}`);
+
+    // Attach engine metadata for Phase 7 UI
+    intelligence._meta = {
+      engineStatus: 'OK',
+      responseDuration,
+      analyzedAt: new Date().toISOString(),
+      failureReason: null,
+    };
+
     console.log('[BACKEND TRANSFORMED RESPONSE]', JSON.stringify(intelligence, null, 2));
     res.json({ success: true, intelligence });
   } catch (error) {
+    const responseDuration = Date.now() - requestStart;
+    // Phase 6: Failure log
+    console.error(`[RISK FAILURE]\nerror=${error.message}\nduration=${responseDuration}ms\nendpoint=/api/legacy/analyze/v5`);
     console.error('analyzeRisk error:', error.message);
-    res.status(500).json({ error: 'Risk Analysis Offline.', details: error.message });
+    res.status(500).json({
+      error: 'Risk Analysis Offline.',
+      details: error.message,
+      _meta: {
+        engineStatus: error.code === 'ECONNABORTED' ? 'TIMEOUT' : 'ERROR',
+        responseDuration,
+        analyzedAt: new Date().toISOString(),
+        failureReason: error.code === 'ECONNABORTED'
+          ? `Risk Engine Timed Out (${responseDuration}ms)`
+          : error.response?.status === 422
+          ? 'Geocoding Failed'
+          : error.response?.status === 504
+          ? 'Risk Engine Unavailable (504)'
+          : error.message || 'Risk Engine Unavailable',
+      },
+    });
   }
 };
 
