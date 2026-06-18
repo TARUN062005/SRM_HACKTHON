@@ -6,6 +6,50 @@ const routeRiskCache = new NodeCache({ stdTTL: 600 });
 // 1 hour cache for global aggregated live incidents
 const globalAlertsCache = new NodeCache({ stdTTL: 3600 });
 
+// Mapping of spelled-out country names to their 2-letter ISO country codes
+const COUNTRY_TO_CODE = {
+  'india': 'IN',
+  'united arab emirates': 'AE',
+  'uae': 'AE',
+  'united kingdom': 'GB',
+  'uk': 'GB',
+  'great britain': 'GB',
+  'united states': 'US',
+  'united states of america': 'US',
+  'usa': 'US',
+  'china': 'CN',
+  'japan': 'JP',
+  'singapore': 'SG',
+  'netherlands': 'NL',
+  'germany': 'DE',
+  'france': 'FR',
+  'australia': 'AU',
+  'canada': 'CA',
+  'south africa': 'ZA',
+  'brazil': 'BR',
+  'mexico': 'MX',
+  'russia': 'RU',
+  'south korea': 'KR',
+  'korea': 'KR',
+  'hong kong': 'HK',
+  'taiwan': 'TW',
+  'vietnam': 'VN',
+  'thailand': 'TH',
+  'malaysia': 'MY',
+  'indonesia': 'ID',
+  'philippines': 'PH',
+  'egypt': 'EG',
+  'turkey': 'TR',
+  'spain': 'ES',
+  'italy': 'IT',
+  'belgium': 'BE',
+  'saudi arabia': 'SA',
+  'qatar': 'QA',
+  'oman': 'OM',
+  'kuwait': 'KW',
+  'bahrain': 'BH',
+};
+
 // Helper to sanitize locations for Nominatim geocoding on GEO_RISK_ENGINE
 function sanitizeLocation(loc) {
   if (!loc) return '';
@@ -51,6 +95,15 @@ function sanitizeLocation(loc) {
   let resultParts = uniqueParts;
   if (resultParts.length > 2) {
     resultParts = resultParts.slice(-2);
+  }
+  
+  // Convert country names to 2-letter ISO codes (Option A) to prevent geocoding 422 errors on Render ML geocoder
+  if (resultParts.length > 1) {
+    const lastIdx = resultParts.length - 1;
+    const countryKey = resultParts[lastIdx].toLowerCase().trim();
+    if (COUNTRY_TO_CODE[countryKey]) {
+      resultParts[lastIdx] = COUNTRY_TO_CODE[countryKey];
+    }
   }
   
   return resultParts.join(', ');

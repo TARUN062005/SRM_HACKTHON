@@ -510,6 +510,7 @@ model Shipment {
   @@index([routeHash])
   @@index([userId])
   @@index([createdAt])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model ChatState {

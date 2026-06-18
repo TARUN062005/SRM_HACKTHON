@@ -1,6 +1,4 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const routeOptimizer = require('../services/RouteOptimizationService');
-const riskEngine = require('../services/RiskScoringEngine');
 const axios = require('axios');
 const NodeCache = require('node-cache');
 const routeCache = new NodeCache({ stdTTL: 300 }); // 5 minute caching layer
@@ -328,9 +326,18 @@ const isLocationInIndia = (place) => {
 
 // Helper filtering functions for mode-specific searches
 const isSeaPlace = (place) => {
-  if (place._isPort) return true;
+  if (place._isAirport) return false;
   const name = (place.name || '').toLowerCase();
   const displayName = (place.display_name || '').toLowerCase();
+
+  // Reject airports/airfields/airbases that pass standard port substring match
+  if (name.includes('airport') || displayName.includes('airport') ||
+      name.includes('airfield') || displayName.includes('airfield') ||
+      name.includes('airbase') || displayName.includes('airbase')) {
+    return false;
+  }
+
+  if (place._isPort) return true;
   const type = (place.type || '').toLowerCase();
   const cls = (place.class || '').toLowerCase();
 
@@ -339,9 +346,17 @@ const isSeaPlace = (place) => {
 };
 
 const isAirPlace = (place) => {
-  if (place._isAirport) return true;
+  if (place._isPort) return false;
   const name = (place.name || '').toLowerCase();
   const displayName = (place.display_name || '').toLowerCase();
+
+  // Reject ports
+  if ((name.includes('port') && !name.includes('airport')) ||
+      (displayName.includes('port') && !displayName.includes('airport'))) {
+    return false;
+  }
+
+  if (place._isAirport) return true;
   const type = (place.type || '').toLowerCase();
   const cls = (place.class || '').toLowerCase();
 

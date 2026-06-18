@@ -23,7 +23,10 @@ router.get('/alerts', aiRouteController.getAlerts);
 router.get('/article-content', aiRouteController.getArticleContent);
 router.get('/weather', aiRouteController.getWeather);
 router.post('/weather-corridor', aiRouteController.getWeatherCorridor);
-router.get('/search', aiRouteController.searchLocation);
+router.get('/search', (req, res, next) => {
+  res.set('Cache-Control', 'public, max-age=300');
+  next();
+}, aiRouteController.searchLocation);
 router.get('/resolve-port', aiRouteController.resolvePort);
 router.get('/resolve-airport', aiRouteController.resolveAirport);
 router.post('/routes/compare', aiRouteController.compareRoutes);

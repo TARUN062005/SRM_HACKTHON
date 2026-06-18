@@ -30,7 +30,9 @@ const adminRoutes = require('./routes/admin.routes');
 const userPushRoutes = require('./routes/userPushRoutes');
 const aiRoutes = require('./routes/ai.routes');
 
+const compression = require('compression');
 const app = express();
+app.use(compression());
 
 // Set trust proxy to 1 so express-rate-limit can see the real client IP behind Render's load balancers.
 app.set('trust proxy', 1);

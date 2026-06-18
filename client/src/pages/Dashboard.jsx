@@ -207,6 +207,84 @@ const MyRoutesSection = ({ routes, onLoad, onClear, isExpanded, onToggle }) => {
   );
 };
 
+// ── DATA TRANSPARENCY STATUS WIDGET ──────────────────────────────────────────
+const SystemStatusWidget = ({ isDegraded }) => {
+  const statusConfig = {
+    roadRoutes: {
+      status: 'REAL-TIME',
+      source: 'OSRM API',
+      disclaimer: 'Road trajectories calculated via real-time OSRM routing engine.',
+      isReal: true
+    },
+    seaRoutes: {
+      status: 'SIMULATED',
+      source: 'searoute-ts',
+      disclaimer: 'Sea routes are simulated locally based on seaport coordinates. Real-time vessel tracks are not used.',
+      isReal: false
+    },
+    airRoutes: {
+      status: 'SIMULATED',
+      source: 'Great Circle Math',
+      disclaimer: 'Air coordinates represent synthetic geodesic paths between airports.',
+      isReal: false
+    },
+    riskAnalysis: {
+      status: isDegraded ? 'UNAVAILABLE' : 'REAL-TIME',
+      source: 'GEO-RISK-ENGINE ML',
+      disclaimer: isDegraded ? 'Risk engine currently unavailable. Offline advisory mode active.' : 'Real-time geopolitical threat monitoring and predictive risk analysis.',
+      isReal: !isDegraded
+    },
+    weather: {
+      status: 'REAL-TIME',
+      source: 'Open-Meteo API',
+      disclaimer: 'Real-time meteorological corridor data fetched from Open-Meteo.',
+      isReal: true
+    }
+  };
+
+  return (
+    <div className="px-4 py-4 mt-2 border-t border-slate-800/80 bg-slate-950/40">
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00C2FF] mb-3 flex items-center gap-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#00C2FF] animate-pulse" />
+        Data Transparency & Status
+      </p>
+      <div className="space-y-2.5">
+        {Object.entries(statusConfig).map(([key, item]) => {
+          const isReal = item.isReal;
+          const isUnavailable = item.status === 'UNAVAILABLE';
+          const badgeBg = isUnavailable ? 'rgba(239,68,68,0.1)' : isReal ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)';
+          const badgeText = isUnavailable ? '#EF4444' : isReal ? '#22C55E' : '#F59E0B';
+          const badgeBorder = isUnavailable ? 'rgba(239,68,68,0.2)' : isReal ? 'rgba(34,197,94,0.2)' : 'rgba(245,158,11,0.2)';
+          
+          let displayLabel = 'Road Routing';
+          if (key === 'seaRoutes') displayLabel = 'Sea Routing';
+          if (key === 'airRoutes') displayLabel = 'Air Routing';
+          if (key === 'riskAnalysis') displayLabel = 'Risk Engine';
+          if (key === 'weather') displayLabel = 'Weather Feed';
+
+          return (
+            <div key={key} className="flex flex-col gap-1 text-[11px] leading-snug">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-300">{displayLabel}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] text-slate-500 font-extrabold">{item.source}</span>
+                  <span className="px-1.5 py-0.5 rounded text-[8px] font-black tracking-wider border" 
+                        style={{ background: badgeBg, color: badgeText, borderColor: badgeBorder }}>
+                    {item.status}
+                  </span>
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-500 font-medium leading-relaxed pl-1" style={{ borderLeft: '1px solid rgba(148,163,184,0.1)' }}>
+                {item.disclaimer}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 const Dashboard = () => {
   const { user } = useAuth();
@@ -1403,6 +1481,9 @@ const Dashboard = () => {
                   </div>
                 )}
 
+                {/* System Status Card */}
+                <SystemStatusWidget isDegraded={!!(intel?.isDegraded || originalAnalysis?.isDegraded)} />
+
               </motion.div>
             </AnimatePresence>
           </div>
@@ -1535,6 +1616,9 @@ const Dashboard = () => {
                   isExpanded={showMyRoutes}
                   onToggle={() => setShowMyRoutes(v => !v)}
                 />
+
+                {/* System Status Card */}
+                <SystemStatusWidget isDegraded={!!(intel?.isDegraded || originalAnalysis?.isDegraded)} />
               </div>
             </motion.div>
           </>
